@@ -64,5 +64,5 @@ export const NAV_ITEMS: NavItem[] = [
   },
 ]
 
-// Temporary role
+// Temporary role ['nurse', 'head_nurse', 'admin']
 export const DEV_ROLE: UserRole = 'nurse'
