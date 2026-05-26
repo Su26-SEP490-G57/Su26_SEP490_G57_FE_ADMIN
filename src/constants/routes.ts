@@ -2,16 +2,18 @@ export const ROUTES = {
   // Auth
   LOGIN: '/login',
 
-  // Main
-  DASHBOARD: '/',
-  USERS: '/users',
-  DRIVERS: '/drivers',
-  TRIPS: '/trips',
-  BOOKINGS: '/bookings',
-  PAYMENTS: '/payments',
-  REVIEWS: '/reviews',
+  // Dashboard
+  DASHBOARD: '/dashboard',
+
+  // Clinical
+  PATIENTS: '/patients',
+  MONITORING: '/monitoring',
+  ALERTS: '/alerts',
+  ANALYTICS: '/analytics',
+  RECOVERY: '/recovery',
   NOTIFICATIONS: '/notifications',
-  SUPPORT: '/support',
-  REPORTS: '/reports',
+
+  // Management (head_nurse + admin)
+  STAFF: '/staff',
   SETTINGS: '/settings',
 } as const
