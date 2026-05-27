@@ -25,8 +25,8 @@ export function MainLayout() {
       <aside className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col overflow-y-auto border-r border-[#c2c6d5] bg-[#fbf8ff] py-4 px-2 shadow-sm">
         {/* Brand */}
         <div className="mb-8 px-4">
-          <h1 className="text-xl font-bold text-[#00459a]">Hospital Branch Central</h1>
-          <p className="text-xs font-medium text-[#424753]">Clinical Unit A</p>
+          <h1 className="text-xl font-bold text-[#00459a]">Bệnh viện Thanh Nhàn</h1>
+          <p className="text-xs font-medium text-[#424753]">Khoa Ngoại tổng hợp</p>
         </div>
 
         {/* Nav */}
@@ -55,14 +55,14 @@ export function MainLayout() {
             className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#ba1a1a] px-4 py-3 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
           >
             <span className="material-symbols-outlined text-[18px]">emergency_share</span>
-            Emergency Response
+            Phản ứng khẩn cấp
           </button>
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-4 rounded-lg px-4 py-2 text-xs font-semibold text-[#424753] transition-colors hover:bg-[#e8e7f1]"
           >
             <span className="material-symbols-outlined text-[22px]">logout</span>
-            <span>Logout</span>
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>
@@ -81,7 +81,7 @@ export function MainLayout() {
               </span>
               <input
                 type="text"
-                placeholder="Search patients or directives..."
+                placeholder="Tìm kiếm bệnh nhân hoặc chỉ thị..."
                 className="w-full rounded-full border border-[#c2c6d5] bg-[#f4f2fd] py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#00459a]"
               />
             </div>
@@ -89,7 +89,7 @@ export function MainLayout() {
 
           <div className="flex items-center gap-6">
             <nav className="hidden items-center gap-6 lg:flex">
-              {['Directives', 'Protocol', 'Directory'].map((link) => (
+              {['Chỉ thị', 'Phác đồ', 'Danh bạ'].map((link) => (
                 <a
                   key={link}
                   href="#"
@@ -116,7 +116,7 @@ export function MainLayout() {
                     {user?.displayName ?? user?.email ?? 'Staff'}
                   </p>
                   <p className="text-[10px] uppercase tracking-tight text-[#424753]">
-                    {DEV_ROLE === 'head_nurse' ? 'Head Nurse' : 'Administrator'}
+                    {DEV_ROLE === 'head_nurse' ? 'Điều dưỡng trưởng' : 'Quản trị viên'}
                   </p>
                 </div>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c2c6d5] bg-[#d8e2ff] text-sm font-bold text-[#00459a]">

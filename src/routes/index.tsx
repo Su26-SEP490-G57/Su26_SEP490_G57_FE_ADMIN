@@ -22,14 +22,14 @@ export function AppRoutes() {
         <Route element={<MainLayout />}>
           <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
           {/* Placeholder routes — sẽ thêm page thật sau */}
-          <Route path={ROUTES.PATIENTS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Patients — Coming soon</div>} />
-          <Route path={ROUTES.MONITORING} element={<div className="p-8 text-lg font-semibold text-[#424753]">Monitoring — Coming soon</div>} />
-          <Route path={ROUTES.ALERTS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Alerts — Coming soon</div>} />
-          <Route path={ROUTES.ANALYTICS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Analytics — Coming soon</div>} />
-          <Route path={ROUTES.RECOVERY} element={<div className="p-8 text-lg font-semibold text-[#424753]">Recovery Tracking — Coming soon</div>} />
-          <Route path={ROUTES.NOTIFICATIONS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Notifications — Coming soon</div>} />
-          <Route path={ROUTES.STAFF} element={<div className="p-8 text-lg font-semibold text-[#424753]">Staff Management — Coming soon</div>} />
-          <Route path={ROUTES.SETTINGS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Settings — Coming soon</div>} />
+          <Route path={ROUTES.PATIENTS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Bệnh nhân — Đang phát triển</div>} />
+          <Route path={ROUTES.MONITORING} element={<div className="p-8 text-lg font-semibold text-[#424753]">Theo dõi — Đang phát triển</div>} />
+          <Route path={ROUTES.ALERTS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Cảnh báo — Đang phát triển</div>} />
+          <Route path={ROUTES.ANALYTICS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Phân tích — Đang phát triển</div>} />
+          <Route path={ROUTES.RECOVERY} element={<div className="p-8 text-lg font-semibold text-[#424753]">Theo dõi hồi phục — Đang phát triển</div>} />
+          <Route path={ROUTES.NOTIFICATIONS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Thông báo — Đang phát triển</div>} />
+          <Route path={ROUTES.STAFF} element={<div className="p-8 text-lg font-semibold text-[#424753]">Quản lý nhân viên — Đang phát triển</div>} />
+          <Route path={ROUTES.SETTINGS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Cài đặt — Đang phát triển</div>} />
         </Route>
       </Route>
 
