@@ -1,9 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../features/auth/context/AuthContext'
+import { useAuthStore } from '../../features/auth/store/authStore'
 import { DEV_ROLE, NAV_ITEMS } from './nav-config'
 
 export function MainLayout() {
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
 
   const visibleNavItems = NAV_ITEMS.filter((item) =>

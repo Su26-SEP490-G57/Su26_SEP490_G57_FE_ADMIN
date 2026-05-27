@@ -1,37 +1,41 @@
-import type { User } from 'firebase/auth'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import type { PropsWithChildren } from 'react'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect } from 'react'
 import { auth } from '../../../lib/firebase'
+import { useAuthStore } from '../store/authStore'
 
 interface AuthContextValue {
-    user: User | null
-    isLoading: boolean
     logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: PropsWithChildren) {
-    const [user, setUser] = useState<User | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const { setUser, setLoading, clearSession } = useAuthStore()
 
     useEffect(() => {
-        // Firebase listener — tự động cập nhật khi auth state thay đổi
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            setUser(firebaseUser)
-            setIsLoading(false)
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                setUser(firebaseUser)
+                // TODO: fetch role from Firebase custom claims or BE
+                // const token = await firebaseUser.getIdTokenResult()
+                // setRole(token.claims.role as UserRole)
+            } else {
+                clearSession()
+            }
+            setLoading(false)
         })
 
         return unsubscribe
-    }, [])
+    }, [setUser, setLoading, clearSession])
 
     async function logout() {
         await signOut(auth)
+        clearSession()
     }
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, logout }}>
+        <AuthContext.Provider value={{ logout }}>
             {children}
         </AuthContext.Provider>
     )
