@@ -116,11 +116,7 @@ export function MainLayout() {
                     {user?.displayName ?? user?.email ?? 'Staff'}
                   </p>
                   <p className="text-[10px] uppercase tracking-tight text-[#424753]">
-                    {DEV_ROLE === 'nurse'
-                      ? 'Nurse'
-                      : DEV_ROLE === 'head_nurse'
-                        ? 'Head Nurse'
-                        : 'Administrator'}
+                    {DEV_ROLE === 'head_nurse' ? 'Head Nurse' : 'Administrator'}
                   </p>
                 </div>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c2c6d5] bg-[#d8e2ff] text-sm font-bold text-[#00459a]">

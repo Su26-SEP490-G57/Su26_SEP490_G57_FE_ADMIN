@@ -162,12 +162,16 @@ src/
 
 ## Role System (Development)
 
+Web admin supports two roles: **head_nurse** (điều dưỡng trưởng) and **admin**.
+
+> Nurse and Patient roles are handled by the mobile app.
+
 Currently using a temporary `DEV_ROLE` constant for UI development.
 
 To switch roles, edit **one line** in `src/layouts/main-layout/nav-config.ts`:
 
 ```ts
-export const DEV_ROLE: UserRole = 'nurse' // 'nurse' | 'head_nurse' | 'admin'
+export const DEV_ROLE: UserRole = 'head_nurse' // 'head_nurse' | 'admin'
 ```
 
 This controls both sidebar nav items and dashboard content simultaneously.

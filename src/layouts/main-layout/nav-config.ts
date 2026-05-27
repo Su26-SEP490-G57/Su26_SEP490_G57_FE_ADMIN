@@ -1,4 +1,4 @@
-export type UserRole = 'nurse' | 'head_nurse' | 'admin'
+export type UserRole = 'head_nurse' | 'admin'
 
 export interface NavItem {
   label: string
@@ -12,43 +12,43 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     icon: 'dashboard',
     path: '/dashboard',
-    roles: ['nurse', 'head_nurse', 'admin'],
+    roles: ['head_nurse', 'admin'],
   },
   {
     label: 'Patients',
     icon: 'group',
     path: '/patients',
-    roles: ['nurse', 'head_nurse', 'admin'],
+    roles: ['head_nurse', 'admin'],
   },
   {
     label: 'Monitoring',
     icon: 'monitor_heart',
     path: '/monitoring',
-    roles: ['nurse', 'head_nurse', 'admin'],
+    roles: ['head_nurse', 'admin'],
   },
   {
     label: 'Alerts',
     icon: 'warning',
     path: '/alerts',
-    roles: ['nurse', 'head_nurse', 'admin'],
+    roles: ['head_nurse', 'admin'],
   },
   {
     label: 'Analytics',
     icon: 'analytics',
     path: '/analytics',
-    roles: ['nurse', 'head_nurse', 'admin'],
+    roles: ['head_nurse', 'admin'],
   },
   {
     label: 'Recovery Tracking',
     icon: 'healing',
     path: '/recovery',
-    roles: ['nurse', 'head_nurse', 'admin'],
+    roles: ['head_nurse', 'admin'],
   },
   {
     label: 'Notifications',
     icon: 'notifications',
     path: '/notifications',
-    roles: ['nurse', 'head_nurse', 'admin'],
+    roles: ['head_nurse', 'admin'],
   },
   {
     label: 'Staff Management',
@@ -64,5 +64,5 @@ export const NAV_ITEMS: NavItem[] = [
   },
 ]
 
-// Temporary role ['nurse', 'head_nurse', 'admin']
-export const DEV_ROLE: UserRole = 'admin'
+// Temporary role ['admin', 'head_nurse']
+export const DEV_ROLE: UserRole = 'head_nurse'
