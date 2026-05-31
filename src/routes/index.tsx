@@ -6,30 +6,32 @@ import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
 import { AuthLayout } from '../layouts/auth-layout/AuthLayout'
 import { MainLayout } from '../layouts/main-layout/MainLayout'
 
+const Placeholder = ({ title }: { title: string }) => (
+  <div className="p-8 text-lg font-semibold text-slate-500">{title} — Đang phát triển</div>
+)
+
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Root redirect */}
       <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
 
-      {/* Auth routes */}
       <Route element={<AuthLayout />}>
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
       </Route>
 
-      {/* Protected routes */}
       <Route element={<AuthGuard />}>
         <Route element={<MainLayout />}>
           <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
-          {/* Placeholder routes — sẽ thêm page thật sau */}
-          <Route path={ROUTES.PATIENTS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Bệnh nhân — Đang phát triển</div>} />
-          <Route path={ROUTES.MONITORING} element={<div className="p-8 text-lg font-semibold text-[#424753]">Theo dõi — Đang phát triển</div>} />
-          <Route path={ROUTES.ALERTS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Cảnh báo — Đang phát triển</div>} />
-          <Route path={ROUTES.ANALYTICS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Phân tích — Đang phát triển</div>} />
-          <Route path={ROUTES.RECOVERY} element={<div className="p-8 text-lg font-semibold text-[#424753]">Theo dõi hồi phục — Đang phát triển</div>} />
-          <Route path={ROUTES.NOTIFICATIONS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Thông báo — Đang phát triển</div>} />
-          <Route path={ROUTES.STAFF} element={<div className="p-8 text-lg font-semibold text-[#424753]">Quản lý nhân viên — Đang phát triển</div>} />
-          <Route path={ROUTES.SETTINGS} element={<div className="p-8 text-lg font-semibold text-[#424753]">Cài đặt — Đang phát triển</div>} />
+          <Route path={ROUTES.PATIENTS} element={<Placeholder title="Danh sách người bệnh" />} />
+          <Route path={ROUTES.ALERTS} element={<Placeholder title="Cảnh báo (Alert)" />} />
+          <Route path={ROUTES.MONITORING} element={<Placeholder title="Quản lý POD" />} />
+          <Route path={ROUTES.RECOVERY} element={<Placeholder title="Đánh giá & Triệu chứng" />} />
+          <Route path={ROUTES.ANALYTICS} element={<Placeholder title="Biểu đồ & Báo cáo" />} />
+          <Route path={ROUTES.EXPORT} element={<Placeholder title="Xuất dữ liệu" />} />
+          <Route path={ROUTES.NOTIFICATIONS} element={<Placeholder title="Thông báo" />} />
+          <Route path={ROUTES.STAFF} element={<Placeholder title="Quản lý nhân viên" />} />
+          <Route path={ROUTES.LOGS} element={<Placeholder title="Nhật ký hoạt động" />} />
+          <Route path={ROUTES.SETTINGS} element={<Placeholder title="Cài đặt" />} />
         </Route>
       </Route>
 
