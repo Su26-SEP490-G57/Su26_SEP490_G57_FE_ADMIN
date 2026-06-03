@@ -6,7 +6,7 @@ import { DEV_ROLE, NAV_ITEMS } from './nav-config'
 
 export function MainLayout() {
   const { logout } = useAuth()
-  const { user } = useAuthStore()
+  const { userProfile } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
@@ -128,14 +128,14 @@ export function MainLayout() {
             <div className="flex items-center gap-3 border-l border-slate-200 pl-6">
               <div className="text-right">
                 <p className="text-sm font-bold text-slate-800">
-                  {user?.displayName ?? user?.email ?? 'Nhân viên'}
+                  {userProfile?.fullName ?? userProfile?.email ?? 'Nhân viên'}
                 </p>
                 <p className="text-xs text-slate-500">
                   {DEV_ROLE === 'head_nurse' ? 'Điều dưỡng trưởng' : 'Quản trị viên'}
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-blue-100 text-sm font-bold text-blue-700">
-                {(user?.displayName ?? user?.email ?? 'N')[0].toUpperCase()}
+                {(userProfile?.fullName ?? userProfile?.email ?? 'N')[0].toUpperCase()}
               </div>
             </div>
           </div>

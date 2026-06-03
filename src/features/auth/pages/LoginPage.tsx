@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { signInWithEmailAndPassword } from 'firebase/auth'
 import {
     BarChart2,
     Eye,
@@ -16,9 +15,12 @@ import { useForm } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { ROUTES } from '../../../constants/routes'
-import { auth } from '../../../lib/firebase'
+import { tokenStorage, useAuthStore } from '../store/authStore'
+import type { LoginResponse } from '../types'
 
+// ---------------------------------------------------------------------------
 // Validation schema
+// ---------------------------------------------------------------------------
 const loginSchema = z.object({
     email: z.string().min(1, 'Email là bắt buộc').email('Địa chỉ email không hợp lệ'),
     password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
@@ -27,7 +29,31 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
+// ---------------------------------------------------------------------------
+// Mock login — xóa và thay bằng gọi API thật khi BE sẵn sàng
+// POST /auth/login → { accessToken, refreshToken, user }
+// ---------------------------------------------------------------------------
+async function mockLogin(email: string, _password: string): Promise<LoginResponse> {
+    await new Promise((r) => setTimeout(r, 800)) // giả lập network delay
+
+    // Giả lập sai mật khẩu
+    if (_password !== '123456') throw new Error('Invalid credentials')
+
+    return {
+        accessToken: 'mock-access-token-' + Date.now(),
+        refreshToken: 'mock-refresh-token-' + Date.now(),
+        user: {
+            id: '1',
+            email,
+            fullName: 'ĐD. Nguyễn Thị Hoa',
+            role: 'head_nurse',
+        },
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Stat card — panel trái
+// ---------------------------------------------------------------------------
 function StatCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
     return (
         <div className="flex flex-col gap-0.5">
@@ -39,7 +65,9 @@ function StatCard({ label, value, highlight }: { label: string; value: string; h
     )
 }
 
+// ---------------------------------------------------------------------------
 // LoginPage
+// ---------------------------------------------------------------------------
 export function LoginPage() {
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
@@ -48,6 +76,8 @@ export function LoginPage() {
     const navigate = useNavigate()
     const location = useLocation()
     const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? ROUTES.DASHBOARD
+
+    const { setAccessToken, setUserProfile } = useAuthStore()
 
     const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
@@ -58,7 +88,18 @@ export function LoginPage() {
         setIsLoading(true)
         setAuthError(null)
         try {
-            await signInWithEmailAndPassword(auth, values.email, values.password)
+            // TODO: thay mockLogin bằng gọi API thật
+            // const { data } = await api.post<LoginResponse>('/auth/login', {
+            //   email: values.email,
+            //   password: values.password,
+            // })
+            const data = await mockLogin(values.email, values.password)
+
+            // Lưu tokens và user profile
+            setAccessToken(data.accessToken)
+            setUserProfile(data.user)
+            tokenStorage.setRefreshToken(data.refreshToken)
+
             navigate(from, { replace: true })
         } catch {
             setAuthError('Email hoặc mật khẩu không đúng. Vui lòng thử lại.')
@@ -70,7 +111,7 @@ export function LoginPage() {
     return (
         <div className="flex min-h-svh w-full font-sans">
             {/* Panel trái */}
-            <div className="animated-gradient relative hidden w-2/5 shrink-0 flex-col justify-between overflow-hidden p-10 lg:flex">
+            <div className="animated-gradient relative hidden w-1/3 shrink-0 flex-col justify-between overflow-hidden p-10 lg:flex">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.08),transparent_60%)]" />
 
                 {/* Logo */}
@@ -86,7 +127,7 @@ export function LoginPage() {
                     </div>
                 </div>
 
-                {/* Card xem trước dashboard */}
+                {/* Card xem trước */}
                 <div className="relative">
                     <div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-sm">
                         <div className="mb-4 flex items-center justify-between">
@@ -100,22 +141,17 @@ export function LoginPage() {
                                 ))}
                             </div>
                         </div>
-
-                        {/* Biểu đồ minh họa */}
                         <div className="mb-5 flex h-20 items-end gap-1.5">
                             {[40, 65, 50, 80, 60, 90, 70, 85, 75, 95, 80, 88].map((h, i) => (
                                 <div key={i} className="flex-1 rounded-sm bg-white/20" style={{ height: `${h}%` }} />
                             ))}
                         </div>
-
-                        {/* Thống kê */}
                         <div className="grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
                             <StatCard label="Khoa ngoại" value="98.2%" />
                             <StatCard label="Hồi phục" value="+12%" highlight />
                             <StatCard label="Cảnh báo" value="0" />
                         </div>
                     </div>
-
                     <div className="mt-6 text-center">
                         <h2 className="text-2xl font-bold text-white">Chăm sóc hậu phẫu</h2>
                         <p className="mt-2 text-sm leading-relaxed text-blue-200">
@@ -126,7 +162,7 @@ export function LoginPage() {
                     </div>
                 </div>
 
-                {/* Badge dưới cùng */}
+                {/* Badge */}
                 <div className="relative flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-blue-300" />
                     <span className="text-xs font-medium text-blue-200">Nền tảng doanh nghiệp đạt chuẩn ISO 27001</span>
@@ -143,7 +179,6 @@ export function LoginPage() {
                         </p>
                     </div>
 
-                    {/* Form card */}
                     <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
                         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
                             {/* Email */}
@@ -213,14 +248,12 @@ export function LoginPage() {
                                 <span className="text-sm text-gray-600">Tin tưởng thiết bị này trong 12 giờ</span>
                             </label>
 
-                            {/* Lỗi xác thực */}
                             {authError && (
                                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                                     {authError}
                                 </div>
                             )}
 
-                            {/* Nút đăng nhập */}
                             <button
                                 type="submit"
                                 disabled={isLoading}
@@ -241,7 +274,6 @@ export function LoginPage() {
                         </form>
                     </div>
 
-                    {/* Thông báo bảo mật */}
                     <div className="mt-4 flex items-start gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50">
                             <ShieldCheck className="h-4 w-4 text-teal-600" />
@@ -252,19 +284,15 @@ export function LoginPage() {
                         </div>
                     </div>
 
-                    {/* Điều khoản pháp lý */}
                     <p className="mt-4 text-center text-[11px] leading-relaxed text-gray-400">
                         Chỉ dành cho người dùng được ủy quyền. Mọi hành vi truy cập trái phép đều bị giám sát
                         và xử lý theo quy định bảo vệ dữ liệu y tế hiện hành.
                     </p>
 
-                    {/* footer */}
                     <div className="mt-6 flex items-center justify-center gap-4">
                         {['Chính sách bảo mật', 'Điều khoản sử dụng', 'Trạng thái hệ thống'].map((link, i, arr) => (
                             <span key={link} className="flex items-center gap-4">
-                                <button type="button" className="text-xs text-gray-400 hover:text-gray-600">
-                                    {link}
-                                </button>
+                                <button type="button" className="text-xs text-gray-400 hover:text-gray-600">{link}</button>
                                 {i < arr.length - 1 && <span className="h-1 w-1 rounded-full bg-gray-300" />}
                             </span>
                         ))}

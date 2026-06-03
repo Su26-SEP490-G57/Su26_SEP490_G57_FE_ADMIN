@@ -1,6 +1,6 @@
 # POMS — Post-Operative Monitoring System (FE Admin)
 
-Admin web application for the Post-Operative Monitoring System at Thanh Nhan Hospital — Surgical Department.
+Admin web application for the Post-Operative Monitoring System at Thanh Nhan Hospital — Surgical Department. Supports the ERAS (Enhanced Recovery After Surgery) protocol.
 
 ---
 
@@ -14,8 +14,9 @@ Admin web application for the Post-Operative Monitoring System at Thanh Nhan Hos
 | Server state | TanStack Query v5 |
 | Client state | Zustand |
 | HTTP client | Axios |
-| Auth | Firebase Authentication |
+| Auth | JWT truyền thống (BE issue token) |
 | Form | React Hook Form + Zod |
+| Charts | Chart.js + react-chartjs-2 |
 | Icons | Lucide React + Material Symbols |
 | Lint | ESLint |
 | Format | Prettier |
@@ -34,7 +35,7 @@ Admin web application for the Post-Operative Monitoring System at Thanh Nhan Hos
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Su26-SEP490-G57/Su26_SEP490_G57_FE_ADMIN.git
+git clone <repo-url>
 cd fe-admin
 ```
 
@@ -55,18 +56,8 @@ cp .env.example .env.local
 Required variables in `.env.local`:
 
 ```env
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-VITE_FIREBASE_MEASUREMENT_ID=
-
 VITE_API_BASE_URL=http://localhost:3000/api
 ```
-
-> Get Firebase config from: Firebase Console → Project Settings → Your apps → Web app
 
 ### 4. Run development server
 
@@ -78,12 +69,14 @@ Open [http://localhost:5173](http://localhost:5173)
 
 ---
 
-## Firebase Setup
+## Test Login (Mock)
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Select project **poms-25f1c**
-3. Authentication → Sign-in method → Enable **Email/Password**
-4. Authentication → Users → **Add user** to create test accounts
+Khi BE chưa sẵn sàng, login dùng mock data:
+
+- **Email:** bất kỳ email hợp lệ (vd: `admin@poms.vn`)
+- **Password:** `123456`
+
+Khi BE sẵn sàng, xóa `mockLogin` trong `src/features/auth/pages/LoginPage.tsx` và uncomment gọi API thật.
 
 ---
 
@@ -108,13 +101,6 @@ src/
   app/
     providers.tsx         # Global providers (QueryClient, Router, Auth)
 
-  assets/                 # Static assets
-
-  components/             # Shared reusable UI components (to be added)
-    ui/
-    layout/
-    feedback/
-
   constants/
     routes.ts             # All route path constants
 
@@ -123,29 +109,28 @@ src/
       components/
         AuthGuard.tsx     # Route protection
       context/
-        AuthContext.tsx   # Firebase auth listener
+        AuthContext.tsx   # Session restore on app load
       pages/
-        LoginPage.tsx     # Login form
+        LoginPage.tsx     # Login form (mock → real API when BE ready)
       store/
         authStore.ts      # Zustand auth session store
+      types.ts            # UserProfile, LoginResponse, STORAGE_KEYS
     dashboard/
       pages/
         DashboardPage.tsx       # Role-based dashboard switcher
-        NurseDashboard.tsx
-        HeadNurseDashboard.tsx
-        AdminDashboard.tsx
+        HeadNurseDashboard.tsx  # ERAS dashboard UI
+        AdminDashboard.tsx      # Admin dashboard UI
 
   layouts/
     auth-layout/
       AuthLayout.tsx      # Layout for unauthenticated pages
     main-layout/
-      MainLayout.tsx      # Sidebar + header shell
+      MainLayout.tsx      # Collapsible sidebar + header
       nav-config.ts       # Nav items with role permissions + DEV_ROLE
 
   lib/
-    api.ts                # Axios instance
-    firebase.ts           # Firebase app + auth
-    query-client.ts       # TanStack Query client
+    api.ts                # Axios instance + 2 interceptors (token + refresh)
+    query-client.ts       # TanStack Query client config
 
   routes/
     index.tsx             # Route definitions
@@ -153,30 +138,43 @@ src/
   types/
     api.ts                # ApiResponse<T>, PaginatedResponse<T>
     common.ts             # Shared types
-
-  index.css               # Tailwind + global styles
-  main.tsx                # App entry point
 ```
 
 ---
 
 ## Role System (Development)
 
-Web admin supports two roles: **head_nurse** (điều dưỡng trưởng) and **admin**.
+Web admin hỗ trợ 2 role: **head_nurse** (điều dưỡng trưởng) và **admin**.
 
-> Nurse and Patient roles are handled by the mobile app.
+> Nurse và Patient thuộc mobile app — không có trong web admin này.
 
-Currently using a temporary `DEV_ROLE` constant for UI development.
-
-To switch roles, edit **one line** in `src/layouts/main-layout/nav-config.ts`:
+Để switch role khi dev, đổi 1 dòng trong `src/layouts/main-layout/nav-config.ts`:
 
 ```ts
 export const DEV_ROLE: UserRole = 'head_nurse' // 'head_nurse' | 'admin'
 ```
 
-This controls both sidebar nav items and dashboard content simultaneously.
+Khi role system thật sẵn sàng (từ BE response), thay `DEV_ROLE` bằng `userProfile.role` trong `MainLayout.tsx` và `DashboardPage.tsx`.
 
-> When the role system is ready (Firebase custom claims or BE response), replace `DEV_ROLE` with `useRole()` hook in `MainLayout.tsx` and `DashboardPage.tsx`.
+---
+
+## Auth Flow
+
+```
+Login: POST /auth/login → { accessToken, refreshToken, userProfile }
+  → accessToken lưu Zustand (in-memory)
+  → refreshToken lưu localStorage (key: poms_refresh_token)
+  → userProfile lưu Zustand + persist localStorage (key: poms-auth)
+
+Refresh trang:
+  → AuthContext đọc refreshToken từ localStorage
+  → POST /auth/refresh → nhận accessToken mới
+  → Nếu fail → redirect /login
+
+API request:
+  → Axios interceptor tự gán Authorization: Bearer <accessToken>
+  → Nếu 401 → tự refresh token → retry request gốc
+```
 
 ---
 
@@ -184,11 +182,4 @@ This controls both sidebar nav items and dashboard content simultaneously.
 
 | Variable | Description |
 |---|---|
-| `VITE_FIREBASE_API_KEY` | Firebase Web API key |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
-| `VITE_FIREBASE_PROJECT_ID` | Firebase project ID |
-| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
-| `VITE_FIREBASE_APP_ID` | Firebase app ID |
-| `VITE_FIREBASE_MEASUREMENT_ID` | Firebase Analytics measurement ID |
-| `VITE_API_BASE_URL` | Backend API base URL |
+| `VITE_API_BASE_URL` | Backend API base URL (vd: `http://localhost:3000/api`) |

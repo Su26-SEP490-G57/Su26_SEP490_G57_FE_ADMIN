@@ -1,36 +1,46 @@
-import { onAuthStateChanged, signOut } from 'firebase/auth'
 import type { PropsWithChildren } from 'react'
 import { createContext, useContext, useEffect } from 'react'
-import { auth } from '../../../lib/firebase'
-import { useAuthStore } from '../store/authStore'
+import { api } from '../../../lib/api'
+import { tokenStorage, useAuthStore } from '../store/authStore'
+import type { RefreshResponse } from '../types'
 
 interface AuthContextValue {
-    logout: () => Promise<void>
+    logout: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: PropsWithChildren) {
-    const { setUser, setLoading, clearSession } = useAuthStore()
+    const { setAccessToken, setLoading, clearSession } = useAuthStore()
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            if (firebaseUser) {
-                setUser(firebaseUser)
-                // TODO: fetch role from Firebase custom claims or BE
-                // const token = await firebaseUser.getIdTokenResult()
-                // setRole(token.claims.role as UserRole)
-            } else {
-                clearSession()
+        // Khi app khởi động: kiểm tra refreshToken trong localStorage
+        // Nếu có → thử refresh để lấy accessToken mới
+        async function restoreSession() {
+            const refreshToken = tokenStorage.getRefreshToken()
+
+            if (!refreshToken) {
+                setLoading(false)
+                return
             }
-            setLoading(false)
-        })
 
-        return unsubscribe
-    }, [setUser, setLoading, clearSession])
+            try {
+                // TODO: xác nhận path /auth/refresh với BE
+                const { data } = await api.post<RefreshResponse>('/auth/refresh', { refreshToken })
+                setAccessToken(data.accessToken)
+            } catch {
+                // refreshToken hết hạn hoặc invalid → clear session
+                clearSession()
+            } finally {
+                setLoading(false)
+            }
+        }
 
-    async function logout() {
-        await signOut(auth)
+        restoreSession()
+    }, [setAccessToken, setLoading, clearSession])
+
+    function logout() {
+        // TODO: gọi POST /auth/logout nếu BE có endpoint này
         clearSession()
     }
 
