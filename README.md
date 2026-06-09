@@ -56,7 +56,7 @@ cp .env.example .env.local
 Required variables in `.env.local`:
 
 ```env
-VITE_API_BASE_URL=http://localhost:3000/api
+VITE_API_BASE_URL=http://localhost:3000
 ```
 
 ### 4. Run development server
@@ -182,4 +182,4 @@ API request:
 
 | Variable | Description |
 |---|---|
-| `VITE_API_BASE_URL` | Backend API base URL (vd: `http://localhost:3000/api`) |
+| `VITE_API_BASE_URL` | Backend API base URL (vd: `http://localhost:3000`) |
