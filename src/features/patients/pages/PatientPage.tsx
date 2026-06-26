@@ -1,116 +1,17 @@
-import type { Patient } from '../types'
-import { useState } from 'react'
-
-const patients: Patient[] = [
-  {
-    researchCode: 'BN001',
-    fullName: 'Nguyễn Văn An',
-    age: 58,
-    gender: 'Nam',
-    height: 160,
-    weight: 70,
-    bmi: 27.3,
-    diagnosis: 'Ung thư dạ dày',
-    surgeryGroup: 'Dạ dày',
-    surgeryType: 'Cắt bán phần dạ dày',
-    surgeryMethod: 'Nội soi',
-    hasDigestiveAnastomosis: true,
-    surgeryDate: '2025-05-12',
-    pod: 1,
-    pathway: 'Gastric Pathway',
-    roomBed: 'P301-G02',
-    assignedNurse: 'Điều dưỡng Nguyễn Thị Hoa',
-    riskLevel: 'Đỏ',
-    note: '',
-  },
-  {
-    researchCode: 'BN002',
-    fullName: 'Trần Thị Bình',
-    age: 47,
-    gender: 'Nữ',
-    height: 155,
-    weight: 58,
-    bmi: 24.1,
-    diagnosis: 'Ung thư dạ dày giai đoạn sớm',
-    surgeryGroup: 'Dạ dày',
-    surgeryType: 'Cắt toàn bộ dạ dày',
-    surgeryMethod: 'Nội soi',
-    hasDigestiveAnastomosis: true,
-    surgeryDate: '2025-05-10',
-    pod: 3,
-    pathway: 'Gastric Pathway',
-    roomBed: 'P302-G05',
-    assignedNurse: 'Điều dưỡng Trần Minh Anh',
-    riskLevel: 'Đỏ',
-    note: 'Theo dõi dung nạp đường miệng',
-  },
-
-  {
-    researchCode: 'BN003',
-    fullName: 'Lê Văn Cường',
-    age: 64,
-    gender: 'Nam',
-    height: 168,
-    weight: 72,
-    bmi: 25.5,
-    diagnosis: 'Ung thư đại tràng sigma',
-    surgeryGroup: 'Đại trực tràng',
-    surgeryType: 'Cắt đoạn đại tràng sigma',
-    surgeryMethod: 'Nội soi',
-    hasDigestiveAnastomosis: true,
-    surgeryDate: '2025-05-08',
-    pod: 5,
-    pathway: 'Colorectal Pathway',
-    roomBed: 'P401-G03',
-    assignedNurse: 'Điều dưỡng Nguyễn Thị Hoa',
-    riskLevel: 'Vàng',
-    note: 'Đã vận động tốt',
-  },
-
-  {
-    researchCode: 'BN004',
-    fullName: 'Phạm Thị Dung',
-    age: 55,
-    gender: 'Nữ',
-    height: 150,
-    weight: 61,
-    bmi: 27.1,
-    diagnosis: 'Ung thư trực tràng thấp',
-    surgeryGroup: 'Đại trực tràng',
-    surgeryType: 'Cắt trước thấp trực tràng',
-    surgeryMethod: 'Mổ mở',
-    hasDigestiveAnastomosis: true,
-    surgeryDate: '2025-05-11',
-    pod: 2,
-    pathway: 'Colorectal Pathway',
-    roomBed: 'P402-G01',
-    assignedNurse: 'Điều dưỡng Lê Thu Hà',
-    riskLevel: 'Xanh',
-    note: 'Đau sau mổ mức độ cao',
-  },
-
-  {
-    researchCode: 'BN005',
-    fullName: 'Hoàng Văn Đức',
-    age: 60,
-    gender: 'Nam',
-    height: 170,
-    weight: 68,
-    bmi: 23.5,
-    diagnosis: 'Ung thư dạ dày hang vị',
-    surgeryGroup: 'Dạ dày',
-    surgeryType: 'Cắt bán phần dạ dày',
-    surgeryMethod: 'Robot hỗ trợ',
-    hasDigestiveAnastomosis: true,
-    surgeryDate: '2025-05-09',
-    pod: 4,
-    pathway: 'Gastric Pathway',
-    roomBed: 'P303-G04',
-    assignedNurse: 'Điều dưỡng Trần Minh Anh',
-    riskLevel: 'Xanh',
-    note: 'Tiến triển thuận lợi',
-  },
-]
+import type {
+  AssessmentDetailResponse,
+  LatestAssessmentResponse,
+  PatientListItem,
+  OperationType,
+} from '../types'
+import { useState, useEffect } from 'react'
+import {
+  getPatients,
+  getLatestAssessment,
+  getAssessmentDetail,
+  getOperationTypes,
+} from '../api/patientApi'
+import axios from 'axios'
 
 const summaryCards = [
   { title: 'Tổng số người bệnh', value: 24, subtitle: 'Đang theo dõi' },
@@ -121,9 +22,99 @@ const summaryCards = [
   { title: 'Đánh giá hôm nay', value: '18/24' },
 ]
 
+function displayValue<T>(value: T | null | undefined) {
+  return value ?? '--'
+}
+
 export function PatientPage() {
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
-  console.log(selectedPatient)
+  const [patients, setPatients] = useState<PatientListItem[]>([])
+  const [operationTypes, setOperationTypes] = useState<OperationType[]>([])
+  const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(null)
+
+  const [search, setSearch] = useState('')
+  const [operationTypeId, setOperationTypeId] = useState<number | undefined>()
+  const [level, setLevel] = useState<string | undefined>()
+  const [page, setPage] = useState(1)
+
+  const limit = 10
+  const [total, setTotal] = useState(0)
+  const totalPages = Math.max(1, Math.ceil(total / limit))
+
+  const [latestAssessment, setLatestAssessment] = useState<LatestAssessmentResponse | null>(null)
+  const [assessmentDetail, setAssessmentDetail] = useState<AssessmentDetailResponse | null>(null)
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, operationTypeId, level])
+
+  useEffect(() => {
+    async function loadPatients() {
+      const response = await getPatients({
+        search,
+        operationTypeId,
+        level,
+        page,
+        limit,
+      })
+
+      setSelectedPatient(null)
+      setPatients(response.data)
+      setTotal(response.total)
+    }
+
+    loadPatients()
+  }, [search, operationTypeId, level, page])
+
+  useEffect(() => {
+    async function loadOperationTypes() {
+      const data = await getOperationTypes()
+      setOperationTypes(data)
+    }
+
+    loadOperationTypes()
+  }, [])
+
+  useEffect(() => {
+    if (!selectedPatient) {
+      setLatestAssessment(null)
+      setAssessmentDetail(null)
+      return
+    }
+
+    const patient = selectedPatient
+
+    async function loadAssessment() {
+      setLatestAssessment(null)
+      setAssessmentDetail(null)
+      try {
+        const latest = await getLatestAssessment(patient.case_id)
+
+        setLatestAssessment(latest)
+
+        const detail = await getAssessmentDetail(latest.assessment_id)
+
+        setAssessmentDetail(detail)
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+          setLatestAssessment(null)
+          setAssessmentDetail(null)
+          return
+        }
+
+        console.error(error)
+      }
+    }
+
+    loadAssessment()
+  }, [selectedPatient])
+
+  function getAnswer(questionText: string) {
+    return (
+      assessmentDetail?.details.find((item) => item.question_text === questionText)?.option_text ??
+      '--'
+    )
+  }
+
   return (
     <div className="p-4">
       {/* Summary cards */}
@@ -143,15 +134,34 @@ export function PatientPage() {
         <input
           type="text"
           placeholder="Tìm kiếm..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           className="flex-1 rounded-lg border bg-white px-4 py-2"
         />
 
-        <select className="rounded-lg border bg-white px-4 py-2">
-          <option>Loại phẫu thuật</option>
+        <select
+          value={operationTypeId ?? ''}
+          onChange={(e) => setOperationTypeId(e.target.value ? Number(e.target.value) : undefined)}
+          className="rounded-lg border bg-white px-4 py-2"
+        >
+          <option value="">Loại phẫu thuật</option>
+
+          {operationTypes.map((type) => (
+            <option key={type.id} value={type.id}>
+              {type.name}
+            </option>
+          ))}
         </select>
 
-        <select className="rounded-lg border bg-white px-4 py-2">
-          <option>Mức độ</option>
+        <select
+          value={level ?? ''}
+          onChange={(e) => setLevel(e.target.value || undefined)}
+          className="rounded-lg border bg-white px-4 py-2"
+        >
+          <option value="">Mức độ</option>
+          <option value="Red">Đỏ</option>
+          <option value="Yellow">Vàng</option>
+          <option value="Green">Xanh</option>
         </select>
       </div>
 
@@ -176,34 +186,34 @@ export function PatientPage() {
             <tbody>
               {patients.map((patient) => (
                 <tr
-                  key={patient.researchCode}
+                  key={patient.case_id}
                   onClick={() => setSelectedPatient(patient)}
                   className={`
                         cursor-pointer border-b
                         ${
-                          selectedPatient?.researchCode === patient.researchCode
+                          selectedPatient?.case_id === patient.case_id
                             ? 'bg-blue-200 border-l-4 border-blue-500'
                             : 'hover:bg-slate-100'
                         }
                     `}
                 >
-                  <td className="p-3">{patient.researchCode}</td>
-                  <td className="p-3">{patient.fullName}</td>
-                  <td className="p-3">POD {patient.pod}</td>
-                  <td className="p-3">{patient.surgeryType}</td>
+                  <td className="p-3">{patient.case_id}</td>
+                  <td className="p-3">{patient.name_initials}</td>
+                  <td className="p-3">POD {patient.current_pod}</td>
+                  <td className="p-3">{patient.operationType?.name}</td>
                   <td className="p-3">
                     <span
                       className={`rounded-full px-3 py-1 text-white text-sm
                         ${
-                          patient.riskLevel === 'Đỏ'
+                          patient.level?.name === 'Đỏ'
                             ? 'bg-red-600'
-                            : patient.riskLevel === 'Vàng'
+                            : patient.level?.name === 'Vàng'
                               ? 'bg-yellow-500'
                               : 'bg-green-600'
                         }
                         `}
                     >
-                      {patient.riskLevel}
+                      {patient.level?.name ?? '--'}
                     </span>
                   </td>
                 </tr>
@@ -227,10 +237,10 @@ export function PatientPage() {
 
               <div className="grid grid-cols-2 gap-y-2">
                 <span className="text-slate-500">Mã nghiên cứu</span>
-                <span>{selectedPatient.researchCode}</span>
+                <span>{selectedPatient.case_id}</span>
 
                 <span className="text-slate-500">Họ tên</span>
-                <span>{selectedPatient.fullName}</span>
+                <span>{selectedPatient.name_initials}</span>
 
                 <span className="text-slate-500">Tuổi</span>
                 <span>{selectedPatient.age}</span>
@@ -238,8 +248,27 @@ export function PatientPage() {
                 <span className="text-slate-500">Giới tính</span>
                 <span>{selectedPatient.gender}</span>
 
+                <span className="text-slate-500">Chiều cao</span>
+                <span>{displayValue(selectedPatient.height)} cm</span>
+
+                <span className="text-slate-500">Cân nặng</span>
+                <span>{displayValue(selectedPatient.weight)} kg</span>
+
                 <span className="text-slate-500">BMI</span>
-                <span>{selectedPatient.bmi}</span>
+                <span>{displayValue(selectedPatient.bmi)}</span>
+              </div>
+              <div className="mb-6 mt-6">
+                <h3 className="mb-3 font-bold">Thông tin điều trị</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-y-2">
+                <span className="text-slate-500">Ngày phẫu thuật</span>
+                <span>{selectedPatient.surgery_date}</span>
+
+                <span className="text-slate-500">POD hiện tại</span>
+                <span>POD {selectedPatient.current_pod}</span>
+
+                <span className="text-slate-500">Buồng/giường</span>
+                <span>{selectedPatient.room_bed}</span>
               </div>
               <div className="mb-6 mt-6">
                 <h3 className="mb-3 font-bold">Thông tin phẫu thuật</h3>
@@ -248,36 +277,42 @@ export function PatientPage() {
                 <span className="text-slate-500">Chẩn đoán</span>
                 <span>{selectedPatient.diagnosis}</span>
 
-                <span className="text-slate-500">Nhóm phẫu thuật</span>
-                <span>{selectedPatient.surgeryGroup}</span>
-
                 <span className="text-slate-500">Loại phẫu thuật</span>
-                <span>{selectedPatient.surgeryType}</span>
+                <span>{selectedPatient.operationType?.name ?? '--'}</span>
 
                 <span className="text-slate-500">Phương pháp mổ</span>
-                <span>{selectedPatient.surgeryMethod}</span>
+                <span>{selectedPatient.method}</span>
 
-                <span className="text-slate-500">Có miệng nối tiêu hoá</span>
-                <span>{selectedPatient.hasDigestiveAnastomosis ? 'Có' : 'Không'}</span>
+                <span className="text-slate-500">Có miệng nối ống tiêu hoá</span>
+                <span>
+                  {selectedPatient.has_gi_anastomosis == null
+                    ? '--'
+                    : selectedPatient.has_gi_anastomosis
+                      ? 'Có'
+                      : 'Không'}
+                </span>
               </div>
               <div className="mb-6 mt-6">
-                <h3 className="mb-3 font-bold">Thông tin điều trị</h3>
+                <h3 className="mb-3 font-bold">Tóm tắt đánh giá gần nhất</h3>
               </div>
               <div className="grid grid-cols-2 gap-y-2">
-                <span className="text-slate-500">Ngày phẫu thuật</span>
-                <span>{selectedPatient.surgeryDate}</span>
+                <span className="text-slate-500">Buồn nôn</span>
+                <span>{getAnswer('Bạn có buồn nôn không?')}</span>
 
-                <span className="text-slate-500">POD hiện tại</span>
-                <span>POD {selectedPatient.pod}</span>
+                <span className="text-slate-500">Nôn</span>
+                <span>{getAnswer('Bạn có nôn nhiều không?')}</span>
 
-                <span className="text-slate-500">Pathway áp dụng</span>
-                <span>{selectedPatient.pathway}</span>
+                <span className="text-slate-500">Chướng bụng</span>
+                <span>{getAnswer('Bạn có chướng bụng không?')}</span>
 
-                <span className="text-slate-500">Buồng/giường</span>
-                <span>{selectedPatient.roomBed}</span>
+                <span className="text-slate-500">Ăn uống</span>
+                <span>{getAnswer('Bạn ăn được bao nhiêu?')}</span>
 
-                <span className="text-slate-500">Điều dưỡng phụ trách</span>
-                <span>{selectedPatient.assignedNurse}</span>
+                <span className="text-slate-500">Trung tiện</span>
+                <span>{getAnswer('Bạn đã trung tiện chưa?')}</span>
+
+                <span className="font-semibold">Tổng điểm</span>
+                <span className="font-semibold">{assessmentDetail?.total_score ?? '--'}</span>
               </div>
             </div>
           </div>
