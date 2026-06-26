@@ -31,6 +31,7 @@ export function PatientPage() {
   const [operationTypes, setOperationTypes] = useState<OperationType[]>([])
   const [selectedPatient, setSelectedPatient] = useState<PatientListItem | null>(null)
 
+  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [operationTypeId, setOperationTypeId] = useState<number | undefined>()
   const [level, setLevel] = useState<string | undefined>()
@@ -46,6 +47,14 @@ export function PatientPage() {
   useEffect(() => {
     setPage(1)
   }, [search, operationTypeId, level])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim())
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
   useEffect(() => {
     async function loadPatients() {
@@ -134,8 +143,8 @@ export function PatientPage() {
         <input
           type="text"
           placeholder="Tìm kiếm..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="flex-1 rounded-lg border bg-white px-4 py-2"
         />
 
@@ -220,6 +229,31 @@ export function PatientPage() {
               ))}
             </tbody>
           </table>
+          <div className="mt-4 flex items-center justify-between">
+            <p className="text-sm text-slate-500">Tổng {total} bệnh nhân</p>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                className="rounded border px-3 py-1 disabled:opacity-50"
+              >
+                ←
+              </button>
+
+              <span>
+                {page} / {totalPages}
+              </span>
+
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage(page + 1)}
+                className="rounded border px-3 py-1 disabled:opacity-50"
+              >
+                →
+              </button>
+            </div>
+          </div>
         </div>
         {selectedPatient && (
           <div className="w-2/5 rounded-lg border bg-white p-4 min-h-[600px]">
