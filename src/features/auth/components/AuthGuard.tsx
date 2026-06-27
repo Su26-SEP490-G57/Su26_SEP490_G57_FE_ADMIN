@@ -15,7 +15,7 @@ export function AuthGuard() {
     }
 
     if (!accessToken) {
-        return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />
+        // return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />
     }
 
     return <Outlet />

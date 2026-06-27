@@ -18,8 +18,9 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Cảnh báo (Alert)', icon: 'notifications', path: '/alerts', roles: ['head_nurse'], badge: 3 },
   { label: 'Quản lý POD', icon: 'task', path: '/monitoring', roles: ['head_nurse'] },
   { label: 'Đánh giá & Triệu chứng', icon: 'assignment', path: '/recovery', roles: ['head_nurse'] },
+  { label: 'Quản lý điều dưỡng', icon: 'medical_services', path: '/nurses', roles: ['head_nurse'] },
   { label: 'Biểu đồ & Báo cáo', icon: 'analytics', path: '/analytics', roles: ['head_nurse'] },
-  { label: 'Xuất dữ liệu', icon: 'file_export', path: '/export', roles: ['head_nurse'], dividerBefore: 'Cài đặt'  },
+  { label: 'Xuất dữ liệu', icon: 'file_export', path: '/export', roles: ['head_nurse'], dividerBefore: 'Cài đặt' },
   { label: 'Quản lý nhân viên', icon: 'badge', path: '/staff', roles: ['head_nurse'] },
   { label: 'Thông báo', icon: 'campaign', path: '/notifications', roles: ['head_nurse'] },
 
@@ -29,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   // -------------------------------------------------------------------------
   { label: 'Tổng quan', icon: 'dashboard', path: '/dashboard', roles: ['admin'] },
   { label: 'Quản lý người dùng', icon: 'manage_accounts', path: '/staff', roles: ['admin'] },
+  { label: 'Quản lý điều dưỡng', icon: 'medical_services', path: '/nurses', roles: ['admin'] },
   { label: 'Nhật ký hoạt động', icon: 'history', path: '/logs', roles: ['admin'] },
   { label: 'Thông báo', icon: 'campaign', path: '/notifications', roles: ['admin'] },
   { label: 'Cài đặt hệ thống', icon: 'settings', path: '/settings', roles: ['admin'], dividerBefore: 'Cài đặt' },

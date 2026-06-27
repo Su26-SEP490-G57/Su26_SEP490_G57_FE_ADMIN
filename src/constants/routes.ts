@@ -9,6 +9,7 @@ export const ROUTES = {
   EXPORT: '/export',
   NOTIFICATIONS: '/notifications',
   STAFF: '/staff',
+  NURSES: '/nurses',
   LOGS: '/logs',
   SETTINGS: '/settings',
 } as const

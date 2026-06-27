@@ -3,6 +3,7 @@ import { ROUTES } from '../constants/routes'
 import { AuthGuard } from '../features/auth/components/AuthGuard'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
+import { NurseManagementPage } from '../features/nurses/pages/NurseManagementPage'
 import { AuthLayout } from '../layouts/auth-layout/AuthLayout'
 import { MainLayout } from '../layouts/main-layout/MainLayout'
 
@@ -30,6 +31,7 @@ export function AppRoutes() {
           <Route path={ROUTES.EXPORT} element={<Placeholder title="Xuất dữ liệu" />} />
           <Route path={ROUTES.NOTIFICATIONS} element={<Placeholder title="Thông báo" />} />
           <Route path={ROUTES.STAFF} element={<Placeholder title="Quản lý nhân viên" />} />
+          <Route path={ROUTES.NURSES} element={<NurseManagementPage />} />
           <Route path={ROUTES.LOGS} element={<Placeholder title="Nhật ký hoạt động" />} />
           <Route path={ROUTES.SETTINGS} element={<Placeholder title="Cài đặt" />} />
         </Route>
