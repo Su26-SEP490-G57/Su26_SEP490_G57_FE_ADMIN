@@ -13,7 +13,8 @@ export const NAV_ITEMS: NavItem[] = [
   // -------------------------------------------------------------------------
   // Head Nurse only
   // -------------------------------------------------------------------------
-  { label: 'Tổng quan', icon: 'dashboard', path: '/dashboard', roles: ['head_nurse'] },
+  // Tạm ẩn màn Tổng quan (dashboard) — bật lại khi cần.
+  // { label: 'Tổng quan', icon: 'dashboard', path: '/dashboard', roles: ['head_nurse'] },
   { label: 'Danh sách người bệnh', icon: 'group', path: '/patients', roles: ['head_nurse'] },
   { label: 'Cảnh báo (Alert)', icon: 'notifications', path: '/alerts', roles: ['head_nurse'], badge: 3 },
   { label: 'Quản lý POD', icon: 'task', path: '/monitoring', roles: ['head_nurse'] },

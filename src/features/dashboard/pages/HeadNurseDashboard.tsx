@@ -11,6 +11,7 @@ import {
     Tooltip,
 } from 'chart.js'
 import { Bar, Doughnut, Line } from 'react-chartjs-2'
+import { usePatientStats } from '../../patients/api/patientApi'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend)
 
@@ -90,6 +91,14 @@ function LevelBadge({ level }: { level: string }) {
 // Main component
 // ---------------------------------------------------------------------------
 export function HeadNurseDashboard() {
+    // Real KPI counts from GET /patients (total + per-level breakdown).
+    const { data: stats } = usePatientStats()
+    const total = stats?.total ?? 0
+    const green = stats?.byLevel.Green ?? 0
+    const yellow = stats?.byLevel.Yellow ?? 0
+    const red = stats?.byLevel.Red ?? 0
+    const pct = (n: number) => (total > 0 ? ((n / total) * 100).toFixed(1) : '0.0')
+
     return (
         <div className="p-6 space-y-6">
             {/* Filters */}
@@ -115,7 +124,7 @@ export function HeadNurseDashboard() {
                     </div>
                     <div>
                         <p className="text-xs font-medium text-slate-500">Tổng số người bệnh</p>
-                        <p className="text-2xl font-bold">24</p>
+                        <p className="text-2xl font-bold">{total}</p>
                         <p className="text-[10px] text-blue-600">Đang theo dõi</p>
                     </div>
                 </div>
@@ -127,10 +136,10 @@ export function HeadNurseDashboard() {
                     <div className="flex-1">
                         <div className="flex items-baseline justify-between">
                             <span className="text-[10px] font-bold text-green-600">GREEN</span>
-                            <span className="text-xl font-bold">15</span>
+                            <span className="text-xl font-bold">{green}</span>
                         </div>
-                        <p className="text-[10px] text-slate-400">62.5%</p>
-                        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-green-500" style={{ width: '62.5%' }} /></div>
+                        <p className="text-[10px] text-slate-400">{pct(green)}%</p>
+                        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-green-500" style={{ width: `${pct(green)}%` }} /></div>
                     </div>
                 </div>
                 {/* YELLOW */}
@@ -141,10 +150,10 @@ export function HeadNurseDashboard() {
                     <div className="flex-1">
                         <div className="flex items-baseline justify-between">
                             <span className="text-[10px] font-bold text-yellow-600">YELLOW</span>
-                            <span className="text-xl font-bold">6</span>
+                            <span className="text-xl font-bold">{yellow}</span>
                         </div>
-                        <p className="text-[10px] text-slate-400">25.0%</p>
-                        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-yellow-400" style={{ width: '25%' }} /></div>
+                        <p className="text-[10px] text-slate-400">{pct(yellow)}%</p>
+                        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-yellow-400" style={{ width: `${pct(yellow)}%` }} /></div>
                     </div>
                 </div>
                 {/* RED */}
@@ -155,10 +164,10 @@ export function HeadNurseDashboard() {
                     <div className="flex-1">
                         <div className="flex items-baseline justify-between">
                             <span className="text-[10px] font-bold text-red-600">RED</span>
-                            <span className="text-xl font-bold">3</span>
+                            <span className="text-xl font-bold">{red}</span>
                         </div>
-                        <p className="text-[10px] text-slate-400">12.5%</p>
-                        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-red-500" style={{ width: '12.5%' }} /></div>
+                        <p className="text-[10px] text-slate-400">{pct(red)}%</p>
+                        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-red-500" style={{ width: `${pct(red)}%` }} /></div>
                     </div>
                 </div>
                 {/* Alert */}

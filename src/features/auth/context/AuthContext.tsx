@@ -40,7 +40,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }, [setAccessToken, setLoading, clearSession])
 
     function logout() {
-        // TODO: gọi POST /auth/logout nếu BE có endpoint này
+        const refreshToken = tokenStorage.getRefreshToken()
+        // Revoke the refresh token server-side; clear the local session regardless.
+        if (refreshToken) {
+            api.post('/auth/logout', { refreshToken }).catch(() => {})
+        }
         clearSession()
     }
 
