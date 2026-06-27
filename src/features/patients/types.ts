@@ -30,8 +30,34 @@ export interface PatientListItem {
     id: number
     username: string
     fullName: string
+    cityProvince?: string | null
+    ward?: string | null
+    detailedAddress?: string | null
   }
 }
+
+// Payload tạo bệnh nhân — khớp CreatePatientDto của backend.
+export interface CreatePatientPayload {
+  caseId: string
+  fullName: string
+  age?: number
+  gender?: string
+  height?: number
+  weight?: number
+  bmi?: number
+  cityProvince?: string
+  ward?: string
+  detailedAddress?: string
+  operationTypeId?: number
+  method?: string
+  surgeryDate?: string
+  hasGiAnastomosis?: boolean
+  diagnosis?: string
+  roomBed?: string
+}
+
+// Payload cập nhật — mọi field optional, không đổi mã bệnh nhân.
+export type UpdatePatientPayload = Partial<Omit<CreatePatientPayload, 'caseId'>>
 
 export interface PatientListResponse {
   data: PatientListItem[]

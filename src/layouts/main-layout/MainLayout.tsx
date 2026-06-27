@@ -118,24 +118,16 @@ export function MainLayout() {
 
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <span className="material-symbols-outlined text-[22px] text-slate-500">notifications</span>
-                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full border border-white bg-red-500" />
-              </div>
-              <span className="material-symbols-outlined text-[22px] text-slate-500">calendar_today</span>
-            </div>
-
-            <div className="flex items-center gap-3 border-l border-slate-200 pl-6">
               <div className="text-right">
                 <p className="text-sm font-bold text-slate-800">
-                  {userProfile?.fullName ?? userProfile?.email ?? 'Nhân viên'}
+                  {userProfile?.fullName ?? userProfile?.username ?? 'Nhân viên'}
                 </p>
                 <p className="text-xs text-slate-500">
                   {DEV_ROLE === 'head_nurse' ? 'Điều dưỡng trưởng' : 'Quản trị viên'}
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-blue-100 text-sm font-bold text-blue-700">
-                {(userProfile?.fullName ?? userProfile?.email ?? 'N')[0].toUpperCase()}
+                {(userProfile?.fullName ?? userProfile?.username ?? 'N')[0].toUpperCase()}
               </div>
             </div>
           </div>
