@@ -10,8 +10,10 @@ import {
   getLatestAssessment,
   getAssessmentDetail,
   getOperationTypes,
+  updatePodLock,
 } from '../api/patientApi'
 import axios from 'axios'
+import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
 
 const summaryCards = [
   { title: 'Tổng số người bệnh', value: 24, subtitle: 'Đang theo dõi' },
@@ -41,9 +43,14 @@ export function PatientPage() {
   const [total, setTotal] = useState(0)
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
-  const [latestAssessment, setLatestAssessment] = useState<LatestAssessmentResponse | null>(null)
+  const [, setLatestAssessment] = useState<LatestAssessmentResponse | null>(null)
   const [assessmentDetail, setAssessmentDetail] = useState<AssessmentDetailResponse | null>(null)
 
+  const [showHoldDialog, setShowHoldDialog] = useState(false)
+  const [holdReason, setHoldReason] = useState('')
+  const [savingPodLock, setSavingPodLock] = useState(false)
+
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
   useEffect(() => {
     setPage(1)
   }, [search, operationTypeId, level])
@@ -90,13 +97,13 @@ export function PatientPage() {
       return
     }
 
-    const patient = selectedPatient
+    const patientDetail = selectedPatient
 
     async function loadAssessment() {
       setLatestAssessment(null)
       setAssessmentDetail(null)
       try {
-        const latest = await getLatestAssessment(patient.case_id)
+        const latest = await getLatestAssessment(patientDetail.case_id)
 
         setLatestAssessment(latest)
 
@@ -117,11 +124,138 @@ export function PatientPage() {
     loadAssessment()
   }, [selectedPatient])
 
+  useEffect(() => {
+    function closeMenu() {
+      setOpenMenu(null)
+    }
+
+    window.addEventListener('click', closeMenu)
+
+    return () => window.removeEventListener('click', closeMenu)
+  }, [])
+
   function getAnswer(questionText: string) {
     return (
       assessmentDetail?.details.find((item) => item.question_text === questionText)?.option_text ??
       '--'
     )
+  }
+
+  async function reloadPatients() {
+    const response = await getPatients({
+      search,
+      operationTypeId,
+      level,
+      page,
+      limit,
+    })
+
+    setPatients(response.data)
+    setTotal(response.total)
+
+    return response.data
+  }
+
+  async function handleQuickToggle(patientItem: PatientListItem) {
+    if (!patientItem) return
+
+    try {
+      await updatePodLock(patientItem.case_id, {
+        isLocked: !patientItem.is_locked,
+        holdReason: patientItem.is_locked ? undefined : holdReason.trim(),
+      })
+
+      const list = await reloadPatients()
+      const updated = list.find((p) => p.case_id === patientItem.case_id)
+
+      setSelectedPatient(updated ?? null)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  function openPodLockModal() {
+    setHoldReason('')
+    setShowHoldDialog(true)
+  }
+
+  async function handleConfirmPodLock() {
+    if (!selectedPatient) return
+
+    if (!holdReason.trim()) {
+      alert('Vui lòng nhập lý do giữ POD')
+      return
+    }
+
+    try {
+      setSavingPodLock(true)
+
+      await updatePodLock(selectedPatient.case_id, {
+        isLocked: true,
+        holdReason,
+      })
+
+      setShowHoldDialog(false)
+      setHoldReason('')
+
+      const list = await reloadPatients()
+      const updated = list.find((p) => p.case_id === selectedPatient.case_id)
+
+      setSelectedPatient(updated ?? null)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setSavingPodLock(false)
+    }
+  }
+
+  async function handleResumePod() {
+    if (!selectedPatient) return
+
+    try {
+      setSavingPodLock(true)
+
+      await updatePodLock(selectedPatient.case_id, {
+        isLocked: false,
+      })
+
+      const response = await getPatients({
+        search,
+        operationTypeId,
+        level,
+        page,
+        limit,
+      })
+
+      setPatients(response.data)
+      setTotal(response.total)
+
+      const updated = response.data.find((p) => p.case_id === selectedPatient.case_id)
+
+      setSelectedPatient(updated ?? null)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setSavingPodLock(false)
+    }
+  }
+
+  function toggleMenu(caseId: string) {
+    setOpenMenu((prev) => (prev === caseId ? null : caseId))
+  }
+
+  function handleEdit(patient: PatientListItem) {
+    setOpenMenu(null)
+
+    // TODO: mở dialog edit
+    console.log('Edit', patient.case_id)
+  }
+
+  function handleDelete(patient: PatientListItem) {
+    setOpenMenu(null)
+
+    // TODO: dialog confirm delete
+    console.log('Delete', patient.case_id)
   }
 
   return (
@@ -189,6 +323,7 @@ export function PatientPage() {
                 <th className="p-3 text-left">POD</th>
                 <th className="p-3 text-left">Loại phẫu thuật</th>
                 <th className="p-3 text-left">Mức độ</th>
+                <th className="p-3 text-left">Hành động nhanh</th>
               </tr>
             </thead>
 
@@ -224,6 +359,59 @@ export function PatientPage() {
                     >
                       {patient.level?.name ?? '--'}
                     </span>
+                  </td>
+                  <td className="relative p-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+
+                          if (patient.is_locked) {
+                            handleQuickToggle(patient)
+                          } else {
+                            setSelectedPatient(patient)
+                            setShowHoldDialog(true)
+                          }
+                        }}
+                        className={`rounded-full px-3 py-1 text-sm font-medium text-white ${
+                          patient.is_locked
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-red-600 hover:bg-red-700'
+                        }`}
+                      >
+                        {patient.is_locked ? 'Tiếp tục POD' : 'Giữ POD hiện tại'}
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleMenu(patient.case_id)
+                        }}
+                        className="rounded p-1 transition hover:bg-gray-100"
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                    </div>
+
+                    {openMenu === patient.case_id && (
+                      <div className="absolute right-2 top-14 z-50 w-36 rounded-lg border border-gray-200 bg-white shadow-lg">
+                        <button
+                          onClick={() => handleEdit(patient)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
+                        >
+                          <Pencil size={16} />
+                          Sửa
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(patient)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 size={16} />
+                          Xoá
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -348,6 +536,60 @@ export function PatientPage() {
                 <span className="font-semibold">Tổng điểm</span>
                 <span className="font-semibold">{assessmentDetail?.total_score ?? '--'}</span>
               </div>
+
+              <div className="mt-8">
+                <button
+                  onClick={selectedPatient.is_locked ? handleResumePod : openPodLockModal}
+                  disabled={savingPodLock}
+                  className={`w-full rounded-lg px-4 py-3 font-semibold text-white
+                      ${
+                        selectedPatient.is_locked
+                          ? 'bg-green-600 hover:bg-green-700'
+                          : 'bg-red-600 hover:bg-red-700'
+                      }
+                    `}
+                >
+                  {savingPodLock
+                    ? 'Đang xử lý...'
+                    : selectedPatient.is_locked
+                      ? 'Tiếp tục POD'
+                      : 'Giữ POD hiện tại'}
+                </button>
+              </div>
+
+              {showHoldDialog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="w-[500px] rounded-lg bg-white p-6 shadow-xl">
+                    <h2 className="mb-4 text-xl font-bold">Giữ POD hiện tại</h2>
+
+                    <p className="mb-3 text-sm text-slate-600">Nhập lý do giữ POD</p>
+
+                    <textarea
+                      value={holdReason}
+                      onChange={(e) => setHoldReason(e.target.value)}
+                      rows={4}
+                      className="w-full rounded border p-3"
+                    />
+
+                    <div className="mt-6 flex justify-end gap-3">
+                      <button
+                        onClick={() => setShowHoldDialog(false)}
+                        className="rounded border px-4 py-2"
+                      >
+                        Hủy
+                      </button>
+
+                      <button
+                        onClick={handleConfirmPodLock}
+                        disabled={savingPodLock}
+                        className="rounded bg-red-600 px-4 py-2 text-white"
+                      >
+                        Xác nhận
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

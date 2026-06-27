@@ -1,10 +1,12 @@
 import { api } from '../../../lib/api'
 import type {
+  AssessmentDetailResponse,
+  LatestAssessmentResponse,
+  OperationType,
   PatientListResponse,
   PatientQuery,
-  LatestAssessmentResponse,
-  AssessmentDetailResponse,
-  OperationType,
+  PodLockRequest,
+  PodLockResponse,
 } from '../types'
 
 export async function getPatients(query?: PatientQuery) {
@@ -15,9 +17,15 @@ export async function getPatients(query?: PatientQuery) {
   return data
 }
 
+export async function getOperationTypes() {
+  const { data } = await api.get<OperationType[]>('/patients/operation-types')
+
+  return data
+}
+
 export async function getLatestAssessment(caseId: string) {
   const { data } = await api.get<LatestAssessmentResponse>(
-    `/symptom-surveys/${caseId}/latest`,
+    `/symptom-surveys/patient/${caseId}/latest`,
   )
 
   return data
@@ -31,7 +39,14 @@ export async function getAssessmentDetail(assessmentId: number) {
   return data
 }
 
-export async function getOperationTypes() {
-  const { data } = await api.get<OperationType[]>('/patients/operation-types')
+export async function updatePodLock(
+  caseId: string,
+  body: PodLockRequest,
+) {
+  const { data } = await api.patch<PodLockResponse>(
+    `/patients/${caseId}/pod-lock`,
+    body,
+  )
+
   return data
 }
