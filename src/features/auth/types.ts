@@ -2,13 +2,13 @@ import type { UserRole } from '../../layouts/main-layout/nav-config'
 
 export interface UserProfile {
   id: string
-  email: string
+  username: string
   fullName: string
   role: UserRole
 }
 
 export interface LoginRequest {
-  email: string
+  username: string
   password: string
 }
 

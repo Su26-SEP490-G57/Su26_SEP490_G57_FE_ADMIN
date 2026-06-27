@@ -16,40 +16,19 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { ROUTES } from '../../../constants/routes'
 import { tokenStorage, useAuthStore } from '../store/authStore'
+import { api } from '../../../lib/api'
 import type { LoginResponse } from '../types'
 
 // ---------------------------------------------------------------------------
 // Validation schema
 // ---------------------------------------------------------------------------
 const loginSchema = z.object({
-    email: z.string().min(1, 'Email là bắt buộc').email('Địa chỉ email không hợp lệ'),
-    password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+    username: z.string().min(1, 'Tên đăng nhập là bắt buộc'),
+    password: z.string().min(1, 'Mật khẩu là bắt buộc'),
     rememberDevice: z.boolean().optional(),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
-
-// ---------------------------------------------------------------------------
-// Mock login — xóa và thay bằng gọi API thật khi BE sẵn sàng
-// POST /auth/login → { accessToken, refreshToken, user }
-// ---------------------------------------------------------------------------
-async function mockLogin(email: string, _password: string): Promise<LoginResponse> {
-    await new Promise((r) => setTimeout(r, 800)) // giả lập network delay
-
-    // Giả lập sai mật khẩu
-    if (_password !== '123456') throw new Error('Invalid credentials')
-
-    return {
-        accessToken: 'mock-access-token-' + Date.now(),
-        refreshToken: 'mock-refresh-token-' + Date.now(),
-        user: {
-            id: '1',
-            email,
-            fullName: 'ĐD. Nguyễn Thị Hoa',
-            role: 'head_nurse',
-        },
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Stat card — panel trái
@@ -81,19 +60,20 @@ export function LoginPage() {
 
     const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
-        defaultValues: { rememberDevice: false },
+        defaultValues: { username: '',
+                        password: '',
+                        rememberDevice: false },
     })
 
     async function onSubmit(values: LoginFormValues) {
         setIsLoading(true)
         setAuthError(null)
         try {
-            // TODO: thay mockLogin bằng gọi API thật
-            // const { data } = await api.post<LoginResponse>('/auth/login', {
-            //   email: values.email,
-            //   password: values.password,
-            // })
-            const data = await mockLogin(values.email, values.password)
+            //To review: thay mockLogin bằng gọi API thật
+            const { data } = await api.post<LoginResponse>('/auth/login', {
+              username: values.username,
+              password: values.password,
+            })
 
             // Lưu tokens và user profile
             setAccessToken(data.accessToken)
@@ -102,7 +82,7 @@ export function LoginPage() {
 
             navigate(from, { replace: true })
         } catch {
-            setAuthError('Email hoặc mật khẩu không đúng. Vui lòng thử lại.')
+            setAuthError('Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.')
         } finally {
             setIsLoading(false)
         }
@@ -181,26 +161,26 @@ export function LoginPage() {
 
                     <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
                         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
-                            {/* Email */}
+                            {/* Username */}
                             <div className="flex flex-col gap-1.5">
-                                <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                                    Email hoặc mã nhân viên
+                                <label htmlFor="username" className="text-sm font-medium text-gray-700">
+                                    Tên người dùng
                                 </label>
                                 <div className="relative">
                                     <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                                         <User className="h-4 w-4 text-gray-400" />
                                     </span>
                                     <input
-                                        id="email"
-                                        type="email"
-                                        autoComplete="email"
-                                        placeholder="nhanvien@benhvien.vn"
-                                        {...register('email')}
-                                        className={`w-full rounded-lg border bg-gray-50 py-2.5 pl-9 pr-4 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 ${errors.email ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'
+                                        id="username"
+                                        type="text"
+                                        autoComplete="username"
+                                        placeholder="Nhập tên đăng nhập"
+                                        {...register('username')}
+                                        className={`w-full rounded-lg border bg-gray-50 py-2.5 pl-9 pr-4 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 ${errors.username ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'
                                             }`}
                                     />
                                 </div>
-                                {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+                                {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
                             </div>
 
                             {/* Mật khẩu */}
