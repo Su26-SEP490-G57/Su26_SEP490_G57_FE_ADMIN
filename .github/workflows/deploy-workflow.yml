@@ -1,0 +1,89 @@
+name: Deploy Workflow
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Select the environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Select the environment to deploy to'
+        required: true
+        type: string
+
+jobs:
+  build_and_deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    if: |
+      inputs.environment == 'dev' || 
+      ((inputs.environment == 'staging' || inputs.environment == 'prod') && github.ref_name == 'main')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Project
+        uses: ./.github/actions/setup-project
+        with:
+          environment: ${{ inputs.environment }}
+
+      - name: Compile & Build Static Assets (Vite)
+        env:
+          VITE_API_URL: ${{ vars.API_URL }}
+        run: |
+          npm run build
+          tar -czf admin_dist.tar.gz dist
+
+      - name: Upload Static Assets via SSH
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: 'admin_dist.tar.gz'
+          target: '/var/www/poms-admin/'
+
+      - name: Update Static Assets via SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+
+            DEPLOY_ENV="${{ inputs.environment }}"
+            TARGET_DIR="/var/www/poms-admin"
+            WEB_ROOT="${TARGET_DIR}/${DEPLOY_ENV}"
+
+            cd $TARGET_DIR
+            echo "📦 Extracting uploaded assets bundle..."
+            tar -xzf admin_dist.tar.gz
+            rm -f admin_dist.tar.gz
+
+            echo "🧹 [CI/CD] Purging stale static assets in target: $WEB_ROOT"
+            mkdir -p $WEB_ROOT
+            sudo rm -rf ${WEB_ROOT}/*
+
+            echo "📤 [CI/CD] Injecting new production build artifacts..."
+            sudo cp -r dist/* $WEB_ROOT/
+            sudo chmod -R 755 $WEB_ROOT
+
+            rm -rf dist
+
+            echo "✅ [CI/CD Success] Web Admin static assets successfully deployed to environment: $DEPLOY_ENV!"
