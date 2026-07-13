@@ -62,9 +62,9 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
   const [provinceCode, setProvinceCode] = useState<number | null>(null)
   const [ward, setWard] = useState('')
   const [provinceSearch, setProvinceSearch] = useState('')
-  const [provinceSearchTimeout, setProvinceSearchTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [provinceSearchTimeout, setProvinceSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [wardSearch, setWardSearch] = useState('')
-  const [wardSearchTimeout, setWardSearchTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [wardSearchTimeout, setWardSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { translateError } from '../../../lib/errorTranslator'
 import { useCreateNurse, useUpdateNurse } from '../api/nurses'
 import type { Nurse } from '../types'
 
