@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { translateError } from '../../../lib/errorTranslator'
 import { useUpdateNurse } from '../api/nurses'
 
 interface ResetPasswordModalProps {
