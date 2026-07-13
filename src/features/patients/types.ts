@@ -25,6 +25,7 @@ export interface PatientListItem {
     name: string
     color: string
   } | null
+  lastAssessmentTime?: string | null  // Thời gian đánh giá gần nhất (ISO datetime)
 
   account: {
     id: number
