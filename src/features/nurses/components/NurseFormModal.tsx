@@ -153,7 +153,7 @@ export function NurseFormModal({ isOpen, onClose, nurse }: NurseFormModalProps) 
       }
       onClose()
     } catch (err: any) {
-      setSubmitError(err?.response?.data?.message || 'Có lỗi xảy ra khi lưu thông tin điều dưỡng')
+      setSubmitError(translateError(err, 'Có lỗi xảy ra khi lưu thông tin điều dưỡng'))
     }
   }
 
@@ -339,14 +339,12 @@ export function NurseFormModal({ isOpen, onClose, nurse }: NurseFormModalProps) 
               <button
                 type="button"
                 onClick={() => setIsActive(!isActive)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors outline-none ${
-                  isActive ? 'bg-[#00459a]' : 'bg-[#c2c6d5]'
-                }`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors outline-none ${isActive ? 'bg-[#00459a]' : 'bg-[#c2c6d5]'
+                  }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                    isActive ? 'translate-x-5' : 'translate-x-0.5'
-                  }`}
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
                 />
               </button>
             </div>
