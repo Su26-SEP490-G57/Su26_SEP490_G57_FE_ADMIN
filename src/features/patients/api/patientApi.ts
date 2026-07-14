@@ -1,16 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import type {
-  AssessmentDetailResponse,
-  CreatePatientPayload,
-  LatestAssessmentResponse,
-  OperationType,
-  PatientListItem,
-  PatientListResponse,
-  PatientQuery,
-  PodLockRequest,
-  PodLockResponse,
-  UpdatePatientPayload,
+    AssessmentDetailResponse,
+    CreatePatientPayload,
+    LatestAssessmentResponse,
+    OperationType,
+    PatientListItem,
+    PatientListResponse,
+    PatientQuery,
+    PodLockRequest,
+    PodLockResponse,
+    UpdatePatientPayload,
 } from '../types'
 
 export async function getPatients(query?: PatientQuery) {
@@ -47,24 +47,42 @@ export interface PatientStats {
   byLevel: Record<LevelName, number>
 }
 
-// We only need `total`, so request the smallest possible page per filter.
-async function getPatientCount(level?: LevelName) {
-  const data = await getPatients({ page: 1, limit: 1, level })
-  return data.total
-}
-
 // Dashboard KPI counts derived from the real patient list.
+// Đếm từ data thật thay vì gọi API nhiều lần để tránh sai số
 export function usePatientStats() {
   return useQuery({
     queryKey: ['patients', 'stats'],
     queryFn: async (): Promise<PatientStats> => {
-      const [total, red, yellow, green] = await Promise.all([
-        getPatientCount(),
-        getPatientCount('Red'),
-        getPatientCount('Yellow'),
-        getPatientCount('Green'),
-      ])
-      return { total, byLevel: { Red: red, Yellow: yellow, Green: green } }
+      // Lấy TẤT CẢ bệnh nhân (không filter, không phân trang)
+      const allPatients = await getPatients({ page: 1, limit: 9999 })
+
+      console.log('📊 All patients data:', allPatients.data)
+
+      const total = allPatients.total
+
+      // Đếm từng loại dựa trên level.name của từng bệnh nhân
+      const counts = { Red: 0, Yellow: 0, Green: 0 }
+
+      allPatients.data.forEach((patient) => {
+        const levelName = patient.level?.name
+        console.log(`Patient ${patient.case_id}: level =`, patient.level)
+
+        if (!levelName) return
+
+        // Chuẩn hoá tên level (có thể là "Red", "Đỏ", "red", etc.)
+        const normalized = levelName.toLowerCase()
+        if (normalized.includes('red') || normalized.includes('đỏ')) {
+          counts.Red++
+        } else if (normalized.includes('yellow') || normalized.includes('vàng')) {
+          counts.Yellow++
+        } else if (normalized.includes('green') || normalized.includes('xanh')) {
+          counts.Green++
+        }
+      })
+
+      console.log('📊 Final counts:', counts)
+
+      return { total, byLevel: counts }
     },
   })
 }
@@ -76,11 +94,25 @@ export async function getOperationTypes() {
 }
 
 export async function getLatestAssessment(caseId: string) {
-  const { data } = await api.get<LatestAssessmentResponse>(
-    `/symptom-surveys/patient/${caseId}/latest`,
-  )
+  try {
+    const response = await api.get<LatestAssessmentResponse>(
+      `/symptom-surveys/patient/${caseId}/latest`,
+      {
+        // Không throw error cho 404 - coi như valid response
+        validateStatus: (status) => status === 200 || status === 404,
+      }
+    )
 
-  return data
+    // Nếu 404 thì trả về null
+    if (response.status === 404) {
+      return null
+    }
+
+    return response.data
+  } catch (error) {
+    // Các lỗi khác (network, 500, etc.)
+    throw error
+  }
 }
 
 export async function getAssessmentDetail(assessmentId: number) {
@@ -98,6 +130,18 @@ export async function updatePodLock(
   const { data } = await api.patch<PodLockResponse>(
     `/patients/${caseId}/pod-lock`,
     body,
+  )
+
+  return data
+}
+
+export async function updatePodLevel(
+  caseId: string,
+  podLevel: number,
+) {
+  const { data } = await api.patch<PatientListItem>(
+    `/patients/${caseId}/pod-level`,
+    { podLevel },
   )
 
   return data

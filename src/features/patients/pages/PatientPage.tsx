@@ -1,23 +1,23 @@
+import { useQueryClient } from '@tanstack/react-query'
+import { X } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import {
+  deletePatient,
+  getAssessmentDetail,
+  getLatestAssessment,
+  getOperationTypes,
+  getPatients,
+  updatePodLevel,
+  updatePodLock,
+  usePatientStats
+} from '../api/patientApi'
+import { PatientFormModal } from '../components/PatientFormModal'
 import type {
   AssessmentDetailResponse,
   LatestAssessmentResponse,
-  PatientListItem,
   OperationType,
+  PatientListItem,
 } from '../types'
-import { useState, useEffect, type ReactNode } from 'react'
-import {
-  getPatients,
-  getLatestAssessment,
-  getAssessmentDetail,
-  getOperationTypes,
-  updatePodLock,
-  deletePatient,
-  usePatientStats,
-} from '../api/patientApi'
-import { useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
-import { MoreVertical, Pencil, Trash2, X } from 'lucide-react'
-import { PatientFormModal } from '../components/PatientFormModal'
 
 function displayValue<T>(value: T | null | undefined) {
   return value ?? '--'
@@ -39,8 +39,7 @@ function DetailField({ label, value }: { label: string; value: ReactNode }) {
 }
 
 // Chuẩn hoá tên mức độ từ BE (Red/Yellow/Green hoặc Đỏ/Vàng/Xanh) về một key style.
-type LevelKey = 'red' | 'yellow' | 'green'
-function levelKey(name?: string | null): LevelKey | null {
+function levelKey(name?: string | null): 'red' | 'yellow' | 'green' | null {
   const n = (name ?? '').toLowerCase()
   if (n.includes('red') || n.includes('đỏ')) return 'red'
   if (n.includes('yellow') || n.includes('vàng')) return 'yellow'
@@ -48,17 +47,23 @@ function levelKey(name?: string | null): LevelKey | null {
   return null
 }
 
-const LEVEL_BADGE: Record<LevelKey, { cls: string; label: string }> = {
-  red: { cls: 'bg-red-500', label: 'Đỏ' },
-  yellow: { cls: 'bg-yellow-400', label: 'Vàng' },
-  green: { cls: 'bg-green-500', label: 'Xanh' },
-}
+// Format thời gian đánh giá gần nhất
+function formatLastAssessment(datetime?: string | null): string {
+  if (!datetime) return 'Chưa đánh giá'
 
-function LevelBadge({ name }: { name?: string | null }) {
-  const key = levelKey(name)
-  if (!key) return <span className="text-slate-400">--</span>
-  const { cls, label } = LEVEL_BADGE[key]
-  return <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold text-white ${cls}`}>{label}</span>
+  const now = new Date()
+  const assessed = new Date(datetime)
+  const diffMs = now.getTime() - assessed.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+
+  if (diffMins < 1) return 'Vừa xong'
+  if (diffMins < 60) return `${diffMins} phút trước`
+
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours} giờ trước`
+
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays} ngày trước`
 }
 
 export function PatientPage() {
@@ -82,7 +87,6 @@ export function PatientPage() {
   const greenCount = stats?.byLevel.Green ?? 0
   const yellowCount = stats?.byLevel.Yellow ?? 0
   const redCount = stats?.byLevel.Red ?? 0
-  const pct = (n: number) => (totalPatients > 0 ? ((n / totalPatients) * 100).toFixed(1) : '0.0')
 
   const [, setLatestAssessment] = useState<LatestAssessmentResponse | null>(null)
   const [assessmentDetail, setAssessmentDetail] = useState<AssessmentDetailResponse | null>(null)
@@ -91,6 +95,9 @@ export function PatientPage() {
   const [holdReason, setHoldReason] = useState('')
   const [savingPodLock, setSavingPodLock] = useState(false)
 
+  // POD dropdown state
+  const [showPodDropdown, setShowPodDropdown] = useState<string | null>(null) // caseId of patient with open dropdown
+
   // Modal thêm/sửa + dialog xoá
   const queryClient = useQueryClient()
   const [formOpen, setFormOpen] = useState(false)
@@ -98,7 +105,6 @@ export function PatientPage() {
   const [deletingPatient, setDeletingPatient] = useState<PatientListItem | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const [openMenu, setOpenMenu] = useState<string | null>(null)
   useEffect(() => {
     setPage(1)
   }, [search, operationTypeId, level])
@@ -153,34 +159,69 @@ export function PatientPage() {
       try {
         const latest = await getLatestAssessment(patientDetail.case_id)
 
+        // Nếu không có đánh giá (404 đã được handle trong API function)
+        if (!latest) {
+          setLatestAssessment(null)
+          setAssessmentDetail(null)
+          return
+        }
+
         setLatestAssessment(latest)
 
         const detail = await getAssessmentDetail(latest.assessment_id)
 
         setAssessmentDetail(detail)
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 404) {
-          setLatestAssessment(null)
-          setAssessmentDetail(null)
-          return
-        }
-
-        console.error(error)
+        // Chỉ log lỗi thật sự (không phải 404)
+        console.error('Error loading assessment:', error)
       }
     }
 
     loadAssessment()
   }, [selectedPatient])
 
+  // Click outside to close side panel
   useEffect(() => {
-    function closeMenu() {
-      setOpenMenu(null)
+    if (!selectedPatient) return
+
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement
+
+      // Check if click is inside a patient card or the side panel
+      const isPatientCard = target.closest('.patient-card')
+      const isSidePanel = target.closest('.patient-side-panel')
+
+      // Close panel if click is outside both
+      if (!isPatientCard && !isSidePanel) {
+        setSelectedPatient(null)
+      }
     }
 
-    window.addEventListener('click', closeMenu)
+    // Add small delay to avoid immediate closing when opening panel
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside)
+    }, 100)
 
-    return () => window.removeEventListener('click', closeMenu)
-  }, [])
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [selectedPatient])
+
+  // Click outside to close POD dropdown
+  useEffect(() => {
+    if (!showPodDropdown) return
+
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (!target.closest('.pod-dropdown-container')) {
+        setShowPodDropdown(null)
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showPodDropdown])
 
   function getAnswer(questionText: string) {
     return (
@@ -288,24 +329,36 @@ export function PatientPage() {
     }
   }
 
-  function toggleMenu(caseId: string) {
-    setOpenMenu((prev) => (prev === caseId ? null : caseId))
+  async function handleChangePodLevel(caseId: string, newPodLevel: number) {
+    try {
+      await updatePodLevel(caseId, newPodLevel)
+
+      // Reload patient list to get updated data
+      const response = await getPatients({
+        search,
+        operationTypeId,
+        level,
+        page,
+        limit,
+      })
+
+      setPatients(response.data)
+      setTotal(response.total)
+
+      // Update selected patient if it's the one being changed
+      if (selectedPatient?.case_id === caseId) {
+        const updated = response.data.find((p) => p.case_id === caseId)
+        setSelectedPatient(updated ?? null)
+      }
+    } catch (error) {
+      console.error('Error updating POD level:', error)
+      alert('Có lỗi xảy ra khi cập nhật POD')
+    }
   }
 
   function handleAddNew() {
     setEditingPatient(null)
     setFormOpen(true)
-  }
-
-  function handleEdit(patient: PatientListItem) {
-    setOpenMenu(null)
-    setEditingPatient(patient)
-    setFormOpen(true)
-  }
-
-  function handleDelete(patient: PatientListItem) {
-    setOpenMenu(null)
-    setDeletingPatient(patient)
   }
 
   // Sau khi thêm/sửa/xoá: nạp lại bảng, đồng bộ panel chi tiết, làm mới KPI.
@@ -335,244 +388,274 @@ export function PatientPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-8 space-y-8">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Tổng số */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-            <span className="material-symbols-outlined text-[22px]">group</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col group hover:border-blue-600/30 transition-all">
+          <div className="flex justify-between items-start mb-3">
+            <div className="p-2 rounded-lg bg-slate-50 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+              <span className="material-symbols-outlined text-[20px]">group</span>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-medium text-slate-500">Tổng số người bệnh</p>
-            <p className="text-2xl font-bold">{totalPatients}</p>
-            <p className="text-[10px] text-blue-600">Đang theo dõi</p>
-          </div>
+          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Tổng số</span>
+          <span className="text-3xl font-extrabold my-0.5">{totalPatients}</span>
+          <span className="text-[11px] text-blue-600 font-semibold">Đang theo dõi</span>
         </div>
         {/* GREEN */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-green-500">
-            <span className="material-symbols-outlined text-[22px]">check_circle</span>
-          </div>
-          <div className="flex-1">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[10px] font-bold text-green-600">XANH</span>
-              <span className="text-xl font-bold">{greenCount}</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col group hover:border-green-600/30 transition-all">
+          <div className="flex justify-between items-start mb-3">
+            <div className="p-2 rounded-lg bg-green-50 text-green-600">
+              <span className="material-symbols-outlined text-[20px]">check_circle</span>
             </div>
-            <p className="text-[10px] text-slate-400">{pct(greenCount)}%</p>
-            <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-green-500" style={{ width: `${pct(greenCount)}%` }} /></div>
           </div>
+          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Ổn định</span>
+          <span className="text-3xl font-extrabold my-0.5">{greenCount}</span>
+          <span className="text-[11px] text-green-600 font-semibold">Bình thường</span>
         </div>
         {/* YELLOW */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-50 text-yellow-500">
-            <span className="material-symbols-outlined text-[22px]">error</span>
-          </div>
-          <div className="flex-1">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[10px] font-bold text-yellow-600">VÀNG</span>
-              <span className="text-xl font-bold">{yellowCount}</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col group hover:border-yellow-500/30 transition-all">
+          <div className="flex justify-between items-start mb-3">
+            <div className="p-2 rounded-lg bg-yellow-50 text-yellow-600">
+              <span className="material-symbols-outlined text-[20px]">warning</span>
             </div>
-            <p className="text-[10px] text-slate-400">{pct(yellowCount)}%</p>
-            <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-yellow-400" style={{ width: `${pct(yellowCount)}%` }} /></div>
           </div>
+          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Theo dõi</span>
+          <span className="text-3xl font-extrabold my-0.5">{yellowCount}</span>
+          <span className="text-[11px] text-yellow-600 font-semibold">Cần lưu ý</span>
         </div>
         {/* RED */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-500">
-            <span className="material-symbols-outlined text-[22px]">warning</span>
-          </div>
-          <div className="flex-1">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[10px] font-bold text-red-600">ĐỎ</span>
-              <span className="text-xl font-bold">{redCount}</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col group hover:border-red-600/30 transition-all">
+          <div className="flex justify-between items-start mb-3">
+            <div className="p-2 rounded-lg bg-red-50 text-red-600">
+              <span className="material-symbols-outlined text-[20px]">emergency</span>
             </div>
-            <p className="text-[10px] text-slate-400">{pct(redCount)}%</p>
-            <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-red-500" style={{ width: `${pct(redCount)}%` }} /></div>
           </div>
+          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Nguy cơ</span>
+          <span className="text-3xl font-extrabold my-0.5 text-red-600">{redCount}</span>
+          <span className="text-[11px] text-red-600 font-semibold">Khẩn cấp</span>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="flex gap-4">
+      <div className="flex flex-wrap items-center gap-4 bg-white/60 p-4 rounded-2xl border border-slate-200 shadow-sm">
         <button
           onClick={handleAddNew}
-          className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+          className="bg-black text-white px-6 py-3 rounded-xl flex items-center gap-2.5 font-semibold hover:opacity-90 shadow-md transition-all active:scale-95 flex-shrink-0"
         >
-          + Thêm mới
+          <span className="material-symbols-outlined text-[22px]">add</span>
+          Thêm
         </button>
 
-        <input
-          type="text"
-          placeholder="Tìm kiếm..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          className="flex-1 rounded-lg border bg-white px-4 py-2"
-        />
+        <div className="flex-1 min-w-[200px] relative">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên, mã số, hoặc phòng..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:ring-4 focus:ring-black/5 focus:border-black outline-none text-sm transition-all shadow-sm"
+          />
+        </div>
 
-        <select
-          value={operationTypeId ?? ''}
-          onChange={(e) => setOperationTypeId(e.target.value ? Number(e.target.value) : undefined)}
-          className="rounded-lg border bg-white px-4 py-2"
-        >
-          <option value="">Loại phẫu thuật</option>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <select
+              value={operationTypeId ?? ''}
+              onChange={(e) => setOperationTypeId(e.target.value ? Number(e.target.value) : undefined)}
+              className="bg-white border border-slate-200 px-5 py-3 rounded-xl flex items-center gap-3 text-sm font-semibold hover:bg-slate-50 transition-all shadow-sm whitespace-nowrap appearance-none pr-10"
+            >
+              <option value="">Loại phẫu thuật</option>
+              {operationTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-500 pointer-events-none">expand_more</span>
+          </div>
 
-          {operationTypes.map((type) => (
-            <option key={type.id} value={type.id}>
-              {type.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={level ?? ''}
-          onChange={(e) => setLevel(e.target.value || undefined)}
-          className="rounded-lg border bg-white px-4 py-2"
-        >
-          <option value="">Mức độ</option>
-          <option value="Red">Đỏ</option>
-          <option value="Yellow">Vàng</option>
-          <option value="Green">Xanh</option>
-        </select>
+          <div className="relative">
+            <select
+              value={level ?? ''}
+              onChange={(e) => setLevel(e.target.value || undefined)}
+              className="bg-white border border-slate-200 px-5 py-3 rounded-xl flex items-center gap-3 text-sm font-semibold hover:bg-slate-50 transition-all shadow-sm whitespace-nowrap appearance-none pr-10"
+            >
+              <option value="">Phòng</option>
+              <option value="Red">Đỏ</option>
+              <option value="Yellow">Vàng</option>
+              <option value="Green">Xanh</option>
+            </select>
+            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-500 pointer-events-none">filter_alt</span>
+          </div>
+        </div>
       </div>
 
       {/* Main content */}
       <div className="flex gap-4">
         <div
-          className={`rounded-xl border border-slate-200 bg-white shadow-sm min-h-[600px]
+          className={`space-y-10 pb-12 transition-all duration-300
             ${selectedPatient ? 'w-3/5' : 'w-full'}
             `}
         >
-          <div className="flex items-center justify-between border-b border-slate-100 p-4">
-            <h3 className="flex items-center gap-2 font-bold text-slate-800">
-              Danh sách người bệnh
-              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold text-white">
-                {total}
-              </span>
-            </h3>
-          </div>
-          <div>
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-[10px] font-bold uppercase text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Mã BN</th>
-                  <th className="px-4 py-3">Tên bệnh nhân</th>
-                  <th className="px-4 py-3">POD</th>
-                  <th className="px-4 py-3">Loại phẫu thuật</th>
-                  <th className="px-4 py-3">Mức độ</th>
-                  <th className="px-4 py-3">Hành động nhanh</th>
-                </tr>
-              </thead>
+          {/* Patient Cards grouped by room */}
+          {Object.entries(
+            patients.reduce((acc, patient) => {
+              const room = patient.room_bed?.split('/')[0] || 'Chưa phân phòng'
+              if (!acc[room]) acc[room] = []
+              acc[room].push(patient)
+              return acc
+            }, {} as Record<string, PatientListItem[]>)
+          ).map(([room, roomPatients]) => (
+            <section key={room}>
+              <div className="flex items-center justify-between mb-5 px-1">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
+                  <h3 className="text-lg font-extrabold tracking-tight">{room}</h3>
+                  <span className="bg-slate-100 px-2.5 py-0.5 rounded-full text-[12px] font-bold text-slate-600">
+                    {roomPatients.length} người bệnh
+                  </span>
+                </div>
+              </div>
 
-              <tbody className="divide-y divide-slate-100">
-              {patients.map((patient) => (
-                <tr
-                  key={patient.case_id}
-                  onClick={() => setSelectedPatient(patient)}
-                  className={`
-                        cursor-pointer
-                        ${
-                          selectedPatient?.case_id === patient.case_id
-                            ? 'bg-blue-50'
-                            : 'hover:bg-slate-50'
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {roomPatients.map((patient) => {
+                  const lKey = levelKey(patient.level?.name)
+                  const borderColor =
+                    lKey === 'red' ? 'border-l-red-500' :
+                      lKey === 'yellow' ? 'border-l-yellow-400' :
+                        'border-l-green-500'
+                  const bgColor =
+                    lKey === 'red' ? 'bg-red-50' :
+                      lKey === 'yellow' ? 'bg-yellow-50' :
+                        'bg-green-50'
+                  const textColor =
+                    lKey === 'red' ? 'text-red-600' :
+                      lKey === 'yellow' ? 'text-yellow-600' :
+                        'text-green-600'
+
+                  return (
+                    <div
+                      key={patient.case_id}
+                      onClick={() => {
+                        if (selectedPatient?.case_id === patient.case_id) {
+                          setSelectedPatient(null) // Toggle off if already selected
+                        } else {
+                          setSelectedPatient(patient) // Select new patient
                         }
-                    `}
-                >
-                  <td
-                    className={`px-4 py-3 font-bold ${
-                      levelKey(patient.level?.name) === 'red'
-                        ? 'text-red-500'
-                        : levelKey(patient.level?.name) === 'yellow'
-                          ? 'text-yellow-500'
-                          : 'text-slate-700'
-                    }`}
-                  >
-                    {patient.case_id}
-                  </td>
-                  <td className="px-4 py-3">{patientName(patient)}</td>
-                  <td className="px-4 py-3">POD {patient.current_pod}</td>
-                  <td className="px-4 py-3 text-xs">{patient.operationType?.name}</td>
-                  <td className="px-4 py-3">
-                    <LevelBadge name={patient.level?.name} />
-                  </td>
-                  <td className="relative px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
+                      }}
+                      className={`patient-card cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg
+                        bg-white rounded-2xl border-l-4 ${borderColor} border-y border-r border-slate-200 shadow-sm
+                        ${selectedPatient?.case_id === patient.case_id ? 'ring-2 ring-blue-500' : ''}
+                      `}
+                    >
+                      <div className="p-5">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                              <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${bgColor} ${textColor}`}>
+                                POD {patient.current_pod} • {patient.operationType?.name || '--'}
+                              </span>
+                            </div>
+                            <h4 className="text-lg font-bold text-slate-800 truncate">
+                              {patientName(patient)}
+                            </h4>
+                            <p className="text-xs text-slate-500 mt-1">Mã: {patient.case_id}</p>
+                          </div>
+                        </div>
 
-                          if (patient.is_locked) {
-                            handleQuickToggle(patient)
-                          } else {
-                            setSelectedPatient(patient)
-                            setShowHoldDialog(true)
-                          }
-                        }}
-                        className={`rounded-full px-3 py-1 text-sm font-medium text-white ${
-                          patient.is_locked
-                            ? 'bg-green-600 hover:bg-green-700'
-                            : 'bg-red-600 hover:bg-red-700'
-                        }`}
-                      >
-                        {patient.is_locked ? 'Tiếp tục POD' : 'Giữ POD hiện tại'}
-                      </button>
+                        <div className="flex items-center justify-between border-t border-slate-200 pt-3 mt-4">
+                          <div className="flex items-center gap-2">
+                            <div className="relative pod-dropdown-container">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowPodDropdown(showPodDropdown === patient.case_id ? null : patient.case_id)
+                                }}
+                                className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200"
+                                title="Chọn POD"
+                              >
+                                <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                              </button>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleMenu(patient.case_id)
-                        }}
-                        className="rounded p-1 transition hover:bg-gray-100"
-                      >
-                        <MoreVertical size={18} />
-                      </button>
-                    </div>
+                              {/* POD Dropdown */}
+                              {showPodDropdown === patient.case_id && (
+                                <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-xl border border-slate-200 py-1 z-50 min-w-[120px]">
+                                  {Array.from({ length: patient.current_pod }, (_, i) => i).map((pod) => (
+                                    <button
+                                      key={pod}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleChangePodLevel(patient.case_id, pod)
+                                        setShowPodDropdown(null)
+                                      }}
+                                      className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors text-slate-700 cursor-pointer"
+                                    >
+                                      POD {pod}
+                                    </button>
+                                  ))}
+                                  {patient.current_pod === 0 && (
+                                    <div className="px-4 py-2 text-xs text-slate-400 italic">
+                                      Không có POD nhỏ hơn
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
 
-                    {openMenu === patient.case_id && (
-                      <div className="absolute right-2 top-14 z-50 w-36 rounded-lg border border-gray-200 bg-white shadow-lg">
-                        <button
-                          onClick={() => handleEdit(patient)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
-                        >
-                          <Pencil size={16} />
-                          Sửa
-                        </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (patient.is_locked) {
+                                  handleQuickToggle(patient)
+                                } else {
+                                  setSelectedPatient(patient)
+                                  setShowHoldDialog(true)
+                                }
+                              }}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all
+                                ${patient.is_locked
+                                  ? 'bg-black text-white hover:scale-110 border-2 border-white'
+                                  : 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200'
+                                }`}
+                              title={patient.is_locked ? 'Tiếp tục POD' : 'Giữ POD hiện tại'}
+                            >
+                              <span className="material-symbols-outlined text-[20px]">
+                                {patient.is_locked ? 'play_arrow' : 'pause'}
+                              </span>
+                            </button>
+                          </div>
 
-                        <button
-                          onClick={() => handleDelete(patient)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 size={16} />
-                          Xoá
-                        </button>
+                          <span className="text-[12px] font-medium text-slate-500 italic">
+                            Đánh giá: {formatLastAssessment(patient.lastAssessmentTime)}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between border-t border-slate-100 p-4">
-            <p className="text-sm text-slate-500">Tổng {total} bệnh nhân</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
 
+          {/* Pagination */}
+          <div className="flex items-center justify-between px-1">
+            <p className="text-sm text-slate-500">Tổng {total} bệnh nhân</p>
             <div className="flex items-center gap-2">
               <button
                 disabled={page === 1}
                 onClick={() => setPage(page - 1)}
-                className="rounded border px-3 py-1 disabled:opacity-50"
+                className="rounded-lg border border-slate-200 px-4 py-2 disabled:opacity-50 hover:bg-slate-50"
               >
                 ←
               </button>
-
-              <span>
+              <span className="text-sm font-medium">
                 {page} / {totalPages}
               </span>
-
               <button
                 disabled={page === totalPages}
                 onClick={() => setPage(page + 1)}
-                className="rounded border px-3 py-1 disabled:opacity-50"
+                className="rounded-lg border border-slate-200 px-4 py-2 disabled:opacity-50 hover:bg-slate-50"
               >
                 →
               </button>
@@ -580,7 +663,7 @@ export function PatientPage() {
           </div>
         </div>
         {selectedPatient && (
-          <div className="sticky top-6 max-h-[calc(100vh-7rem)] w-2/5 self-start overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="patient-side-panel sticky top-6 max-h-[calc(100vh-7rem)] w-2/5 self-start overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-sm hide-scrollbar">
             <div>
               {/* Header */}
               <div className="mb-6 flex items-start justify-between">
@@ -599,18 +682,21 @@ export function PatientPage() {
 
                 <div className="flex items-center gap-1 text-slate-500">
                   <button
-                    onClick={() => handleEdit(selectedPatient)}
+                    onClick={() => {
+                      setEditingPatient(selectedPatient)
+                      setFormOpen(true)
+                    }}
                     className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-blue-600"
                     title="Sửa"
                   >
-                    <Pencil size={20} />
+                    <span className="material-symbols-outlined text-[20px]">edit</span>
                   </button>
                   <button
-                    onClick={() => handleDelete(selectedPatient)}
+                    onClick={() => setDeletingPatient(selectedPatient)}
                     className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-red-600"
                     title="Xoá"
                   >
-                    <Trash2 size={20} />
+                    <span className="material-symbols-outlined text-[20px]">delete</span>
                   </button>
                   <button
                     onClick={() => setSelectedPatient(null)}
@@ -660,30 +746,43 @@ export function PatientPage() {
 
               {/* Tóm tắt đánh giá gần nhất */}
               <h3 className="mb-3 text-lg font-bold text-slate-800">Tóm tắt đánh giá gần nhất</h3>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl bg-slate-50 p-5">
-                <DetailField label="Buồn nôn" value={getAnswer('Bạn có buồn nôn không?')} />
-                <DetailField label="Số lần nôn" value={getAnswer('Bạn có nôn nhiều không?')} />
-                <DetailField label="Chướng bụng" value={getAnswer('Bạn có chướng bụng không?')} />
-                <DetailField label="Ăn uống" value={getAnswer('Bạn ăn được bao nhiêu?')} />
-                <DetailField label="Trung tiện" value={getAnswer('Bạn đã trung tiện chưa?')} />
-                <DetailField label="Tổng" value={`${assessmentDetail?.total_score ?? '--'} ĐIỂM`} />
-              </div>
-              <div className="mb-6 mt-2 text-right">
-                <button className="text-sm font-medium text-blue-600 hover:underline">
-                  Xem tất cả đánh giá
-                </button>
-              </div>
+              {assessmentDetail ? (
+                <>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl bg-slate-50 p-5">
+                    <DetailField label="Buồn nôn" value={getAnswer('Bạn có buồn nôn không?')} />
+                    <DetailField label="Số lần nôn" value={getAnswer('Bạn có nôn nhiều không?')} />
+                    <DetailField label="Chướng bụng" value={getAnswer('Bạn có chướng bụng không?')} />
+                    <DetailField label="Ăn uống" value={getAnswer('Bạn ăn được bao nhiêu?')} />
+                    <DetailField label="Trung tiện" value={getAnswer('Bạn đã trung tiện chưa?')} />
+                    <DetailField label="Tổng" value={`${assessmentDetail.total_score} ĐIỂM`} />
+                  </div>
+                  <div className="mb-6 mt-2 text-right">
+                    <button className="text-sm font-medium text-blue-600 hover:underline">
+                      Xem tất cả đánh giá
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="mb-6 rounded-xl bg-slate-50 p-8 text-center">
+                  <div className="mb-3 flex justify-center">
+                    <div className="rounded-full bg-slate-200 p-4">
+                      <span className="material-symbols-outlined text-[32px] text-slate-400">assignment</span>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-slate-600">Chưa có đánh giá nào</p>
+                  <p className="mt-1 text-xs text-slate-500">Bệnh nhân chưa thực hiện đánh giá lần đầu</p>
+                </div>
+              )}
 
               <div className="mt-8">
                 <button
                   onClick={selectedPatient.is_locked ? handleResumePod : openPodLockModal}
                   disabled={savingPodLock}
                   className={`w-full rounded-lg px-4 py-3 font-semibold text-white
-                      ${
-                        selectedPatient.is_locked
-                          ? 'bg-green-600 hover:bg-green-700'
-                          : 'bg-red-600 hover:bg-red-700'
-                      }
+                      ${selectedPatient.is_locked
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-red-600 hover:bg-red-700'
+                    }
                     `}
                 >
                   {savingPodLock

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { translateError } from '../../../lib/errorTranslator'
 import { useUpdateNurse } from '../api/nurses'
 
 interface ResetPasswordModalProps {
@@ -42,7 +43,7 @@ export function ResetPasswordModal({ isOpen, onClose, nurseId, nurseName }: Rese
       setPassword('')
       onClose()
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Có lỗi xảy ra khi đặt lại mật khẩu')
+      setError(translateError(err, 'Có lỗi xảy ra khi đặt lại mật khẩu'))
     }
   }
 
