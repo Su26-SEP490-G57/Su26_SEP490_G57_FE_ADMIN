@@ -9,7 +9,7 @@ import {
   getPatients,
   updatePodLevel,
   updatePodLock,
-  usePatientStats
+  usePatientStats,
 } from '../api/patientApi'
 import { PatientFormModal } from '../components/PatientFormModal'
 import type {
@@ -24,8 +24,12 @@ function displayValue<T>(value: T | null | undefined) {
 }
 
 // Tên hiển thị của bệnh nhân: ưu tiên fullName của tài khoản liên kết.
-function patientName(p: { account?: { fullName?: string | null } | null; name_initials?: string | null }) {
-  return p.account?.fullName ?? p.name_initials ?? '--'
+function patientName(p: {
+  account?: { fullName?: string | null } | null
+  fullName?: string | null
+  nameInitials?: string | null
+}) {
+  return p.fullName ?? p.account?.fullName ?? p.nameInitials ?? '--'
 }
 
 // Một ô thông tin trong panel chi tiết: nhãn nhỏ màu xám, giá trị in đậm.
@@ -105,9 +109,23 @@ export function PatientPage() {
   const [deletingPatient, setDeletingPatient] = useState<PatientListItem | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
-    setPage(1)
-  }, [search, operationTypeId, level])
+  const clearSelectedPatient = () => {
+    setSelectedPatient(null)
+    setLatestAssessment(null)
+    setAssessmentDetail(null)
+  }
+
+  const selectPatient = (patient: PatientListItem | null) => {
+    setSelectedPatient(patient)
+    if (!patient) {
+      setLatestAssessment(null)
+      setAssessmentDetail(null)
+      return
+    }
+
+    setLatestAssessment(null)
+    setAssessmentDetail(null)
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -146,8 +164,6 @@ export function PatientPage() {
 
   useEffect(() => {
     if (!selectedPatient) {
-      setLatestAssessment(null)
-      setAssessmentDetail(null)
       return
     }
 
@@ -157,7 +173,7 @@ export function PatientPage() {
       setLatestAssessment(null)
       setAssessmentDetail(null)
       try {
-        const latest = await getLatestAssessment(patientDetail.case_id)
+        const latest = await getLatestAssessment(patientDetail.caseId)
 
         // Nếu không có đánh giá (404 đã được handle trong API function)
         if (!latest) {
@@ -168,7 +184,7 @@ export function PatientPage() {
 
         setLatestAssessment(latest)
 
-        const detail = await getAssessmentDetail(latest.assessment_id)
+        const detail = await getAssessmentDetail(latest.assessmentId)
 
         setAssessmentDetail(detail)
       } catch (error) {
@@ -193,7 +209,7 @@ export function PatientPage() {
 
       // Close panel if click is outside both
       if (!isPatientCard && !isSidePanel) {
-        setSelectedPatient(null)
+        clearSelectedPatient()
       }
     }
 
@@ -225,7 +241,7 @@ export function PatientPage() {
 
   function getAnswer(questionText: string) {
     return (
-      assessmentDetail?.details.find((item) => item.question_text === questionText)?.option_text ??
+      assessmentDetail?.details.find((item) => item.questionText === questionText)?.optionText ??
       '--'
     )
   }
@@ -249,15 +265,15 @@ export function PatientPage() {
     if (!patientItem) return
 
     try {
-      await updatePodLock(patientItem.case_id, {
-        isLocked: !patientItem.is_locked,
-        holdReason: patientItem.is_locked ? undefined : holdReason.trim(),
+      await updatePodLock(patientItem.caseId, {
+        isLocked: !patientItem.isLocked,
+        holdReason: patientItem.isLocked ? undefined : holdReason.trim(),
       })
 
       const list = await reloadPatients()
-      const updated = list.find((p) => p.case_id === patientItem.case_id)
+      const updated = list.find((p) => p.caseId === patientItem.caseId)
 
-      setSelectedPatient(updated ?? null)
+      selectPatient(updated ?? null)
     } catch (error) {
       console.error(error)
     }
@@ -279,7 +295,7 @@ export function PatientPage() {
     try {
       setSavingPodLock(true)
 
-      await updatePodLock(selectedPatient.case_id, {
+      await updatePodLock(selectedPatient.caseId, {
         isLocked: true,
         holdReason,
       })
@@ -288,9 +304,9 @@ export function PatientPage() {
       setHoldReason('')
 
       const list = await reloadPatients()
-      const updated = list.find((p) => p.case_id === selectedPatient.case_id)
+      const updated = list.find((p) => p.caseId === selectedPatient.caseId)
 
-      setSelectedPatient(updated ?? null)
+      selectPatient(updated ?? null)
     } catch (error) {
       console.error(error)
     } finally {
@@ -304,7 +320,7 @@ export function PatientPage() {
     try {
       setSavingPodLock(true)
 
-      await updatePodLock(selectedPatient.case_id, {
+      await updatePodLock(selectedPatient.caseId, {
         isLocked: false,
       })
 
@@ -319,9 +335,9 @@ export function PatientPage() {
       setPatients(response.data)
       setTotal(response.total)
 
-      const updated = response.data.find((p) => p.case_id === selectedPatient.case_id)
+      const updated = response.data.find((p) => p.caseId === selectedPatient.caseId)
 
-      setSelectedPatient(updated ?? null)
+      selectPatient(updated ?? null)
     } catch (error) {
       console.error(error)
     } finally {
@@ -346,9 +362,9 @@ export function PatientPage() {
       setTotal(response.total)
 
       // Update selected patient if it's the one being changed
-      if (selectedPatient?.case_id === caseId) {
-        const updated = response.data.find((p) => p.case_id === caseId)
-        setSelectedPatient(updated ?? null)
+      if (selectedPatient?.caseId === caseId) {
+        const updated = response.data.find((p) => p.caseId === caseId)
+        selectPatient(updated ?? null)
       }
     } catch (error) {
       console.error('Error updating POD level:', error)
@@ -366,8 +382,8 @@ export function PatientPage() {
     const list = await reloadPatients()
     // Cập nhật panel chi tiết theo dữ liệu mới (hoặc đóng nếu bản ghi đã biến mất).
     if (selectedPatient) {
-      const updated = list.find((p) => p.case_id === selectedPatient.case_id)
-      setSelectedPatient(updated ?? null)
+      const updated = list.find((p) => p.caseId === selectedPatient.caseId)
+      selectPatient(updated ?? null)
     }
     queryClient.invalidateQueries({ queryKey: ['patients', 'stats'] })
   }
@@ -377,7 +393,7 @@ export function PatientPage() {
     try {
       setDeleting(true)
       await deletePatient(deletingPatient.account.id)
-      if (selectedPatient?.case_id === deletingPatient.case_id) setSelectedPatient(null)
+      if (selectedPatient?.caseId === deletingPatient.caseId) clearSelectedPatient()
       setDeletingPatient(null)
       await refreshAfterMutation()
     } catch (error) {
@@ -398,7 +414,9 @@ export function PatientPage() {
               <span className="material-symbols-outlined text-[20px]">group</span>
             </div>
           </div>
-          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Tổng số</span>
+          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">
+            Tổng số
+          </span>
           <span className="text-3xl font-extrabold my-0.5">{totalPatients}</span>
           <span className="text-[11px] text-blue-600 font-semibold">Đang theo dõi</span>
         </div>
@@ -409,7 +427,9 @@ export function PatientPage() {
               <span className="material-symbols-outlined text-[20px]">check_circle</span>
             </div>
           </div>
-          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Ổn định</span>
+          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">
+            Ổn định
+          </span>
           <span className="text-3xl font-extrabold my-0.5">{greenCount}</span>
           <span className="text-[11px] text-green-600 font-semibold">Bình thường</span>
         </div>
@@ -420,7 +440,9 @@ export function PatientPage() {
               <span className="material-symbols-outlined text-[20px]">warning</span>
             </div>
           </div>
-          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Theo dõi</span>
+          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">
+            Theo dõi
+          </span>
           <span className="text-3xl font-extrabold my-0.5">{yellowCount}</span>
           <span className="text-[11px] text-yellow-600 font-semibold">Cần lưu ý</span>
         </div>
@@ -431,7 +453,9 @@ export function PatientPage() {
               <span className="material-symbols-outlined text-[20px]">emergency</span>
             </div>
           </div>
-          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">Nguy cơ</span>
+          <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">
+            Nguy cơ
+          </span>
           <span className="text-3xl font-extrabold my-0.5 text-red-600">{redCount}</span>
           <span className="text-[11px] text-red-600 font-semibold">Khẩn cấp</span>
         </div>
@@ -448,12 +472,17 @@ export function PatientPage() {
         </button>
 
         <div className="flex-1 min-w-[200px] relative">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+            search
+          </span>
           <input
             type="text"
             placeholder="Tìm kiếm theo tên, mã số, hoặc phòng..."
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={(e) => {
+              setSearchInput(e.target.value)
+              setPage(1)
+            }}
             className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:ring-4 focus:ring-black/5 focus:border-black outline-none text-sm transition-all shadow-sm"
           />
         </div>
@@ -462,7 +491,10 @@ export function PatientPage() {
           <div className="relative">
             <select
               value={operationTypeId ?? ''}
-              onChange={(e) => setOperationTypeId(e.target.value ? Number(e.target.value) : undefined)}
+              onChange={(e) => {
+                setOperationTypeId(e.target.value ? Number(e.target.value) : undefined)
+                setPage(1)
+              }}
               className="bg-white border border-slate-200 px-5 py-3 rounded-xl flex items-center gap-3 text-sm font-semibold hover:bg-slate-50 transition-all shadow-sm whitespace-nowrap appearance-none pr-10"
             >
               <option value="">Loại phẫu thuật</option>
@@ -472,13 +504,18 @@ export function PatientPage() {
                 </option>
               ))}
             </select>
-            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-500 pointer-events-none">expand_more</span>
+            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-500 pointer-events-none">
+              expand_more
+            </span>
           </div>
 
           <div className="relative">
             <select
               value={level ?? ''}
-              onChange={(e) => setLevel(e.target.value || undefined)}
+              onChange={(e) => {
+                setLevel(e.target.value || undefined)
+                setPage(1)
+              }}
               className="bg-white border border-slate-200 px-5 py-3 rounded-xl flex items-center gap-3 text-sm font-semibold hover:bg-slate-50 transition-all shadow-sm whitespace-nowrap appearance-none pr-10"
             >
               <option value="">Phòng</option>
@@ -486,7 +523,9 @@ export function PatientPage() {
               <option value="Yellow">Vàng</option>
               <option value="Green">Xanh</option>
             </select>
-            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-500 pointer-events-none">filter_alt</span>
+            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-500 pointer-events-none">
+              filter_alt
+            </span>
           </div>
         </div>
       </div>
@@ -500,12 +539,15 @@ export function PatientPage() {
         >
           {/* Patient Cards grouped by room */}
           {Object.entries(
-            patients.reduce((acc, patient) => {
-              const room = patient.room_bed?.split('/')[0] || 'Chưa phân phòng'
-              if (!acc[room]) acc[room] = []
-              acc[room].push(patient)
-              return acc
-            }, {} as Record<string, PatientListItem[]>)
+            patients.reduce(
+              (acc, patient) => {
+                const room = patient.roomBed?.split('/')[0] || 'Chưa phân phòng'
+                if (!acc[room]) acc[room] = []
+                acc[room].push(patient)
+                return acc
+              },
+              {} as Record<string, PatientListItem[]>,
+            ),
           ).map(([room, roomPatients]) => (
             <section key={room}>
               <div className="flex items-center justify-between mb-5 px-1">
@@ -522,45 +564,53 @@ export function PatientPage() {
                 {roomPatients.map((patient) => {
                   const lKey = levelKey(patient.level?.name)
                   const borderColor =
-                    lKey === 'red' ? 'border-l-red-500' :
-                      lKey === 'yellow' ? 'border-l-yellow-400' :
-                        'border-l-green-500'
+                    lKey === 'red'
+                      ? 'border-l-red-500'
+                      : lKey === 'yellow'
+                        ? 'border-l-yellow-400'
+                        : 'border-l-green-500'
                   const bgColor =
-                    lKey === 'red' ? 'bg-red-50' :
-                      lKey === 'yellow' ? 'bg-yellow-50' :
-                        'bg-green-50'
+                    lKey === 'red'
+                      ? 'bg-red-50'
+                      : lKey === 'yellow'
+                        ? 'bg-yellow-50'
+                        : 'bg-green-50'
                   const textColor =
-                    lKey === 'red' ? 'text-red-600' :
-                      lKey === 'yellow' ? 'text-yellow-600' :
-                        'text-green-600'
+                    lKey === 'red'
+                      ? 'text-red-600'
+                      : lKey === 'yellow'
+                        ? 'text-yellow-600'
+                        : 'text-green-600'
 
                   return (
                     <div
-                      key={patient.case_id}
+                      key={patient.caseId}
                       onClick={() => {
-                        if (selectedPatient?.case_id === patient.case_id) {
-                          setSelectedPatient(null) // Toggle off if already selected
+                        if (selectedPatient?.caseId === patient.caseId) {
+                          selectPatient(null)
                         } else {
-                          setSelectedPatient(patient) // Select new patient
+                          selectPatient(patient)
                         }
                       }}
                       className={`patient-card cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg
                         bg-white rounded-2xl border-l-4 ${borderColor} border-y border-r border-slate-200 shadow-sm
-                        ${selectedPatient?.case_id === patient.case_id ? 'ring-2 ring-blue-500' : ''}
+                        ${selectedPatient?.caseId === patient.caseId ? 'ring-2 ring-blue-500' : ''}
                       `}
                     >
                       <div className="p-5">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-1.5">
-                              <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${bgColor} ${textColor}`}>
-                                POD {patient.current_pod} • {patient.operationType?.name || '--'}
+                              <span
+                                className={`text-[11px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${bgColor} ${textColor}`}
+                              >
+                                POD {patient.currentPod} • {patient.operationType?.name || '--'}
                               </span>
                             </div>
                             <h4 className="text-lg font-bold text-slate-800 truncate">
                               {patientName(patient)}
                             </h4>
-                            <p className="text-xs text-slate-500 mt-1">Mã: {patient.case_id}</p>
+                            <p className="text-xs text-slate-500 mt-1">Mã: {patient.caseId}</p>
                           </div>
                         </div>
 
@@ -570,31 +620,37 @@ export function PatientPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  setShowPodDropdown(showPodDropdown === patient.case_id ? null : patient.case_id)
+                                  setShowPodDropdown(
+                                    showPodDropdown === patient.caseId ? null : patient.caseId,
+                                  )
                                 }}
                                 className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200"
                                 title="Chọn POD"
                               >
-                                <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                                <span className="material-symbols-outlined text-[20px]">
+                                  arrow_back
+                                </span>
                               </button>
 
                               {/* POD Dropdown */}
-                              {showPodDropdown === patient.case_id && (
+                              {showPodDropdown === patient.caseId && (
                                 <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-xl border border-slate-200 py-1 z-50 min-w-[120px]">
-                                  {Array.from({ length: patient.current_pod }, (_, i) => i).map((pod) => (
-                                    <button
-                                      key={pod}
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleChangePodLevel(patient.case_id, pod)
-                                        setShowPodDropdown(null)
-                                      }}
-                                      className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors text-slate-700 cursor-pointer"
-                                    >
-                                      POD {pod}
-                                    </button>
-                                  ))}
-                                  {patient.current_pod === 0 && (
+                                  {Array.from({ length: patient.currentPod }, (_, i) => i).map(
+                                    (pod) => (
+                                      <button
+                                        key={pod}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleChangePodLevel(patient.caseId, pod)
+                                          setShowPodDropdown(null)
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors text-slate-700 cursor-pointer"
+                                      >
+                                        POD {pod}
+                                      </button>
+                                    ),
+                                  )}
+                                  {patient.currentPod === 0 && (
                                     <div className="px-4 py-2 text-xs text-slate-400 italic">
                                       Không có POD nhỏ hơn
                                     </div>
@@ -606,22 +662,23 @@ export function PatientPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                if (patient.is_locked) {
+                                if (patient.isLocked) {
                                   handleQuickToggle(patient)
                                 } else {
-                                  setSelectedPatient(patient)
+                                  selectPatient(patient)
                                   setShowHoldDialog(true)
                                 }
                               }}
                               className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all
-                                ${patient.is_locked
-                                  ? 'bg-black text-white hover:scale-110 border-2 border-white'
-                                  : 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200'
+                                ${
+                                  patient.isLocked
+                                    ? 'bg-black text-white hover:scale-110 border-2 border-white'
+                                    : 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200'
                                 }`}
-                              title={patient.is_locked ? 'Tiếp tục POD' : 'Giữ POD hiện tại'}
+                              title={patient.isLocked ? 'Tiếp tục POD' : 'Giữ POD hiện tại'}
                             >
                               <span className="material-symbols-outlined text-[20px]">
-                                {patient.is_locked ? 'play_arrow' : 'pause'}
+                                {patient.isLocked ? 'play_arrow' : 'pause'}
                               </span>
                             </button>
                           </div>
@@ -672,10 +729,15 @@ export function PatientPage() {
                     <span className="material-symbols-outlined text-[26px]">person</span>
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-slate-800">{patientName(selectedPatient)}</p>
+                    <p className="text-lg font-bold text-slate-800">
+                      {patientName(selectedPatient)}
+                    </p>
                     <p className="text-sm text-slate-500">
-                      Mã: <span className="font-semibold text-slate-700">{selectedPatient.case_id}</span>
-                      <span className="ml-4 font-semibold text-slate-700">POD {selectedPatient.current_pod}</span>
+                      Mã:{' '}
+                      <span className="font-semibold text-slate-700">{selectedPatient.caseId}</span>
+                      <span className="ml-4 font-semibold text-slate-700">
+                        POD {selectedPatient.currentPod}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -699,7 +761,7 @@ export function PatientPage() {
                     <span className="material-symbols-outlined text-[20px]">delete</span>
                   </button>
                   <button
-                    onClick={() => setSelectedPatient(null)}
+                    onClick={() => clearSelectedPatient()}
                     className="rounded-lg p-1.5 hover:bg-slate-100 hover:text-slate-700"
                     title="Đóng"
                   >
@@ -713,31 +775,43 @@ export function PatientPage() {
               <div className="mb-6 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl bg-slate-50 p-5">
                 <DetailField label="Tuổi" value={displayValue(selectedPatient.age)} />
                 <DetailField label="Giới tính" value={displayValue(selectedPatient.gender)} />
-                <DetailField label="Chiều cao" value={`${displayValue(selectedPatient.height)} cm`} />
-                <DetailField label="Cân nặng" value={`${displayValue(selectedPatient.weight)} kg`} />
+                <DetailField
+                  label="Chiều cao"
+                  value={`${displayValue(selectedPatient.height)} cm`}
+                />
+                <DetailField
+                  label="Cân nặng"
+                  value={`${displayValue(selectedPatient.weight)} kg`}
+                />
                 <DetailField label="BMI" value={displayValue(selectedPatient.bmi)} />
               </div>
 
               {/* Thông tin điều trị */}
               <h3 className="mb-3 text-lg font-bold text-slate-800">Thông tin điều trị</h3>
               <div className="mb-6 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl bg-slate-50 p-5">
-                <DetailField label="Ngày phẫu thuật" value={displayValue(selectedPatient.surgery_date)} />
-                <DetailField label="POD hiện tại" value={`POD ${selectedPatient.current_pod}`} />
-                <DetailField label="Buồng/giường" value={displayValue(selectedPatient.room_bed)} />
+                <DetailField
+                  label="Ngày phẫu thuật"
+                  value={displayValue(selectedPatient.surgeryDate)}
+                />
+                <DetailField label="POD hiện tại" value={`POD ${selectedPatient.currentPod}`} />
+                <DetailField label="Buồng/giường" value={displayValue(selectedPatient.roomBed)} />
               </div>
 
               {/* Thông tin phẫu thuật */}
               <h3 className="mb-3 text-lg font-bold text-slate-800">Thông tin phẫu thuật</h3>
               <div className="mb-6 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl bg-slate-50 p-5">
                 <DetailField label="Chẩn đoán" value={displayValue(selectedPatient.diagnosis)} />
-                <DetailField label="Loại phẫu thuật" value={selectedPatient.operationType?.name ?? '--'} />
+                <DetailField
+                  label="Loại phẫu thuật"
+                  value={selectedPatient.operationType?.name ?? '--'}
+                />
                 <DetailField label="Phương pháp mổ" value={displayValue(selectedPatient.method)} />
                 <DetailField
                   label="Có miệng nối tiêu hoá"
                   value={
-                    selectedPatient.has_gi_anastomosis == null
+                    selectedPatient.hasGiAnastomosis == null
                       ? '--'
-                      : selectedPatient.has_gi_anastomosis
+                      : selectedPatient.hasGiAnastomosis
                         ? 'Có'
                         : 'Không'
                   }
@@ -751,10 +825,13 @@ export function PatientPage() {
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl bg-slate-50 p-5">
                     <DetailField label="Buồn nôn" value={getAnswer('Bạn có buồn nôn không?')} />
                     <DetailField label="Số lần nôn" value={getAnswer('Bạn có nôn nhiều không?')} />
-                    <DetailField label="Chướng bụng" value={getAnswer('Bạn có chướng bụng không?')} />
+                    <DetailField
+                      label="Chướng bụng"
+                      value={getAnswer('Bạn có chướng bụng không?')}
+                    />
                     <DetailField label="Ăn uống" value={getAnswer('Bạn ăn được bao nhiêu?')} />
                     <DetailField label="Trung tiện" value={getAnswer('Bạn đã trung tiện chưa?')} />
-                    <DetailField label="Tổng" value={`${assessmentDetail.total_score} ĐIỂM`} />
+                    <DetailField label="Tổng" value={`${assessmentDetail.totalScore} ĐIỂM`} />
                   </div>
                   <div className="mb-6 mt-2 text-right">
                     <button className="text-sm font-medium text-blue-600 hover:underline">
@@ -766,28 +843,33 @@ export function PatientPage() {
                 <div className="mb-6 rounded-xl bg-slate-50 p-8 text-center">
                   <div className="mb-3 flex justify-center">
                     <div className="rounded-full bg-slate-200 p-4">
-                      <span className="material-symbols-outlined text-[32px] text-slate-400">assignment</span>
+                      <span className="material-symbols-outlined text-[32px] text-slate-400">
+                        assignment
+                      </span>
                     </div>
                   </div>
                   <p className="text-sm font-medium text-slate-600">Chưa có đánh giá nào</p>
-                  <p className="mt-1 text-xs text-slate-500">Bệnh nhân chưa thực hiện đánh giá lần đầu</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Bệnh nhân chưa thực hiện đánh giá lần đầu
+                  </p>
                 </div>
               )}
 
               <div className="mt-8">
                 <button
-                  onClick={selectedPatient.is_locked ? handleResumePod : openPodLockModal}
+                  onClick={selectedPatient.isLocked ? handleResumePod : openPodLockModal}
                   disabled={savingPodLock}
                   className={`w-full rounded-lg px-4 py-3 font-semibold text-white
-                      ${selectedPatient.is_locked
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'bg-red-600 hover:bg-red-700'
-                    }
+                      ${
+                        selectedPatient.isLocked
+                          ? 'bg-green-600 hover:bg-green-700'
+                          : 'bg-red-600 hover:bg-red-700'
+                      }
                     `}
                 >
                   {savingPodLock
                     ? 'Đang xử lý...'
-                    : selectedPatient.is_locked
+                    : selectedPatient.isLocked
                       ? 'Tiếp tục POD'
                       : 'Giữ POD hiện tại'}
                 </button>

@@ -7,7 +7,12 @@ interface NurseDetailPanelProps {
   onResetPassword: () => void
 }
 
-export function NurseDetailPanel({ nurseId, onClose, onEdit, onResetPassword }: NurseDetailPanelProps) {
+export function NurseDetailPanel({
+  nurseId,
+  onClose,
+  onEdit,
+  onResetPassword,
+}: NurseDetailPanelProps) {
   const { data: nurse, isLoading, isError } = useNurse(nurseId)
 
   // Smooth slide-in transition: if nurseId is null, don't show or slide away.
@@ -81,7 +86,10 @@ export function NurseDetailPanel({ nurseId, onClose, onEdit, onResetPassword }: 
                 {nurse.fullName}
               </h3>
               <p className="text-sm text-slate-500">
-                Mã: <span className="font-semibold text-[#00459a]">ĐD{String(nurse.id).padStart(3, '0')}</span>
+                Mã:{' '}
+                <span className="font-semibold text-[#00459a]">
+                  ĐD{String(nurse.id).padStart(3, '0')}
+                </span>
               </p>
 
               {/* Status badge with indicator dot */}
@@ -123,11 +131,15 @@ export function NurseDetailPanel({ nurseId, onClose, onEdit, onResetPassword }: 
               </div>
               <div className="flex justify-between items-start gap-4">
                 <span className="text-slate-500 font-medium whitespace-nowrap">Số điện thoại:</span>
-                <span className="text-slate-800 font-semibold text-right">{nurse.phoneNumber || 'Chưa cập nhật'}</span>
+                <span className="text-slate-800 font-semibold text-right">
+                  {nurse.phoneNumber || 'Chưa cập nhật'}
+                </span>
               </div>
               <div className="flex justify-between items-start gap-4">
                 <span className="text-slate-500 font-medium whitespace-nowrap">Ngày sinh:</span>
-                <span className="text-slate-800 font-semibold text-right">{formatDate(nurse.dob)}</span>
+                <span className="text-slate-800 font-semibold text-right">
+                  {formatDate(nurse.dob)}
+                </span>
               </div>
               <div className="flex justify-between items-start gap-4">
                 <span className="text-slate-500 font-medium whitespace-nowrap">Địa chỉ:</span>
@@ -135,7 +147,9 @@ export function NurseDetailPanel({ nurseId, onClose, onEdit, onResetPassword }: 
               </div>
               <div className="flex justify-between items-start gap-4">
                 <span className="text-slate-500 font-medium whitespace-nowrap">Ngày tạo tk:</span>
-                <span className="text-slate-800 font-semibold text-right">{formatDate(nurse.createdAt)}</span>
+                <span className="text-slate-800 font-semibold text-right">
+                  {formatDate(nurse.createdAt)}
+                </span>
               </div>
             </div>
           </div>

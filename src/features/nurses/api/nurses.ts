@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
-import type { CreateNurseInput, Nurse, PaginatedNurses, QueryNurseParams, UpdateNurseInput } from '../types'
+import type {
+  CreateNurseInput,
+  Nurse,
+  PaginatedNurses,
+  QueryNurseParams,
+  UpdateNurseInput,
+} from '../types'
 
 export const nurseKeys = {
   all: ['nurses'] as const,

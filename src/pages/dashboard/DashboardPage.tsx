@@ -21,10 +21,7 @@ export function DashboardPage() {
       <p className="eyebrow">Overview</p>
       <h2>Admin Dashboard</h2>
       <p>Routing, API fetching, and server state management are ready.</p>
-      <p>
-        API status:{' '}
-        {isPending ? 'Loading...' : isError ? 'Unavailable' : data.status}
-      </p>
+      <p>API status: {isPending ? 'Loading...' : isError ? 'Unavailable' : data.status}</p>
       <Link to="/users">Go to users</Link>
     </section>
   )

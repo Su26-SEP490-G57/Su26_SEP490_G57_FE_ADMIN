@@ -86,7 +86,9 @@ export function NurseManagementPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-slate-800">Danh sách điều dưỡng</h2>
-            <p className="text-xs text-slate-500">Quản lý danh sách tài khoản, thông tin liên lạc và vai trò của điều dưỡng</p>
+            <p className="text-xs text-slate-500">
+              Quản lý danh sách tài khoản, thông tin liên lạc và vai trò của điều dưỡng
+            </p>
           </div>
           <div className="flex items-center gap-3">
             {/* Search Input */}
@@ -119,32 +121,63 @@ export function NurseManagementPage() {
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50">
                 <tr>
-                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">Mã điều dưỡng</th>
-                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">Tên điều dưỡng</th>
-                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">Số điện thoại</th>
-                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">Vai trò</th>
-                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Trạng thái</th>
-                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-right pr-8">Thao tác</th>
+                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Mã điều dưỡng
+                  </th>
+                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Tên điều dưỡng
+                  </th>
+                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Số điện thoại
+                  </th>
+                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Vai trò
+                  </th>
+                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">
+                    Trạng thái
+                  </th>
+                  <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-right pr-8">
+                    Thao tác
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td className="px-6 py-4"><div className="h-4 w-16 rounded bg-slate-100" /></td>
-                      <td className="px-6 py-4"><div className="h-4 w-32 rounded bg-slate-100" /></td>
-                      <td className="px-6 py-4"><div className="h-4 w-24 rounded bg-slate-100" /></td>
-                      <td className="px-6 py-4"><div className="h-4 w-28 rounded bg-slate-100" /></td>
-                      <td className="px-6 py-4"><div className="mx-auto h-6 w-20 rounded bg-slate-100" /></td>
-                      <td className="px-6 py-4 text-right"><div className="ml-auto h-8 w-24 rounded bg-slate-100" /></td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-16 rounded bg-slate-100" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-32 rounded bg-slate-100" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-24 rounded bg-slate-100" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-28 rounded bg-slate-100" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="mx-auto h-6 w-20 rounded bg-slate-100" />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="ml-auto h-8 w-24 rounded bg-slate-100" />
+                      </td>
                     </tr>
                   ))
                 ) : isError ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      <span className="material-symbols-outlined text-[36px] text-slate-300 mb-2">cloud_off</span>
-                      <p className="text-sm font-semibold">Lỗi tải dữ liệu. Vui lòng thử lại sau.</p>
-                      <button onClick={() => refetch()} className="mt-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50">
+                      <span className="material-symbols-outlined text-[36px] text-slate-300 mb-2">
+                        cloud_off
+                      </span>
+                      <p className="text-sm font-semibold">
+                        Lỗi tải dữ liệu. Vui lòng thử lại sau.
+                      </p>
+                      <button
+                        onClick={() => refetch()}
+                        className="mt-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50"
+                      >
                         Tải lại
                       </button>
                     </td>
@@ -152,7 +185,9 @@ export function NurseManagementPage() {
                 ) : data?.data.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      <span className="material-symbols-outlined text-[36px] text-slate-300 mb-2">person_search</span>
+                      <span className="material-symbols-outlined text-[36px] text-slate-300 mb-2">
+                        person_search
+                      </span>
                       <p className="text-sm font-semibold">Không tìm thấy điều dưỡng nào phù hợp</p>
                     </td>
                   </tr>
@@ -183,7 +218,9 @@ export function NurseManagementPage() {
                         </td>
                         {/* Role Column */}
                         <td className="px-6 py-4 text-slate-600 text-sm">
-                          {nurse.roles.includes('Head_Nurse') ? 'Điều dưỡng trưởng' : 'Điều dưỡng viên'}
+                          {nurse.roles.includes('Head_Nurse')
+                            ? 'Điều dưỡng trưởng'
+                            : 'Điều dưỡng viên'}
                         </td>
                         {/* Status Column */}
                         <td className="px-6 py-4 text-center">
@@ -200,14 +237,19 @@ export function NurseManagementPage() {
                           )}
                         </td>
                         {/* Actions Column */}
-                        <td className="px-6 py-4 text-right pr-8" onClick={(e) => e.stopPropagation()}>
+                        <td
+                          className="px-6 py-4 text-right pr-8"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <div className="inline-flex items-center gap-2">
                             <button
                               onClick={() => setSelectedNurseId(nurse.id)}
                               className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-[#00459a] transition-all"
                               title="Xem chi tiết"
                             >
-                              <span className="material-symbols-outlined text-[20px]">visibility</span>
+                              <span className="material-symbols-outlined text-[20px]">
+                                visibility
+                              </span>
                             </button>
                             <button
                               onClick={() => handleOpenEdit(nurse)}
@@ -291,7 +333,9 @@ export function NurseManagementPage() {
         nurseId={selectedNurseId}
         onClose={() => setSelectedNurseId(null)}
         onEdit={() => selectedNurse && handleOpenEdit(selectedNurse)}
-        onResetPassword={() => selectedNurse && handleOpenResetPassword(selectedNurse.id, selectedNurse.fullName)}
+        onResetPassword={() =>
+          selectedNurse && handleOpenResetPassword(selectedNurse.id, selectedNurse.fullName)
+        }
       />
 
       {/* MODALS */}
