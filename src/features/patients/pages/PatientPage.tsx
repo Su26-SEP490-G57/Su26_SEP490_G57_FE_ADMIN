@@ -18,6 +18,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { MoreVertical, Pencil, Trash2, X } from 'lucide-react'
 import { PatientFormModal } from '../components/PatientFormModal'
+import { ImportPatientsModal } from '../components/ImportPatientsModal'
+import { DEV_ROLE } from '../../../layouts/main-layout/nav-config'
 
 function displayValue<T>(value: T | null | undefined) {
   return value ?? '--'
@@ -94,6 +96,7 @@ export function PatientPage() {
   // Modal thêm/sửa + dialog xoá
   const queryClient = useQueryClient()
   const [formOpen, setFormOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [editingPatient, setEditingPatient] = useState<PatientListItem | null>(null)
   const [deletingPatient, setDeletingPatient] = useState<PatientListItem | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -401,6 +404,17 @@ export function PatientPage() {
         >
           + Thêm mới
         </button>
+
+        {/* Nhập từ HIS — chỉ Head Nurse (BE cũng chặn theo vai trò). */}
+        {DEV_ROLE === 'head_nurse' && (
+          <button
+            onClick={() => setImportOpen(true)}
+            className="flex items-center gap-2 rounded-lg border border-blue-600 px-4 py-2 font-medium text-blue-600 hover:bg-blue-50"
+          >
+            <span className="material-symbols-outlined text-[20px]">cloud_download</span>
+            Nhập từ HIS
+          </button>
+        )}
 
         <input
           type="text"
@@ -739,6 +753,13 @@ export function PatientPage() {
         operationTypes={operationTypes}
         onClose={() => setFormOpen(false)}
         onSaved={refreshAfterMutation}
+      />
+
+      {/* Modal nhập hồ sơ từ HIS */}
+      <ImportPatientsModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={refreshAfterMutation}
       />
 
       {/* Dialog xác nhận xoá */}

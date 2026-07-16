@@ -3,6 +3,9 @@ import { api } from '../../../lib/api'
 import type {
   AssessmentDetailResponse,
   CreatePatientPayload,
+  ExternalSurgicalRecord,
+  ExternalSurgicalRecordListResponse,
+  ImportPatientsResult,
   LatestAssessmentResponse,
   OperationType,
   PatientListItem,
@@ -71,6 +74,24 @@ export function usePatientStats() {
 
 export async function getOperationTypes() {
   const { data } = await api.get<OperationType[]>('/patients/operation-types')
+
+  return data
+}
+
+// Lấy toàn bộ hồ sơ bệnh nhân đã phẫu thuật từ HIS (hệ thống ngoài).
+export async function getExternalSurgicalRecords() {
+  const { data } = await api.get<ExternalSurgicalRecordListResponse>(
+    '/patients/external-records',
+  )
+
+  return data
+}
+
+// Import các hồ sơ HIS đã chọn -> tạo bệnh nhân + tài khoản + start ERAS.
+export async function importPatients(records: ExternalSurgicalRecord[]) {
+  const { data } = await api.post<ImportPatientsResult>('/patients/import', {
+    records,
+  })
 
   return data
 }

@@ -110,6 +110,52 @@ export interface AssessmentDetailResponse {
   recommendation: string
 }
 
+// ── Import từ HIS (hệ thống ngoài) ──────────────────────────────────────────
+// Một hồ sơ phẫu thuật do dummy HIS trả về (khớp ExternalSurgicalRecordDto của BE).
+export interface ExternalSurgicalRecord {
+  recordId: string
+  hospitalPatientCode: string
+  patientName: string
+  dateOfBirth: string | null
+  sex: string | null
+  heightCm: number | null
+  weightKg: number | null
+  admissionDiagnosis: string | null
+  procedureName: string
+  procedureCode: string | null
+  surgicalApproach: string | null
+  bowelAnastomosis: boolean | null
+  operatedAt: string
+  attendingSurgeon: string | null
+  wardCode: string | null
+  bedNumber: string | null
+  dischargeStatus: string | null
+  contactPhone: string | null
+}
+
+export interface ExternalSurgicalRecordListResponse {
+  data: ExternalSurgicalRecord[]
+  total: number
+}
+
+export type ImportStatus = 'imported' | 'skipped' | 'failed'
+
+export interface ImportResultItem {
+  recordId: string
+  caseId: string | null
+  status: ImportStatus
+  erasStarted: boolean
+  message: string | null
+}
+
+export interface ImportPatientsResult {
+  total: number
+  imported: number
+  skipped: number
+  failed: number
+  results: ImportResultItem[]
+}
+
 export interface PodLockRequest {
   isLocked: boolean
   holdReason?: string
