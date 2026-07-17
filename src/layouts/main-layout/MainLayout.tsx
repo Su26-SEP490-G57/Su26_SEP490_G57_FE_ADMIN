@@ -26,7 +26,9 @@ export function MainLayout() {
       {/* ------------------------------------------------------------------ */}
       {/* Sidebar                                                             */}
       {/* ------------------------------------------------------------------ */}
-      <aside className={`flex flex-shrink-0 flex-col bg-[#0f172a] text-slate-300 z-50 transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
+      <aside
+        className={`flex flex-shrink-0 flex-col bg-[#0f172a] text-slate-300 z-50 transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}
+      >
         {/* Brand */}
         <div className="flex items-center justify-between border-b border-slate-700 p-4">
           <div className="flex items-center gap-3">
@@ -66,7 +68,8 @@ export function MainLayout() {
                 to={item.path}
                 title={collapsed ? item.label : undefined}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${collapsed ? 'justify-center' : ''
+                  `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
+                    collapsed ? 'justify-center' : ''
                   } ${isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-[#1e293b]'}`
                 }
               >

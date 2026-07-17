@@ -1,16 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import type {
-    AssessmentDetailResponse,
-    CreatePatientPayload,
-    LatestAssessmentResponse,
-    OperationType,
-    PatientListItem,
-    PatientListResponse,
-    PatientQuery,
-    PodLockRequest,
-    PodLockResponse,
-    UpdatePatientPayload,
+  AssessmentDetailResponse,
+  CreatePatientPayload,
+  LatestAssessmentResponse,
+  OperationType,
+  PatientListItem,
+  PatientListResponse,
+  PatientQuery,
+  PodLockRequest,
+  PodLockResponse,
+  UpdatePatientPayload,
 } from '../types'
 
 export async function getPatients(query?: PatientQuery) {
@@ -65,7 +65,7 @@ export function usePatientStats() {
 
       allPatients.data.forEach((patient) => {
         const levelName = patient.level?.name
-        console.log(`Patient ${patient.case_id}: level =`, patient.level)
+        console.log(`Patient ${patient.caseId}: level =`, patient.level)
 
         if (!levelName) return
 
@@ -94,55 +94,36 @@ export async function getOperationTypes() {
 }
 
 export async function getLatestAssessment(caseId: string) {
-  try {
-    const response = await api.get<LatestAssessmentResponse>(
-      `/symptom-surveys/patient/${caseId}/latest`,
-      {
-        // Không throw error cho 404 - coi như valid response
-        validateStatus: (status) => status === 200 || status === 404,
-      }
-    )
+  const response = await api.get<LatestAssessmentResponse>(
+    `/symptom-surveys/patient/${caseId}/latest`,
+    {
+      // Không throw error cho 404 - coi như valid response
+      validateStatus: (status) => status === 200 || status === 404,
+    },
+  )
 
-    // Nếu 404 thì trả về null
-    if (response.status === 404) {
-      return null
-    }
-
-    return response.data
-  } catch (error) {
-    // Các lỗi khác (network, 500, etc.)
-    throw error
+  // Nếu 404 thì trả về null
+  if (response.status === 404) {
+    return null
   }
+
+  return response.data
 }
 
 export async function getAssessmentDetail(assessmentId: number) {
-  const { data } = await api.get<AssessmentDetailResponse>(
-    `/symptom-surveys/${assessmentId}`,
-  )
+  const { data } = await api.get<AssessmentDetailResponse>(`/symptom-surveys/${assessmentId}`)
 
   return data
 }
 
-export async function updatePodLock(
-  caseId: string,
-  body: PodLockRequest,
-) {
-  const { data } = await api.patch<PodLockResponse>(
-    `/patients/${caseId}/pod-lock`,
-    body,
-  )
+export async function updatePodLock(caseId: string, body: PodLockRequest) {
+  const { data } = await api.patch<PodLockResponse>(`/patients/${caseId}/pod-lock`, body)
 
   return data
 }
 
-export async function updatePodLevel(
-  caseId: string,
-  podLevel: number,
-) {
-  const { data } = await api.patch<PatientListItem>(
-    `/patients/${caseId}/pod-level`,
-    { podLevel },
-  )
+export async function updatePodLevel(caseId: string, podLevel: number) {
+  const { data } = await api.patch<PatientListItem>(`/patients/${caseId}/pod-level`, { podLevel })
 
   return data
 }
