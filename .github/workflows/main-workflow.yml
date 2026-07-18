@@ -1,9 +1,27 @@
 name: Main Branch CI/CD Workflow
 
+permissions:
+  contents: read
+  packages: write
+
 on:
   push:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'index.html'
+      - 'tsconfig.json'
+      - 'tsconfig.app.json'
+      - 'tsconfig.node.json'
+      - 'resources/scripts/check-health.sh'
+      - '.github/workflows/main-workflow.yml'
+      - '.github/workflows/deploy-workflow.yml'
+      - '.github/actions/**'
 
 jobs:
   code_quality:
@@ -16,8 +34,6 @@ jobs:
 
       - name: Setup Project
         uses: ./.github/actions/setup-project
-        with:
-          environment: staging
 
       - name: Static Check
         run: |
@@ -25,7 +41,9 @@ jobs:
           npm run lint
 
   deploy_staging:
+    name: Deploy to Staging
     needs: code_quality
     uses: ./.github/workflows/deploy-workflow.yml
     with:
       environment: staging
+    secrets: inherit
