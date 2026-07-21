@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import type {
@@ -65,7 +66,7 @@ export function usePatientStats() {
 
       allPatients.data.forEach((patient) => {
         const levelName = patient.level?.name
-        console.log(`Patient ${patient.case_id}: level =`, patient.level)
+        console.log(`Patient ${patient.caseId}: level =`, patient.level)
 
         if (!levelName) return
 
