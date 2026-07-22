@@ -411,8 +411,7 @@ export function PatientPage() {
                     POD {patient.currentPod} • {patient.operationType?.name || 'N/A'}
                   </span>
                   {isOverdue && (
-                    <span className="flex items-center gap-0.5 text-[8px] font-bold text-white bg-red-600 px-1.5 py-0.5 rounded-full animate-pulse">
-                      <span className="material-symbols-outlined text-[10px]">warning</span>
+                    <span className="text-[8px] font-bold text-white bg-red-600 px-1.5 py-0.5 rounded-full animate-pulse">
                       KHẨN
                     </span>
                   )}
