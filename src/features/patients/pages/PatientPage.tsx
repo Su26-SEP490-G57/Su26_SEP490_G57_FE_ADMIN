@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useHeaderActions } from '../../../layouts/main-layout/HeaderContext'
 import {
+  archivePatient,
   deletePatient,
   getAssessmentDetail,
   getLatestAssessment,
@@ -11,7 +12,7 @@ import {
   getPatients,
   updatePatient,
   updatePodLevel,
-  updatePodLock,
+  updatePodLock
 } from '../api/patientApi'
 import { PatientFormModal } from '../components/PatientFormModal'
 import type {
@@ -324,6 +325,23 @@ export function PatientPage() {
     }
   }
 
+  async function handleArchivePatient(caseId: string) {
+    if (!confirm('Bạn có chắc chắn muốn lưu trữ hồ sơ bệnh nhân này?')) return
+
+    try {
+      await archivePatient(caseId, true)
+      await reloadPatients()
+      // Close detail modal if it's the archived patient
+      if (selectedPatient?.caseId === caseId) {
+        setSelectedPatient(null)
+      }
+      alert('Đã lưu trữ hồ sơ bệnh nhân thành công')
+    } catch (error) {
+      console.error('Error archiving patient:', error)
+      alert('Có lỗi xảy ra khi lưu trữ hồ sơ')
+    }
+  }
+
   // Uncomment when implementing collapsible rooms
   function toggleRoom(room: string) {
     setExpandedRooms((prev) => {
@@ -340,6 +358,7 @@ export function PatientPage() {
   // Render patient card for 2-column compact layout
   function renderPatientCard(patient: PatientListItem, levelColor: 'red' | 'yellow' | 'green') {
     const isOverdue = isCriticalOverdue(patient)
+    const isCompleted = patient.erasCompleted
 
     const borderColor =
       levelColor === 'red' ? 'border-l-red-500' :
@@ -354,34 +373,50 @@ export function PatientPage() {
         levelColor === 'yellow' ? 'bg-yellow-100' :
           'bg-green-100'
 
+    const handleClick = () => {
+      // Allow opening detail modal even for completed patients
+      // But editing will be disabled in the modal
+      if (selectedPatient?.caseId === patient.caseId) {
+        setSelectedPatient(null)
+      } else {
+        setSelectedPatient(patient)
+      }
+    }
+
     return (
       <div
         key={patient.caseId}
-        onClick={() => {
-          if (selectedPatient?.caseId === patient.caseId) {
-            setSelectedPatient(null)
-          } else {
-            setSelectedPatient(patient)
-          }
-        }}
-        className={`patient-card cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5
-          rounded-lg border-l-[4px] ${isOverdue ? 'border-red-600 border-4 animate-pulse-border' : borderColor + ' border-y border-r'} border-slate-200 bg-white
+        onClick={handleClick}
+        className={`patient-card transition-all duration-200
+          ${isCompleted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5'}
+          rounded-lg border-l-[4px] ${isOverdue && !isCompleted ? 'border-red-600 border-4 animate-pulse-border' : borderColor + ' border-y border-r'} border-slate-200 bg-white
           ${selectedPatient?.caseId === patient.caseId ? 'ring-2 ring-blue-500 shadow-lg' : 'shadow-sm'}
-          ${isOverdue ? 'shadow-red-200 shadow-lg' : ''}
+          ${isOverdue && !isCompleted ? 'shadow-red-200 shadow-lg' : ''}
         `}
       >
         <div className="p-3 space-y-2">
-          {/* POD Badge */}
+          {/* POD Badge or Completed Badge */}
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-1">
-              <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wide ${badgeBg} ${textColor} shadow-sm`}>
-                POD {patient.currentPod} • {patient.operationType?.name || 'N/A'}
-              </span>
-              {isOverdue && (
-                <span className="flex items-center gap-0.5 text-[8px] font-bold text-white bg-red-600 px-1.5 py-0.5 rounded-full animate-pulse">
-                  <span className="material-symbols-outlined text-[10px]">warning</span>
-                  KHẨN
+            <div className="flex items-center gap-1 flex-wrap">
+              {isCompleted ? (
+                // Completed: Show green badge instead of POD badge
+                <span className="flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wide bg-green-100 text-green-600 shadow-sm">
+                  <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                  Hoàn thành ERAS
                 </span>
+              ) : (
+                // Not completed: Show POD badge with optional KHẨN badge
+                <>
+                  <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wide ${badgeBg} ${textColor} shadow-sm`}>
+                    POD {patient.currentPod} • {patient.operationType?.name || 'N/A'}
+                  </span>
+                  {isOverdue && (
+                    <span className="flex items-center gap-0.5 text-[8px] font-bold text-white bg-red-600 px-1.5 py-0.5 rounded-full animate-pulse">
+                      <span className="material-symbols-outlined text-[10px]">warning</span>
+                      KHẨN
+                    </span>
+                  )}
+                </>
               )}
             </div>
             {patient.isLocked && (
@@ -393,7 +428,7 @@ export function PatientPage() {
 
           {/* Patient Name & ID */}
           <div>
-            <h4 className={`text-sm font-bold truncate leading-tight ${isOverdue ? 'text-red-700' : 'text-slate-800'}`}>
+            <h4 className={`text-sm font-bold truncate leading-tight ${isOverdue && !isCompleted ? 'text-red-700' : 'text-slate-800'}`}>
               {patientName(patient)}
             </h4>
             <p className="text-[10px] text-slate-500 mt-0.5 truncate">
@@ -445,34 +480,49 @@ export function PatientPage() {
                 )}
               </div>
 
-              {/* Pause/Continue Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (patient.isLocked) {
-                    handleQuickToggle(patient)
-                  } else {
-                    setPausingPatient(patient)
-                    setShowHoldDialog(true)
-                  }
-                }}
-                className={`w-7 h-7 rounded-md flex items-center justify-center shadow-sm transition-all
-                  ${patient.isLocked
-                    ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-white hover:shadow-md hover:scale-105'
-                    : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50 hover:border-slate-400'
-                  }`}
-                title={patient.isLocked ? 'Tiếp tục POD' : 'Tạm dừng POD'}
-              >
-                <span className="material-symbols-outlined text-[16px] pointer-events-none">
-                  {patient.isLocked ? 'play_arrow' : 'pause'}
-                </span>
-              </button>
+              {/* Pause/Continue Button OR Archive Button */}
+              {isCompleted ? (
+                /* Archive Button - Replace pause button for completed patients */
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleArchivePatient(patient.caseId)
+                  }}
+                  className="w-7 h-7 rounded-md flex items-center justify-center shadow-sm transition-all bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md"
+                  title="Lưu trữ hồ sơ"
+                >
+                  <span className="material-symbols-outlined text-[16px] pointer-events-none">archive</span>
+                </button>
+              ) : (
+                /* Pause/Continue Button - For active patients */
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (patient.isLocked) {
+                      handleQuickToggle(patient)
+                    } else {
+                      setPausingPatient(patient)
+                      setShowHoldDialog(true)
+                    }
+                  }}
+                  className={`w-7 h-7 rounded-md flex items-center justify-center shadow-sm transition-all
+                    ${patient.isLocked
+                      ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-white hover:shadow-md hover:scale-105'
+                      : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50 hover:border-slate-400'
+                    }`}
+                  title={patient.isLocked ? 'Tiếp tục POD' : 'Tạm dừng POD'}
+                >
+                  <span className="material-symbols-outlined text-[16px] pointer-events-none">
+                    {patient.isLocked ? 'play_arrow' : 'pause'}
+                  </span>
+                </button>
+              )}
             </div>
 
             {/* Last Assessment Time */}
             <div className="flex items-center gap-0.5">
-              <span className={`material-symbols-outlined text-[12px] ${isOverdue ? 'text-red-500' : 'text-slate-400'}`}>schedule</span>
-              <span className={`text-[9px] font-medium ${isOverdue ? 'text-red-600 font-bold' : 'text-slate-500'}`}>
+              <span className={`material-symbols-outlined text-[12px] ${isOverdue && !isCompleted ? 'text-red-500' : 'text-slate-400'}`}>schedule</span>
+              <span className={`text-[9px] font-medium ${isOverdue && !isCompleted ? 'text-red-600 font-bold' : 'text-slate-500'}`}>
                 {formatLastAssessment(patient.lastAssessmentTime)}
               </span>
             </div>
@@ -635,9 +685,16 @@ export function PatientPage() {
             }, {} as Record<string, PatientListItem[]>)
           ).map(([room, roomPatients]) => {
             const isOpen = expandedRooms.has(room)
-            const redPatients = roomPatients.filter((p) => levelKey(p.level?.name) === 'red')
-            const yellowPatients = roomPatients.filter((p) => levelKey(p.level?.name) === 'yellow')
-            const greenPatients = roomPatients.filter((p) => levelKey(p.level?.name) === 'green')
+
+            // Sort: Completed patients go to the end
+            const sortedRoomPatients = [...roomPatients].sort((a, b) => {
+              if (a.erasCompleted === b.erasCompleted) return 0
+              return a.erasCompleted ? 1 : -1
+            })
+
+            const redPatients = sortedRoomPatients.filter((p) => levelKey(p.level?.name) === 'red')
+            const yellowPatients = sortedRoomPatients.filter((p) => levelKey(p.level?.name) === 'yellow')
+            const greenPatients = sortedRoomPatients.filter((p) => levelKey(p.level?.name) === 'green')
 
             return (
               <div key={room} className="border-b border-slate-200 last:border-b-0">
@@ -692,88 +749,93 @@ export function PatientPage() {
                   </div>
                 </button>
 
-                {/* Room Content - 3 Sections with colored backgrounds */}
-                {isOpen && (
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-white">
-                    {/* RED Section with red background */}
-                    <div className="bg-red-50/80 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <span className="text-xs font-bold text-red-700">Nguy cơ cao</span>
-                        </div>
-                        <span className="text-xs font-bold text-red-700">{redPatients.length}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {/* RED Column 1 */}
-                        <div className="space-y-2">
-                          {redPatients.slice(0, Math.ceil(redPatients.length / 2)).map((patient) => renderPatientCard(patient, 'red'))}
-                        </div>
-                        {/* RED Column 2 */}
-                        <div className="space-y-2">
-                          {redPatients.slice(Math.ceil(redPatients.length / 2)).map((patient) => renderPatientCard(patient, 'red'))}
-                        </div>
-                      </div>
-                      {redPatients.length === 0 && (
-                        <div className="text-center py-6 text-red-400 text-xs">
-                          Không có bệnh nhân
-                        </div>
-                      )}
-                    </div>
+                {/* Room Content - Dynamic columns based on levels with patients */}
+                {isOpen && (() => {
+                  // Count how many levels have patients
+                  const activeLevels = [
+                    redPatients.length > 0,
+                    yellowPatients.length > 0,
+                    greenPatients.length > 0
+                  ].filter(Boolean).length;
 
-                    {/* YELLOW Section with yellow background */}
-                    <div className="bg-yellow-50/80 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                          <span className="text-xs font-bold text-yellow-700">Cần theo dõi</span>
-                        </div>
-                        <span className="text-xs font-bold text-yellow-700">{yellowPatients.length}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {/* YELLOW Column 1 */}
-                        <div className="space-y-2">
-                          {yellowPatients.slice(0, Math.ceil(yellowPatients.length / 2)).map((patient) => renderPatientCard(patient, 'yellow'))}
-                        </div>
-                        {/* YELLOW Column 2 */}
-                        <div className="space-y-2">
-                          {yellowPatients.slice(Math.ceil(yellowPatients.length / 2)).map((patient) => renderPatientCard(patient, 'yellow'))}
-                        </div>
-                      </div>
-                      {yellowPatients.length === 0 && (
-                        <div className="text-center py-6 text-yellow-400 text-xs">
-                          Không có bệnh nhân
-                        </div>
-                      )}
-                    </div>
+                  // Dynamic grid classes based on active levels
+                  const gridClass = activeLevels === 1 ? 'grid-cols-1' :
+                    activeLevels === 2 ? 'grid-cols-2' :
+                      'grid-cols-3';
 
-                    {/* GREEN Section with green background */}
-                    <div className="bg-green-50/80 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-xs font-bold text-green-700">Ổn định</span>
+                  return (
+                    <div className={`grid ${gridClass} gap-4 p-4 bg-white`}>
+                      {/* RED Section - Only show if has patients */}
+                      {redPatients.length > 0 && (
+                        <div className="bg-red-50/80 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                              <span className="text-xs font-bold text-red-700">Nguy cơ cao</span>
+                            </div>
+                            <span className="text-xs font-bold text-red-700">{redPatients.length}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* RED Column 1 */}
+                            <div className="space-y-2">
+                              {redPatients.slice(0, Math.ceil(redPatients.length / 2)).map((patient) => renderPatientCard(patient, 'red'))}
+                            </div>
+                            {/* RED Column 2 */}
+                            <div className="space-y-2">
+                              {redPatients.slice(Math.ceil(redPatients.length / 2)).map((patient) => renderPatientCard(patient, 'red'))}
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-xs font-bold text-green-700">{greenPatients.length}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {/* GREEN Column 1 */}
-                        <div className="space-y-2">
-                          {greenPatients.slice(0, Math.ceil(greenPatients.length / 2)).map((patient) => renderPatientCard(patient, 'green'))}
+                      )}
+
+                      {/* YELLOW Section - Only show if has patients */}
+                      {yellowPatients.length > 0 && (
+                        <div className="bg-yellow-50/80 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                              <span className="text-xs font-bold text-yellow-700">Cần theo dõi</span>
+                            </div>
+                            <span className="text-xs font-bold text-yellow-700">{yellowPatients.length}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* YELLOW Column 1 */}
+                            <div className="space-y-2">
+                              {yellowPatients.slice(0, Math.ceil(yellowPatients.length / 2)).map((patient) => renderPatientCard(patient, 'yellow'))}
+                            </div>
+                            {/* YELLOW Column 2 */}
+                            <div className="space-y-2">
+                              {yellowPatients.slice(Math.ceil(yellowPatients.length / 2)).map((patient) => renderPatientCard(patient, 'yellow'))}
+                            </div>
+                          </div>
                         </div>
-                        {/* GREEN Column 2 */}
-                        <div className="space-y-2">
-                          {greenPatients.slice(Math.ceil(greenPatients.length / 2)).map((patient) => renderPatientCard(patient, 'green'))}
-                        </div>
-                      </div>
-                      {greenPatients.length === 0 && (
-                        <div className="text-center py-6 text-green-400 text-xs">
-                          Không có bệnh nhân
+                      )}
+
+                      {/* GREEN Section - Only show if has patients */}
+                      {greenPatients.length > 0 && (
+                        <div className="bg-green-50/80 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span className="text-xs font-bold text-green-700">Ổn định</span>
+                            </div>
+                            <span className="text-xs font-bold text-green-700">{greenPatients.length}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* GREEN Column 1 */}
+                            <div className="space-y-2">
+                              {greenPatients.slice(0, Math.ceil(greenPatients.length / 2)).map((patient) => renderPatientCard(patient, 'green'))}
+                            </div>
+                            {/* GREEN Column 2 */}
+                            <div className="space-y-2">
+                              {greenPatients.slice(Math.ceil(greenPatients.length / 2)).map((patient) => renderPatientCard(patient, 'green'))}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )
           })}
@@ -794,260 +856,276 @@ export function PatientPage() {
       </div>
 
       {/* Patient Detail Popup Modal with Inline Editing */}
-      {selectedPatient && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setSelectedPatient(null)}>
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-slate-800 text-slate-800">
-                  <span className="material-symbols-outlined text-[26px]">person</span>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-slate-800">{patientName(selectedPatient)}</p>
-                  <p className="text-sm text-slate-500">
-                    Mã: <span className="font-semibold text-slate-700">{selectedPatient.caseId}</span>
-                    <span className="ml-4 font-semibold text-slate-700">POD {selectedPatient.currentPod}</span>
-                  </p>
-                </div>
-              </div>
+      {selectedPatient && (() => {
+        // Disable editing for completed or archived patients
+        const isReadOnly = selectedPatient.erasCompleted || selectedPatient.isArchived
 
-              <div className="flex items-center gap-2">
-                {hasChanges && (
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setSelectedPatient(null)}>
+            <div className="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-slate-800 text-slate-800">
+                    <span className="material-symbols-outlined text-[26px]">person</span>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-slate-800">{patientName(selectedPatient)}</p>
+                    <p className="text-sm text-slate-500">
+                      Mã: <span className="font-semibold text-slate-700">{selectedPatient.caseId}</span>
+                      <span className="ml-4 font-semibold text-slate-700">POD {selectedPatient.currentPod}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Show readonly badge for completed/archived patients */}
+                  {isReadOnly && (
+                    <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-1.5 text-sm text-amber-700 border border-amber-200">
+                      <span className="material-symbols-outlined text-[18px]">lock</span>
+                      <span className="font-medium">Chỉ xem</span>
+                    </div>
+                  )}
+
+                  {/* Only show save and delete buttons if not readonly */}
+                  {!isReadOnly && hasChanges && (
+                    <button
+                      onClick={handleSaveChanges}
+                      disabled={saving}
+                      className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">save</span>
+                      {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                    </button>
+                  )}
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => setDeletingPatient(selectedPatient)}
+                      className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                      title="Xoá"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">delete</span>
+                    </button>
+                  )}
                   <button
-                    onClick={handleSaveChanges}
-                    disabled={saving}
-                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">save</span>
-                    {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                    onClick={() => setSelectedPatient(null)}
+                    className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                    title="Đóng">
+                    <X size={20} />
                   </button>
-                )}
-                <button
-                  onClick={() => setDeletingPatient(selectedPatient)}
-                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-red-600 transition-colors"
-                  title="Xoá"
-                >
-                  <span className="material-symbols-outlined text-[20px]">delete</span>
-                </button>
-                <button
-                  onClick={() => setSelectedPatient(null)}
-                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-                  title="Đóng">
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="max-h-[calc(90vh-10rem)] overflow-y-auto px-6 py-5 space-y-6">
-              {/* Thông tin bệnh nhân */}
-              <div>
-                <h3 className="mb-3 text-base font-bold text-slate-800">Thông tin bệnh nhân</h3>
-                <div className="grid grid-cols-3 gap-4 rounded-xl bg-slate-50 p-5">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Tuổi</label>
-                    <input
-                      type="number"
-                      value={getDisplayValue('age', selectedPatient.age)}
-                      onChange={(e) => handleFieldChange('age', Number(e.target.value))}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Giới tính</label>
-                    <select
-                      value={getDisplayValue('gender', selectedPatient.gender)}
-                      onChange={(e) => handleFieldChange('gender', e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    >
-                      <option value="Nam">Nam</option>
-                      <option value="Nữ">Nữ</option>
-                      <option value="Khác">Khác</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Chiều cao (cm)</label>
-                    <input
-                      type="number"
-                      value={getDisplayValue('height', selectedPatient.height) ?? ''}
-                      onChange={(e) => handleFieldChange('height', e.target.value ? Number(e.target.value) : null)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Cân nặng (kg)</label>
-                    <input
-                      type="number"
-                      value={getDisplayValue('weight', selectedPatient.weight) ?? ''}
-                      onChange={(e) => handleFieldChange('weight', e.target.value ? Number(e.target.value) : null)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">BMI</label>
-                    <input
-                      type="text"
-                      value={displayValue(selectedPatient.bmi)}
-                      disabled
-                      className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600"
-                    />
-                  </div>
                 </div>
               </div>
 
-              {/* Thông tin điều trị */}
-              <div>
-                <h3 className="mb-3 text-base font-bold text-slate-800">Thông tin điều trị</h3>
-                <div className="grid grid-cols-3 gap-4 rounded-xl bg-slate-50 p-5">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Ngày phẫu thuật</label>
-                    <input
-                      type="date"
-                      value={getDisplayValue('surgeryDate', selectedPatient.surgeryDate)?.split('T')[0] ?? ''}
-                      onChange={(e) => handleFieldChange('surgeryDate', e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">POD hiện tại</label>
-                    <input
-                      type="text"
-                      value={`POD ${selectedPatient.currentPod}`}
-                      disabled
-                      className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Buá»“ng/giÆ°á»ng</label>
-                    <input
-                      type="text"
-                      value={getDisplayValue('roomBed', selectedPatient.roomBed) ?? ''}
-                      onChange={(e) => handleFieldChange('roomBed', e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Thông tin phẫu thuật */}
-              <div>
-                <h3 className="mb-3 text-base font-bold text-slate-800">Thông tin phẫu thuật</h3>
-                <div className="grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-5">
-                  <div className="col-span-2">
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Chẩn đoán</label>
-                    <input
-                      type="text"
-                      value={getDisplayValue('diagnosis', selectedPatient.diagnosis) ?? ''}
-                      onChange={(e) => handleFieldChange('diagnosis', e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Loại phẫu thuật</label>
-                    <select
-                      value={getDisplayValue('operationTypeId', selectedPatient.operationTypeId)}
-                      onChange={(e) => handleFieldChange('operationTypeId', Number(e.target.value))}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    >
-                      {operationTypes.map((type) => (
-                        <option key={type.id} value={type.id}>
-                          {type.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Phương pháp mổ</label>
-                    <input
-                      type="text"
-                      value={getDisplayValue('method', selectedPatient.method) ?? ''}
-                      onChange={(e) => handleFieldChange('method', e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">CÃ³ miá»‡ng ná»‘i tiÃªu hoÃ¡</label>
-                    <select
-                      value={
-                        getDisplayValue('hasGiAnastomosis', selectedPatient.hasGiAnastomosis) == null
-                          ? ''
-                          : getDisplayValue('hasGiAnastomosis', selectedPatient.hasGiAnastomosis)
-                            ? 'true'
-                            : 'false'
-                      }
-                      onChange={(e) =>
-                        handleFieldChange(
-                          'hasGiAnastomosis',
-                          e.target.value === '' ? null : e.target.value === 'true',
-                        )
-                      }
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    >
-                      <option value="">--</option>
-                      <option value="true">Có</option>
-                      <option value="false">Không</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tóm tắt đánh giá gần nhất */}
-              <div>
-                <h3 className="mb-3 text-base font-bold text-slate-800">Tóm tắt đánh giá gần nhất</h3>
-                {assessmentDetail ? (
-                  <>
-                    <div className="grid grid-cols-3 gap-4 rounded-xl bg-slate-50 p-5">
-                      <DetailField label="Buá»“n nÃ´n" value={getAnswer('Báº¡n cÃ³ buá»“n nÃ´n khÃ´ng?')} />
-                      <DetailField label="Sá»‘ láº§n nÃ´n" value={getAnswer('Báº¡n cÃ³ nÃ´n nhiá»u khÃ´ng?')} />
-                      <DetailField label="Chướng bụng" value={getAnswer('Bạn có chướng bụng không?')} />
-                      <DetailField label="Ä‚n uá»‘ng" value={getAnswer('Báº¡n Äƒn Ä‘Æ°á»£c bao nhiÃªu?')} />
-                      <DetailField label="Trung tiện" value={getAnswer('Báº¡n Ä‘Ã£ trung tiá»‡n chÆ°a?')} />
-                      <DetailField label="Tá»•ng Ä‘iá»ƒm" value={`${assessmentDetail.totalScore} ÄIá»‚M`} />
+              {/* Content */}
+              <div className="max-h-[calc(90vh-10rem)] overflow-y-auto px-6 py-5 space-y-6">
+                {/* Thông tin bệnh nhân */}
+                <div>
+                  <h3 className="mb-3 text-base font-bold text-slate-800">Thông tin bệnh nhân</h3>
+                  <div className="grid grid-cols-3 gap-4 rounded-xl bg-slate-50 p-5">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Tuổi</label>
+                      <input
+                        type="number"
+                        value={getDisplayValue('age', selectedPatient.age)}
+                        onChange={(e) => handleFieldChange('age', Number(e.target.value))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
                     </div>
-                    <div className="mt-2 text-right">
-                      <button className="text-sm font-medium text-blue-600 hover:underline">
-                        Xem táº¥t cáº£ Ä‘Ã¡nh giÃ¡
-                      </button>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Giới tính</label>
+                      <select
+                        value={getDisplayValue('gender', selectedPatient.gender)}
+                        onChange={(e) => handleFieldChange('gender', e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      >
+                        <option value="Nam">Nam</option>
+                        <option value="Nữ">Nữ</option>
+                        <option value="Khác">Khác</option>
+                      </select>
                     </div>
-                  </>
-                ) : (
-                  <div className="rounded-xl bg-slate-50 p-8 text-center">
-                    <div className="mb-3 flex justify-center">
-                      <div className="rounded-full bg-slate-200 p-4">
-                        <span className="material-symbols-outlined text-[32px] text-slate-400">assignment</span>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Chiều cao (cm)</label>
+                      <input
+                        type="number"
+                        value={getDisplayValue('height', selectedPatient.height) ?? ''}
+                        onChange={(e) => handleFieldChange('height', e.target.value ? Number(e.target.value) : null)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Cân nặng (kg)</label>
+                      <input
+                        type="number"
+                        value={getDisplayValue('weight', selectedPatient.weight) ?? ''}
+                        onChange={(e) => handleFieldChange('weight', e.target.value ? Number(e.target.value) : null)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">BMI</label>
+                      <input
+                        type="text"
+                        value={displayValue(selectedPatient.bmi)}
+                        disabled
+                        className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thông tin điều trị */}
+                <div>
+                  <h3 className="mb-3 text-base font-bold text-slate-800">Thông tin điều trị</h3>
+                  <div className="grid grid-cols-3 gap-4 rounded-xl bg-slate-50 p-5">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Ngày phẫu thuật</label>
+                      <input
+                        type="date"
+                        value={getDisplayValue('surgeryDate', selectedPatient.surgeryDate)?.split('T')[0] ?? ''}
+                        onChange={(e) => handleFieldChange('surgeryDate', e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">POD hiện tại</label>
+                      <input
+                        type="text"
+                        value={`POD ${selectedPatient.currentPod}`}
+                        disabled
+                        className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Buá»“ng/giÆ°á»ng</label>
+                      <input
+                        type="text"
+                        value={getDisplayValue('roomBed', selectedPatient.roomBed) ?? ''}
+                        onChange={(e) => handleFieldChange('roomBed', e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thông tin phẫu thuật */}
+                <div>
+                  <h3 className="mb-3 text-base font-bold text-slate-800">Thông tin phẫu thuật</h3>
+                  <div className="grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-5">
+                    <div className="col-span-2">
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Chẩn đoán</label>
+                      <input
+                        type="text"
+                        value={getDisplayValue('diagnosis', selectedPatient.diagnosis) ?? ''}
+                        onChange={(e) => handleFieldChange('diagnosis', e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Loại phẫu thuật</label>
+                      <select
+                        value={getDisplayValue('operationTypeId', selectedPatient.operationTypeId)}
+                        onChange={(e) => handleFieldChange('operationTypeId', Number(e.target.value))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      >
+                        {operationTypes.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Phương pháp mổ</label>
+                      <input
+                        type="text"
+                        value={getDisplayValue('method', selectedPatient.method) ?? ''}
+                        onChange={(e) => handleFieldChange('method', e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">CÃ³ miá»‡ng ná»‘i tiÃªu hoÃ¡</label>
+                      <select
+                        value={
+                          getDisplayValue('hasGiAnastomosis', selectedPatient.hasGiAnastomosis) == null
+                            ? ''
+                            : getDisplayValue('hasGiAnastomosis', selectedPatient.hasGiAnastomosis)
+                              ? 'true'
+                              : 'false'
+                        }
+                        onChange={(e) =>
+                          handleFieldChange(
+                            'hasGiAnastomosis',
+                            e.target.value === '' ? null : e.target.value === 'true',
+                          )
+                        }
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      >
+                        <option value="">--</option>
+                        <option value="true">Có</option>
+                        <option value="false">Không</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tóm tắt đánh giá gần nhất */}
+                <div>
+                  <h3 className="mb-3 text-base font-bold text-slate-800">Tóm tắt đánh giá gần nhất</h3>
+                  {assessmentDetail ? (
+                    <>
+                      <div className="grid grid-cols-3 gap-4 rounded-xl bg-slate-50 p-5">
+                        <DetailField label="Buá»“n nÃ´n" value={getAnswer('Báº¡n cÃ³ buá»“n nÃ´n khÃ´ng?')} />
+                        <DetailField label="Sá»‘ láº§n nÃ´n" value={getAnswer('Báº¡n cÃ³ nÃ´n nhiá»u khÃ´ng?')} />
+                        <DetailField label="Chướng bụng" value={getAnswer('Bạn có chướng bụng không?')} />
+                        <DetailField label="Ä‚n uá»‘ng" value={getAnswer('Báº¡n Äƒn Ä‘Æ°á»£c bao nhiÃªu?')} />
+                        <DetailField label="Trung tiện" value={getAnswer('Báº¡n Ä‘Ã£ trung tiá»‡n chÆ°a?')} />
+                        <DetailField label="Tá»•ng Ä‘iá»ƒm" value={`${assessmentDetail.totalScore} ÄIá»‚M`} />
                       </div>
+                      <div className="mt-2 text-right">
+                        <button className="text-sm font-medium text-blue-600 hover:underline">
+                          Xem táº¥t cáº£ Ä‘Ã¡nh giÃ¡
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-xl bg-slate-50 p-8 text-center">
+                      <div className="mb-3 flex justify-center">
+                        <div className="rounded-full bg-slate-200 p-4">
+                          <span className="material-symbols-outlined text-[32px] text-slate-400">assignment</span>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium text-slate-600">Chưa có �ánh giá n� o</p>
+                      <p className="mt-1 text-xs text-slate-500">Bá»‡nh nhÃ¢n chÆ°a thá»±c hiá»‡n Ä‘Ã¡nh giÃ¡ láº§n Ä‘áº§u</p>
                     </div>
-                    <p className="text-sm font-medium text-slate-600">Chưa có �ánh giá n� o</p>
-                    <p className="mt-1 text-xs text-slate-500">Bá»‡nh nhÃ¢n chÆ°a thá»±c hiá»‡n Ä‘Ã¡nh giÃ¡ láº§n Ä‘áº§u</p>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              {/* POD Lock/Unlock */}
-              <div>
-                <button
-                  onClick={selectedPatient.isLocked ? handleResumePod : openPodLockModal}
-                  disabled={savingPodLock}
-                  className={`w-full rounded-lg px-4 py-3 font-semibold text-white transition-colors
+                {/* POD Lock/Unlock */}
+                <div>
+                  <button
+                    onClick={selectedPatient.isLocked ? handleResumePod : openPodLockModal}
+                    disabled={savingPodLock}
+                    className={`w-full rounded-lg px-4 py-3 font-semibold text-white transition-colors
                     ${selectedPatient.isLocked
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'bg-red-600 hover:bg-red-700'
-                    }
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : 'bg-red-600 hover:bg-red-700'
+                      }
                     disabled:opacity-60
                   `}
-                >
-                  {savingPodLock
-                    ? 'Äang xá»­ lÃ½...'
-                    : selectedPatient.isLocked
-                      ? 'Tiếp tục POD'
-                      : 'Giữ POD hiện tại'}
-                </button>
+                  >
+                    {savingPodLock
+                      ? 'Äang xá»­ lÃ½...'
+                      : selectedPatient.isLocked
+                        ? 'Tiếp tục POD'
+                        : 'Giữ POD hiện tại'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Hold POD Dialog */}
       {showHoldDialog && (

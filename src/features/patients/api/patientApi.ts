@@ -11,7 +11,7 @@ import type {
     PatientQuery,
     PodLockRequest,
     PodLockResponse,
-    UpdatePatientPayload,
+    UpdatePatientPayload
 } from '../types'
 
 export async function getPatients(query?: PatientQuery) {
@@ -144,6 +144,28 @@ export async function updatePodLevel(
     `/patients/${caseId}/pod-level`,
     { podLevel },
   )
+
+  return data
+}
+
+// Archive/Unarchive patient
+export async function archivePatient(caseId: string, archived: boolean) {
+  const { data } = await api.patch<PatientListItem>(
+    `/patients/${caseId}/archive`,
+    { archived },
+  )
+
+  return data
+}
+
+// Get archived patients grouped by operation type
+export async function getArchivedPatients(search?: string) {
+  const { data } = await api.get<{
+    data: Record<string, PatientListItem[]>
+    total: number
+  }>('/patients/archived/list', {
+    params: search ? { search } : undefined,
+  })
 
   return data
 }
