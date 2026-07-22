@@ -387,14 +387,14 @@ export function PatientPage() {
       <div
         key={patient.caseId}
         onClick={handleClick}
-        className={`patient-card transition-all duration-200
+        className={`patient-card transition-all duration-200 h-full flex flex-col
           ${isCompleted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5'}
           rounded-lg border-l-[4px] ${isOverdue && !isCompleted ? 'border-red-600 border-4 animate-pulse-border' : borderColor + ' border-y border-r'} border-slate-200 bg-white
           ${selectedPatient?.caseId === patient.caseId ? 'ring-2 ring-blue-500 shadow-lg' : 'shadow-sm'}
           ${isOverdue && !isCompleted ? 'shadow-red-200 shadow-lg' : ''}
         `}
       >
-        <div className="p-3 space-y-2">
+        <div className="p-3 space-y-2 flex-1 flex flex-col">
           {/* POD Badge or Completed Badge */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-1 flex-wrap">
