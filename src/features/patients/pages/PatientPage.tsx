@@ -15,6 +15,7 @@ import {
   updatePodLock
 } from '../api/patientApi'
 import { PatientFormModal } from '../components/PatientFormModal'
+import { PatientSearchBar } from '../components/PatientSearchBar'
 import type {
   AssessmentDetailResponse,
   LatestAssessmentResponse,
@@ -96,8 +97,6 @@ export function PatientPage() {
   const [editedPatient, setEditedPatient] = useState<Partial<PatientListItem>>({})
   const [hasChanges, setHasChanges] = useState(false)
 
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
   const [operationTypeId, setOperationTypeId] = useState<number | undefined>()
   const [level, setLevel] = useState<string | undefined>()
 
@@ -120,17 +119,8 @@ export function PatientPage() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput.trim())
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [searchInput])
-
-  useEffect(() => {
     async function loadPatients() {
       const response = await getPatients({
-        search,
         operationTypeId,
         level,
         limit: 9999,
@@ -140,7 +130,7 @@ export function PatientPage() {
     }
 
     loadPatients()
-  }, [search, operationTypeId, level])
+  }, [operationTypeId, level])
 
   useEffect(() => {
     async function loadOperationTypes() {
@@ -219,7 +209,6 @@ export function PatientPage() {
 
   async function reloadPatients() {
     const response = await getPatients({
-      search,
       operationTypeId,
       level,
       limit: 9999,
@@ -559,18 +548,7 @@ export function PatientPage() {
           <span className="text-sm">Thêm mới</span>
         </button>
 
-        <div className="w-64 relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">
-            search
-          </span>
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Tìm kiếm..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-          />
-        </div>
+        <PatientSearchBar patients={patients} onSelect={setSelectedPatient} />
 
         <select
           value={operationTypeId ?? ''}
@@ -597,7 +575,7 @@ export function PatientPage() {
         </select>
       </>
     ),
-    [searchInput, operationTypeId, level, operationTypes]
+    [patients, operationTypeId, level, operationTypes]
   )
 
   useHeaderActions(headerActions)
@@ -915,8 +893,8 @@ export function PatientPage() {
                 </div>
               </div>
 
-              {/* Content */}
-              <div className="max-h-[calc(90vh-10rem)] overflow-y-auto px-6 py-5 space-y-6">
+              {/* Content — fieldset disabled sẽ vô hiệu mọi input/select khi hồ sơ chỉ xem */}
+              <fieldset disabled={isReadOnly} className="max-h-[calc(90vh-10rem)] overflow-y-auto px-6 py-5 space-y-6 min-w-0 border-0">
                 {/* Thông tin bệnh nhân */}
                 <div>
                   <h3 className="mb-3 text-base font-bold text-slate-800">Thông tin bệnh nhân</h3>
@@ -927,7 +905,7 @@ export function PatientPage() {
                         type="number"
                         value={getDisplayValue('age', selectedPatient.age)}
                         onChange={(e) => handleFieldChange('age', Number(e.target.value))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -935,7 +913,7 @@ export function PatientPage() {
                       <select
                         value={getDisplayValue('gender', selectedPatient.gender)}
                         onChange={(e) => handleFieldChange('gender', e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       >
                         <option value="Nam">Nam</option>
                         <option value="Nữ">Nữ</option>
@@ -948,7 +926,7 @@ export function PatientPage() {
                         type="number"
                         value={getDisplayValue('height', selectedPatient.height) ?? ''}
                         onChange={(e) => handleFieldChange('height', e.target.value ? Number(e.target.value) : null)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -957,7 +935,7 @@ export function PatientPage() {
                         type="number"
                         value={getDisplayValue('weight', selectedPatient.weight) ?? ''}
                         onChange={(e) => handleFieldChange('weight', e.target.value ? Number(e.target.value) : null)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -982,7 +960,7 @@ export function PatientPage() {
                         type="date"
                         value={getDisplayValue('surgeryDate', selectedPatient.surgeryDate)?.split('T')[0] ?? ''}
                         onChange={(e) => handleFieldChange('surgeryDate', e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -995,12 +973,12 @@ export function PatientPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-500">Buá»“ng/giÆ°á»ng</label>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Buồng/giường</label>
                       <input
                         type="text"
                         value={getDisplayValue('roomBed', selectedPatient.roomBed) ?? ''}
                         onChange={(e) => handleFieldChange('roomBed', e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -1016,7 +994,7 @@ export function PatientPage() {
                         type="text"
                         value={getDisplayValue('diagnosis', selectedPatient.diagnosis) ?? ''}
                         onChange={(e) => handleFieldChange('diagnosis', e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -1024,7 +1002,7 @@ export function PatientPage() {
                       <select
                         value={getDisplayValue('operationTypeId', selectedPatient.operationTypeId)}
                         onChange={(e) => handleFieldChange('operationTypeId', Number(e.target.value))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       >
                         {operationTypes.map((type) => (
                           <option key={type.id} value={type.id}>
@@ -1039,11 +1017,11 @@ export function PatientPage() {
                         type="text"
                         value={getDisplayValue('method', selectedPatient.method) ?? ''}
                         onChange={(e) => handleFieldChange('method', e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-500">CÃ³ miá»‡ng ná»‘i tiÃªu hoÃ¡</label>
+                      <label className="mb-1 block text-xs font-medium text-slate-500">Có miệng nối tiêu hoá</label>
                       <select
                         value={
                           getDisplayValue('hasGiAnastomosis', selectedPatient.hasGiAnastomosis) == null
@@ -1058,7 +1036,7 @@ export function PatientPage() {
                             e.target.value === '' ? null : e.target.value === 'true',
                           )
                         }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       >
                         <option value="">--</option>
                         <option value="true">Có</option>
@@ -1074,16 +1052,16 @@ export function PatientPage() {
                   {assessmentDetail ? (
                     <>
                       <div className="grid grid-cols-3 gap-4 rounded-xl bg-slate-50 p-5">
-                        <DetailField label="Buá»“n nÃ´n" value={getAnswer('Báº¡n cÃ³ buá»“n nÃ´n khÃ´ng?')} />
-                        <DetailField label="Sá»‘ láº§n nÃ´n" value={getAnswer('Báº¡n cÃ³ nÃ´n nhiá»u khÃ´ng?')} />
+                        <DetailField label="Buồn nôn" value={getAnswer('Bạn có buồn nôn không?')} />
+                        <DetailField label="Số lần nôn" value={getAnswer('Bạn có nôn nhiều không?')} />
                         <DetailField label="Chướng bụng" value={getAnswer('Bạn có chướng bụng không?')} />
-                        <DetailField label="Ä‚n uá»‘ng" value={getAnswer('Báº¡n Äƒn Ä‘Æ°á»£c bao nhiÃªu?')} />
-                        <DetailField label="Trung tiện" value={getAnswer('Báº¡n Ä‘Ã£ trung tiá»‡n chÆ°a?')} />
-                        <DetailField label="Tá»•ng Ä‘iá»ƒm" value={`${assessmentDetail.totalScore} ÄIá»‚M`} />
+                        <DetailField label="Ăn uống" value={getAnswer('Bạn ăn được bao nhiêu?')} />
+                        <DetailField label="Trung tiện" value={getAnswer('Bạn đã trung tiện chưa?')} />
+                        <DetailField label="Tổng điểm" value={`${assessmentDetail.totalScore} ĐIỂM`} />
                       </div>
                       <div className="mt-2 text-right">
                         <button className="text-sm font-medium text-blue-600 hover:underline">
-                          Xem táº¥t cáº£ Ä‘Ã¡nh giÃ¡
+                          Xem tất cả đánh giá
                         </button>
                       </div>
                     </>
@@ -1094,33 +1072,35 @@ export function PatientPage() {
                           <span className="material-symbols-outlined text-[32px] text-slate-400">assignment</span>
                         </div>
                       </div>
-                      <p className="text-sm font-medium text-slate-600">Chưa có �ánh giá n� o</p>
-                      <p className="mt-1 text-xs text-slate-500">Bá»‡nh nhÃ¢n chÆ°a thá»±c hiá»‡n Ä‘Ã¡nh giÃ¡ láº§n Ä‘áº§u</p>
+                      <p className="text-sm font-medium text-slate-600">Chưa có đánh giá nào</p>
+                      <p className="mt-1 text-xs text-slate-500">Bệnh nhân chưa thực hiện đánh giá lần đầu</p>
                     </div>
                   )}
                 </div>
 
-                {/* POD Lock/Unlock */}
-                <div>
-                  <button
-                    onClick={selectedPatient.isLocked ? handleResumePod : openPodLockModal}
-                    disabled={savingPodLock}
-                    className={`w-full rounded-lg px-4 py-3 font-semibold text-white transition-colors
+                {/* POD Lock/Unlock — ẩn khi hồ sơ chỉ xem (hoàn thành/lưu trữ) */}
+                {!isReadOnly && (
+                  <div>
+                    <button
+                      onClick={selectedPatient.isLocked ? handleResumePod : openPodLockModal}
+                      disabled={savingPodLock}
+                      className={`w-full rounded-lg px-4 py-3 font-semibold text-white transition-colors
                     ${selectedPatient.isLocked
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-red-600 hover:bg-red-700'
-                      }
+                          ? 'bg-green-600 hover:bg-green-700'
+                          : 'bg-red-600 hover:bg-red-700'
+                        }
                     disabled:opacity-60
                   `}
-                  >
-                    {savingPodLock
-                      ? 'Äang xá»­ lÃ½...'
-                      : selectedPatient.isLocked
-                        ? 'Tiếp tục POD'
-                        : 'Giữ POD hiện tại'}
-                  </button>
-                </div>
-              </div>
+                    >
+                      {savingPodLock
+                        ? 'Đang xử lý...'
+                        : selectedPatient.isLocked
+                          ? 'Tiếp tục POD'
+                          : 'Giữ POD hiện tại'}
+                    </button>
+                  </div>
+                )}
+              </fieldset>
             </div>
           </div>
         )
@@ -1161,7 +1141,7 @@ export function PatientPage() {
         </div>
       )}
 
-      {/* Modal thÃªm / sá»­a há»“ sÆ¡ bá»‡nh Ã¡n */}
+      {/* Modal thêm / sửa hồ sơ bệnh án */}
       <PatientFormModal
         isOpen={formOpen}
         patient={editingPatient}
@@ -1175,7 +1155,7 @@ export function PatientPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
             <p className="mb-8 text-center text-base font-medium text-slate-800">
-              Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n Xoá há»“ sÆ¡ bá»‡nh Ã¡n nÃ y khÃ´ng?
+              Bạn có chắc chắn muốn xoá hồ sơ bệnh án này không?
             </p>
             <div className="flex justify-center gap-4">
               <button
@@ -1190,7 +1170,7 @@ export function PatientPage() {
                 disabled={deleting}
                 className="rounded-lg bg-red-700 px-8 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
               >
-                {deleting ? 'Äang Xoá...' : 'Xác nhận Xoá'}
+                {deleting ? 'Đang xoá...' : 'Xác nhận Xoá'}
               </button>
             </div>
           </div>
