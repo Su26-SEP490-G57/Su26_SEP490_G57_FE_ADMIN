@@ -76,6 +76,7 @@ export function ArchivePage() {
 
   useEffect(() => {
     loadArchivedPatients()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search])
 
   // Load assessment data when patient is selected
