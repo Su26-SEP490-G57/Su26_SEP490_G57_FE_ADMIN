@@ -2,14 +2,24 @@ import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../features/auth/context/AuthContext'
 import { useAuthStore } from '../../features/auth/store/authStore'
+import { HeaderProvider, useHeaderContext } from './HeaderContext'
 import { DEV_ROLE, NAV_ITEMS } from './nav-config'
 
 export function MainLayout() {
+  return (
+    <HeaderProvider>
+      <MainLayoutContent />
+    </HeaderProvider>
+  )
+}
+
+function MainLayoutContent() {
   const { logout } = useAuth()
   const { userProfile } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+  const { actions } = useHeaderContext()
 
   const visibleNavItems = NAV_ITEMS.filter((item) => item.roles.includes(DEV_ROLE))
 
@@ -105,22 +115,23 @@ export function MainLayout() {
       {/* ------------------------------------------------------------------ */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="z-40 flex h-16 w-full flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              {currentItem && (
-                <span className="material-symbols-outlined text-[22px] text-blue-600">
-                  {currentItem.icon}
-                </span>
-              )}
-              <h2 className="text-lg font-semibold text-slate-800">
-                {currentItem?.label ?? 'Dashboard tổng quan'}
-              </h2>
+        <header className="z-40 w-full flex-shrink-0 border-b border-slate-200 bg-white">
+          {/* Row 1: Title and User Info */}
+          <div className="flex h-16 items-center justify-between px-6">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                {currentItem && (
+                  <span className="material-symbols-outlined text-[22px] text-blue-600">
+                    {currentItem.icon}
+                  </span>
+                )}
+                <h2 className="text-lg font-semibold text-slate-800">
+                  {currentItem?.label ?? 'Dashboard tổng quan'}
+                </h2>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
               <div className="text-right">
                 <p className="text-sm font-bold text-slate-800">
                   {userProfile?.fullName ?? userProfile?.username ?? 'Nhân viên'}
@@ -134,6 +145,13 @@ export function MainLayout() {
               </div>
             </div>
           </div>
+
+          {/* Row 2: Dynamic actions from child pages */}
+          {actions && (
+            <div className="border-t border-slate-100 px-6 py-3">
+              <div className="flex items-center gap-3 flex-wrap">{actions}</div>
+            </div>
+          )}
         </header>
 
         {/* Page content */}

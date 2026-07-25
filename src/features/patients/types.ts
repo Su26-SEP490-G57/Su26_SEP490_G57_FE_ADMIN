@@ -8,6 +8,7 @@ export interface PatientListItem {
   weight: number | null
   bmi: number | null
   diagnosis: string
+  operationTypeId: number
   operationType: {
     id: number
     name: string
@@ -25,7 +26,10 @@ export interface PatientListItem {
     name: string
     color: string
   } | null
-  lastAssessmentTime?: string | null
+  lastAssessmentTime?: string | null // Thời gian đánh giá gần nhất (ISO datetime)
+  erasCompleted: boolean // Đã hoàn thành ERAS (đạt POD tối đa)
+  erasCompletedDate?: string | null // Ngày hoàn thành ERAS (ISO datetime)
+  isArchived: boolean // Đã lưu trữ
 
   account: {
     id: number
@@ -122,4 +126,17 @@ export interface PodLockResponse {
   currentPod: number
   isLocked: boolean
   holdReason: string | null
+}
+
+export interface ArchivePatientRequest {
+  archived: boolean
+}
+
+export interface ArchivedPatientsResponse {
+  data: Record<string, PatientListItem[]> // Grouped by operation type name
+  total: number
+}
+
+export interface ArchivePatientQuery {
+  search?: string
 }

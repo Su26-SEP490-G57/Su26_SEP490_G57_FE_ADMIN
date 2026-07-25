@@ -93,3 +93,20 @@
   background: #e3e1ec;
   border-radius: 10px;
 }
+
+/* Breathing border animation for critical overdue patients */
+@keyframes pulse-border {
+  0%,
+  100% {
+    border-color: rgb(220, 38, 38);
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    border-color: rgb(185, 28, 28);
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.6);
+  }
+}
+
+.animate-pulse-border {
+  animation: pulse-border 2s ease-in-out infinite;
+}

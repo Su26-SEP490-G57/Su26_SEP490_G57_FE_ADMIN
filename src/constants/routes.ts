@@ -2,6 +2,7 @@ export const ROUTES = {
   LOGIN: '/login',
   DASHBOARD: '/dashboard',
   PATIENTS: '/patients',
+  ARCHIVES: '/archives',
   ALERTS: '/alerts',
   MONITORING: '/monitoring',
   RECOVERY: '/recovery',
