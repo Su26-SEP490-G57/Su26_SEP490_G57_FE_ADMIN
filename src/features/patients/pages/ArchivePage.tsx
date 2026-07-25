@@ -226,7 +226,7 @@ export function ArchivePage() {
     [searchInput],
   )
 
-  useHeaderActions('Lưu trữ hồ sơ', headerActions)
+  useHeaderActions(headerActions)
 
   // Sort operation types by patient count (descending)
   const sortedOperationTypes = useMemo(() => {
