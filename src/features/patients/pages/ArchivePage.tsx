@@ -61,7 +61,7 @@ export function ArchivePage() {
     const [search, setSearch] = useState('')
 
     const [latestAssessment, setLatestAssessment] = useState<LatestAssessmentResponse | null>(null)
-    const [assessmentDetail, setAssessmentDetail] = useState<AssessmentDetailResponse | null>(null)
+    const [, setAssessmentDetail] = useState<AssessmentDetailResponse | null>(null)
 
     // Load archived patients grouped by operation type
     async function loadArchivedPatients() {
@@ -226,7 +226,7 @@ export function ArchivePage() {
         [searchInput]
     )
 
-    useHeaderActions('Lưu trữ hồ sơ', headerActions)
+    useHeaderActions(headerActions)
 
     // Sort operation types by patient count (descending)
     const sortedOperationTypes = useMemo(() => {

@@ -169,3 +169,32 @@ export async function getArchivedPatients(search?: string) {
 
   return data
 }
+
+// ---------------------------------------------------------------------------
+// Query-key factory + hooks bo sung (dung cho trang Thong ke du lieu).
+// Model theo nurseKeys (src/features/nurses/api/nurses.ts). Cac ham
+// getPatients/getOperationTypes ben tren van giu nguyen (khong sua) de khong
+// pha vo cach PatientPage.tsx dang dung truc tiep.
+// ---------------------------------------------------------------------------
+export const patientKeys = {
+  all: ['patients'] as const,
+  lists: () => [...patientKeys.all, 'list'] as const,
+  list: (params: PatientQuery = {}) => [...patientKeys.lists(), params] as const,
+  stats: () => [...patientKeys.all, 'stats'] as const,
+  operationTypes: () => [...patientKeys.all, 'operation-types'] as const,
+}
+
+export function usePatients(params: PatientQuery = {}) {
+  return useQuery({
+    queryKey: patientKeys.list(params),
+    queryFn: () => getPatients(params),
+  })
+}
+
+export function useOperationTypes() {
+  return useQuery({
+    queryKey: patientKeys.operationTypes(),
+    queryFn: getOperationTypes,
+    staleTime: Infinity,
+  })
+}
