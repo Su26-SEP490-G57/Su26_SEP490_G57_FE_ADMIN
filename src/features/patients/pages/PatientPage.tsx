@@ -101,8 +101,8 @@ export function PatientPage() {
   const [editedPatient, setEditedPatient] = useState<Partial<PatientListItem>>({})
   const [hasChanges, setHasChanges] = useState(false)
 
-  const [operationTypeId, setOperationTypeId] = useState<number | undefined>()
-  const [level, setLevel] = useState<string | undefined>()
+  // Level filter for KPI click filtering
+  const [levelFilter, setLevelFilter] = useState<'red' | 'yellow' | 'green' | null>(null)
 
   const [, setLatestAssessment] = useState<LatestAssessmentResponse | null>(null)
   const [assessmentDetail, setAssessmentDetail] = useState<AssessmentDetailResponse | null>(null)
@@ -125,8 +125,6 @@ export function PatientPage() {
   useEffect(() => {
     async function loadPatients() {
       const response = await getPatients({
-        operationTypeId,
-        level,
         limit: 9999,
       })
 
@@ -134,7 +132,7 @@ export function PatientPage() {
     }
 
     loadPatients()
-  }, [operationTypeId, level])
+  }, [])
 
   useEffect(() => {
     async function loadOperationTypes() {
@@ -213,8 +211,6 @@ export function PatientPage() {
 
   async function reloadPatients() {
     const response = await getPatients({
-      operationTypeId,
-      level,
       limit: 9999,
     })
 
@@ -359,18 +355,6 @@ export function PatientPage() {
         : levelColor === 'yellow'
           ? 'border-l-yellow-500'
           : 'border-l-green-500'
-    const textColor =
-      levelColor === 'red'
-        ? 'text-red-600'
-        : levelColor === 'yellow'
-          ? 'text-yellow-600'
-          : 'text-green-600'
-    const badgeBg =
-      levelColor === 'red'
-        ? 'bg-red-100'
-        : levelColor === 'yellow'
-          ? 'bg-yellow-100'
-          : 'bg-green-100'
 
     const handleClick = () => {
       // Allow opening detail modal even for completed patients
@@ -394,36 +378,22 @@ export function PatientPage() {
         `}
       >
         <div className="p-3 space-y-2 flex-1 flex flex-col">
-          {/* POD Badge or Completed Badge */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-1 flex-wrap">
+          {/* Info Badge Section - Separate bordered box */}
+          <div className="flex items-center justify-between gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50/30">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
               {isCompleted ? (
-                // Completed: Show green badge instead of POD badge
-                <span className="flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wide bg-green-100 text-green-600 shadow-sm">
+                // Completed: Show icon badge only
+                <span className="flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                  Hoàn thành ERAS
+                  <span>Hoàn thành</span>
                 </span>
               ) : (
-                // Not completed: Show POD badge with optional KHẨN badge
-                <>
-                  <span
-                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wide ${badgeBg} ${textColor} shadow-sm`}
-                  >
-                    POD {patient.currentPod} • {patient.operationType?.name || 'N/A'}
-                  </span>
-                  {isOverdue && (
-                    <span className="text-[8px] font-bold text-white bg-red-600 px-1.5 py-0.5 rounded-full animate-pulse">
-                      KHẨN
-                    </span>
-                  )}
-                </>
+                // Not completed: Show POD and surgery info
+                <span className="text-[10px] font-semibold text-slate-700 whitespace-nowrap">
+                  POD {patient.currentPod} • {patient.operationType?.name || 'N/A'}
+                </span>
               )}
             </div>
-            {patient.isLocked && (
-              <span className="flex items-center gap-0.5 text-[8px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                <span className="material-symbols-outlined text-[10px]">lock</span>
-              </span>
-            )}
           </div>
 
           {/* Patient Name & ID */}
@@ -574,33 +544,9 @@ export function PatientPage() {
         </button>
 
         <PatientSearchBar patients={patients} onSelect={setSelectedPatient} />
-
-        <select
-          value={operationTypeId ?? ''}
-          onChange={(e) => setOperationTypeId(e.target.value ? Number(e.target.value) : undefined)}
-          className="bg-white border border-slate-300 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap"
-        >
-          <option value="">Loại phẫu thuật</option>
-          {operationTypes.map((type) => (
-            <option key={type.id} value={type.id}>
-              {type.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={level ?? ''}
-          onChange={(e) => setLevel(e.target.value || undefined)}
-          className="bg-white border border-slate-300 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap"
-        >
-          <option value="">Mức độ</option>
-          <option value="Red">Đỏ</option>
-          <option value="Yellow">Vàng</option>
-          <option value="Green">Xanh</option>
-        </select>
       </>
     ),
-    [patients, operationTypeId, level, operationTypes],
+    [patients],
   )
 
   useHeaderActions(headerActions)
@@ -655,36 +601,133 @@ export function PatientPage() {
       <div className="space-y-10 pb-12">
         {/* Patient Cards - Table Layout by Room */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          {/* Header - 3 Main Levels with 2 columns each */}
+          {/* Header - 3 Main Levels as clickable filters */}
           <div className="grid grid-cols-3 gap-4 p-5 bg-slate-50 border-b border-slate-200">
-            <div className="flex items-center justify-center gap-2">
+            {/* RED KPI - Clickable */}
+            <button
+              onClick={() => {
+                const newFilter = levelFilter === 'red' ? null : 'red'
+                setLevelFilter(newFilter)
+
+                // Auto-expand rooms with red patients
+                if (newFilter === 'red') {
+                  const roomsWithRed = new Set<string>()
+                  patients.forEach((p) => {
+                    if (levelKey(p.level?.name) === 'red') {
+                      const room = p.roomBed?.split('/')[0] || 'Chưa phân phòng'
+                      roomsWithRed.add(room)
+                    }
+                  })
+                  setExpandedRooms(roomsWithRed)
+                }
+              }}
+              className={`flex items-center justify-center gap-2 p-3 rounded-lg transition-all ${
+                levelFilter === 'red' ? 'bg-red-100 ring-2 ring-red-500' : 'hover:bg-red-50'
+              }`}
+            >
               <span className="text-lg font-bold text-red-600">
-                {patients.filter((p) => levelKey(p.level?.name) === 'red').length}
+                {(() => {
+                  const roomsWithRed = new Set<string>()
+                  patients.forEach((p) => {
+                    if (levelKey(p.level?.name) === 'red') {
+                      const room = p.roomBed?.split('/')[0] || 'Chưa phân phòng'
+                      roomsWithRed.add(room)
+                    }
+                  })
+                  return roomsWithRed.size
+                })()}
               </span>
+              <span className="text-sm text-red-600">Phòng</span>
               <div className="w-1 h-4 bg-slate-300"></div>
               <div className="w-3 h-3 bg-red-500 rounded-full"></div>
               <h3 className="text-sm font-bold text-red-600 uppercase tracking-wide">
                 Nguy cơ cao
               </h3>
-            </div>
-            <div className="flex items-center justify-center gap-2">
+            </button>
+
+            {/* YELLOW KPI - Clickable */}
+            <button
+              onClick={() => {
+                const newFilter = levelFilter === 'yellow' ? null : 'yellow'
+                setLevelFilter(newFilter)
+
+                // Auto-expand rooms with yellow patients
+                if (newFilter === 'yellow') {
+                  const roomsWithYellow = new Set<string>()
+                  patients.forEach((p) => {
+                    if (levelKey(p.level?.name) === 'yellow') {
+                      const room = p.roomBed?.split('/')[0] || 'Chưa phân phòng'
+                      roomsWithYellow.add(room)
+                    }
+                  })
+                  setExpandedRooms(roomsWithYellow)
+                }
+              }}
+              className={`flex items-center justify-center gap-2 p-3 rounded-lg transition-all ${
+                levelFilter === 'yellow'
+                  ? 'bg-yellow-100 ring-2 ring-yellow-500'
+                  : 'hover:bg-yellow-50'
+              }`}
+            >
               <span className="text-lg font-bold text-yellow-600">
-                {patients.filter((p) => levelKey(p.level?.name) === 'yellow').length}
+                {(() => {
+                  const roomsWithYellow = new Set<string>()
+                  patients.forEach((p) => {
+                    if (levelKey(p.level?.name) === 'yellow') {
+                      const room = p.roomBed?.split('/')[0] || 'Chưa phân phòng'
+                      roomsWithYellow.add(room)
+                    }
+                  })
+                  return roomsWithYellow.size
+                })()}
               </span>
+              <span className="text-sm text-yellow-600">Phòng</span>
               <div className="w-1 h-4 bg-slate-300"></div>
               <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
               <h3 className="text-sm font-bold text-yellow-600 uppercase tracking-wide">
                 Cần theo dõi
               </h3>
-            </div>
-            <div className="flex items-center justify-center gap-2">
+            </button>
+
+            {/* GREEN KPI - Clickable */}
+            <button
+              onClick={() => {
+                const newFilter = levelFilter === 'green' ? null : 'green'
+                setLevelFilter(newFilter)
+
+                // Auto-expand rooms with green patients
+                if (newFilter === 'green') {
+                  const roomsWithGreen = new Set<string>()
+                  patients.forEach((p) => {
+                    if (levelKey(p.level?.name) === 'green') {
+                      const room = p.roomBed?.split('/')[0] || 'Chưa phân phòng'
+                      roomsWithGreen.add(room)
+                    }
+                  })
+                  setExpandedRooms(roomsWithGreen)
+                }
+              }}
+              className={`flex items-center justify-center gap-2 p-3 rounded-lg transition-all ${
+                levelFilter === 'green' ? 'bg-green-100 ring-2 ring-green-500' : 'hover:bg-green-50'
+              }`}
+            >
               <span className="text-lg font-bold text-green-600">
-                {patients.filter((p) => levelKey(p.level?.name) === 'green').length}
+                {(() => {
+                  const roomsWithGreen = new Set<string>()
+                  patients.forEach((p) => {
+                    if (levelKey(p.level?.name) === 'green') {
+                      const room = p.roomBed?.split('/')[0] || 'Chưa phân phòng'
+                      roomsWithGreen.add(room)
+                    }
+                  })
+                  return roomsWithGreen.size
+                })()}
               </span>
+              <span className="text-sm text-green-600">Phòng</span>
               <div className="w-1 h-4 bg-slate-300"></div>
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
               <h3 className="text-sm font-bold text-green-600 uppercase tracking-wide">Ổn định</h3>
-            </div>
+            </button>
           </div>
 
           {/* Rooms - Each room is a row */}
@@ -729,6 +772,11 @@ export function PatientPage() {
                       expand_more
                     </span>
                     <h4 className="text-base font-bold tracking-tight text-slate-800">{room}</h4>
+                    <span className="text-slate-400">|</span>
+                    <span className="text-sm font-semibold text-slate-600">
+                      {roomPatients.length} BN
+                    </span>
+                    <span className="text-slate-400">|</span>
                     <div className="flex items-center gap-2">
                       <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">
                         {redPatients.length}
@@ -741,150 +789,75 @@ export function PatientPage() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Progress bar */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden flex">
-                      {redPatients.length > 0 && (
-                        <div
-                          className="bg-red-500 h-full"
-                          style={{ width: `${(redPatients.length / roomPatients.length) * 100}%` }}
-                        />
-                      )}
-                      {yellowPatients.length > 0 && (
-                        <div
-                          className="bg-yellow-500 h-full"
-                          style={{
-                            width: `${(yellowPatients.length / roomPatients.length) * 100}%`,
-                          }}
-                        />
-                      )}
-                      {greenPatients.length > 0 && (
-                        <div
-                          className="bg-green-500 h-full"
-                          style={{
-                            width: `${(greenPatients.length / roomPatients.length) * 100}%`,
-                          }}
-                        />
-                      )}
-                    </div>
-                    <span className="text-xs font-semibold text-slate-600 min-w-[4rem] text-right">
-                      {roomPatients.length} BN
-                    </span>
-                  </div>
                 </button>
 
-                {/* Room Content - Dynamic columns based on levels with patients */}
-                {isOpen &&
-                  (() => {
-                    // Count how many levels have patients
-                    const activeLevels = [
-                      redPatients.length > 0,
-                      yellowPatients.length > 0,
-                      greenPatients.length > 0,
-                    ].filter(Boolean).length
-
-                    // Dynamic grid classes based on active levels
-                    const gridClass =
-                      activeLevels === 1
-                        ? 'grid-cols-1'
-                        : activeLevels === 2
-                          ? 'grid-cols-2'
-                          : 'grid-cols-3'
-
-                    return (
-                      <div className={`grid ${gridClass} gap-4 p-4 bg-white`}>
-                        {/* RED Section - Only show if has patients */}
-                        {redPatients.length > 0 && (
-                          <div className="bg-red-50/80 rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                <span className="text-xs font-bold text-red-700">Nguy cơ cao</span>
+                {/* Room Content - Fixed 3-column grid with invisible columns to maintain position */}
+                {isOpen && (
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-white">
+                    {/* RED Section - Always in left column */}
+                    <div
+                      className={`transition-opacity duration-300 ${levelFilter && levelFilter !== 'red' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                    >
+                      <div className="bg-red-50/80 rounded-lg p-3">
+                        {redPatients.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {redPatients.map((patient) => (
+                              <div key={patient.caseId} className="w-[240px]">
+                                {renderPatientCard(patient, 'red')}
                               </div>
-                              <span className="text-xs font-bold text-red-700">
-                                {redPatients.length}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              {/* RED Column 1 */}
-                              <div className="space-y-2">
-                                {redPatients
-                                  .slice(0, Math.ceil(redPatients.length / 2))
-                                  .map((patient) => renderPatientCard(patient, 'red'))}
-                              </div>
-                              {/* RED Column 2 */}
-                              <div className="space-y-2">
-                                {redPatients
-                                  .slice(Math.ceil(redPatients.length / 2))
-                                  .map((patient) => renderPatientCard(patient, 'red'))}
-                              </div>
-                            </div>
+                            ))}
                           </div>
-                        )}
-
-                        {/* YELLOW Section - Only show if has patients */}
-                        {yellowPatients.length > 0 && (
-                          <div className="bg-yellow-50/80 rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                <span className="text-xs font-bold text-yellow-700">
-                                  Cần theo dõi
-                                </span>
-                              </div>
-                              <span className="text-xs font-bold text-yellow-700">
-                                {yellowPatients.length}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              {/* YELLOW Column 1 */}
-                              <div className="space-y-2">
-                                {yellowPatients
-                                  .slice(0, Math.ceil(yellowPatients.length / 2))
-                                  .map((patient) => renderPatientCard(patient, 'yellow'))}
-                              </div>
-                              {/* YELLOW Column 2 */}
-                              <div className="space-y-2">
-                                {yellowPatients
-                                  .slice(Math.ceil(yellowPatients.length / 2))
-                                  .map((patient) => renderPatientCard(patient, 'yellow'))}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* GREEN Section - Only show if has patients */}
-                        {greenPatients.length > 0 && (
-                          <div className="bg-green-50/80 rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-xs font-bold text-green-700">Ổn định</span>
-                              </div>
-                              <span className="text-xs font-bold text-green-700">
-                                {greenPatients.length}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              {/* GREEN Column 1 */}
-                              <div className="space-y-2">
-                                {greenPatients
-                                  .slice(0, Math.ceil(greenPatients.length / 2))
-                                  .map((patient) => renderPatientCard(patient, 'green'))}
-                              </div>
-                              {/* GREEN Column 2 */}
-                              <div className="space-y-2">
-                                {greenPatients
-                                  .slice(Math.ceil(greenPatients.length / 2))
-                                  .map((patient) => renderPatientCard(patient, 'green'))}
-                              </div>
-                            </div>
-                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 text-center py-4">
+                            Không có bệnh nhân
+                          </p>
                         )}
                       </div>
-                    )
-                  })()}
+                    </div>
+
+                    {/* YELLOW Section - Always in middle column */}
+                    <div
+                      className={`transition-opacity duration-300 ${levelFilter && levelFilter !== 'yellow' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                    >
+                      <div className="bg-yellow-50/80 rounded-lg p-3">
+                        {yellowPatients.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {yellowPatients.map((patient) => (
+                              <div key={patient.caseId} className="w-[240px]">
+                                {renderPatientCard(patient, 'yellow')}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 text-center py-4">
+                            Không có bệnh nhân
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* GREEN Section - Always in right column */}
+                    <div
+                      className={`transition-opacity duration-300 ${levelFilter && levelFilter !== 'green' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                    >
+                      <div className="bg-green-50/80 rounded-lg p-3">
+                        {greenPatients.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {greenPatients.map((patient) => (
+                              <div key={patient.caseId} className="w-[240px]">
+                                {renderPatientCard(patient, 'green')}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 text-center py-4">
+                            Không có bệnh nhân
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
@@ -910,8 +883,8 @@ export function PatientPage() {
       {/* Patient Detail Popup Modal with Inline Editing */}
       {selectedPatient &&
         (() => {
-          // Disable editing for completed or archived patients
-          const isReadOnly = selectedPatient.erasCompleted || selectedPatient.isArchived
+          // Disable editing for completed patients.
+          const isReadOnly = selectedPatient.erasCompleted
 
           return (
             <div

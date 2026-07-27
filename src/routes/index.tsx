@@ -4,8 +4,10 @@ import { AuthGuard } from '../features/auth/components/AuthGuard'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
 import { NurseManagementPage } from '../features/nurses/pages/NurseManagementPage'
-import { ArchivePage } from '../features/patients/pages/ArchivePage'
 import { PatientPage } from '../features/patients/pages/PatientPage'
+import { NutritionGuidePage } from '../features/protocols/pages/NutritionGuidePage'
+import { ProtocolsPage } from '../features/protocols/pages/ProtocolsPage'
+import { QuestionManagementPage } from '../features/protocols/pages/QuestionManagementPage'
 import { AuthLayout } from '../layouts/auth-layout/AuthLayout'
 import { MainLayout } from '../layouts/main-layout/MainLayout'
 
@@ -26,7 +28,9 @@ export function AppRoutes() {
         <Route element={<MainLayout />}>
           <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
           <Route path={ROUTES.PATIENTS} element={<PatientPage />} />
-          <Route path={ROUTES.ARCHIVES} element={<ArchivePage />} />
+          <Route path={ROUTES.PROTOCOLS} element={<ProtocolsPage />} />
+          <Route path={ROUTES.PROTOCOL_NUTRITION} element={<NutritionGuidePage />} />
+          <Route path={ROUTES.QUESTIONS} element={<QuestionManagementPage />} />
           <Route path={ROUTES.ALERTS} element={<Placeholder title="Cảnh báo (Alert)" />} />
           <Route path={ROUTES.MONITORING} element={<Placeholder title="Quản lý POD" />} />
           <Route path={ROUTES.RECOVERY} element={<Placeholder title="Đánh giá & Triệu chứng" />} />

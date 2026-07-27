@@ -76,6 +76,7 @@ function MainLayoutContent() {
               )}
               <NavLink
                 to={item.path}
+                end
                 title={collapsed ? item.label : undefined}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${

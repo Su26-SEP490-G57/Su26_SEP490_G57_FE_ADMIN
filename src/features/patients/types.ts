@@ -29,7 +29,6 @@ export interface PatientListItem {
   lastAssessmentTime?: string | null // Thời gian đánh giá gần nhất (ISO datetime)
   erasCompleted: boolean // Đã hoàn thành ERAS (đạt POD tối đa)
   erasCompletedDate?: string | null // Ngày hoàn thành ERAS (ISO datetime)
-  isArchived: boolean // Đã lưu trữ
 
   account: {
     id: number
