@@ -10,9 +10,9 @@ interface EndOfDayAssessmentTabProps {
   currentPod?: number
 }
 
-// Tab "Danh gia cuoi ngay" — bang cau hoi x POD. O diem la SO THUAN, KHONG
-// to mau nen theo muc do (tranh nham lan diem tung cau voi mau triage tong
-// the cua benh nhan).
+// Tab "Đánh giá cuối ngày" — bảng câu hỏi x POD. Ô điểm là SỐ THUẦN, KHÔNG
+// tô màu nền theo mức độ (tránh nhầm lẫn điểm từng câu với màu triage tổng
+// thể của bệnh nhân).
 export function EndOfDayAssessmentTab({ matrix, isLoading, isError, onRetry, currentPod }: EndOfDayAssessmentTabProps) {
   if (isLoading) {
     return <div className="h-48 w-full animate-pulse rounded-lg bg-slate-100" />
@@ -22,15 +22,15 @@ export function EndOfDayAssessmentTab({ matrix, isLoading, isError, onRetry, cur
     return (
       <AnalyticsEmptyState
         icon="error"
-        headline="Khong the tai bang danh gia"
-        subline="Co loi xay ra khi tai du lieu. Vui long thu lai."
+        headline="Không thể tải bảng đánh giá"
+        subline="Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại."
         action={
           <button
             type="button"
             onClick={onRetry}
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
           >
-            Thu lai
+            Thử lại
           </button>
         }
       />
@@ -41,8 +41,8 @@ export function EndOfDayAssessmentTab({ matrix, isLoading, isError, onRetry, cur
     return (
       <AnalyticsEmptyState
         icon="assignment"
-        headline="Chua co danh gia cuoi ngay"
-        subline="Nguoi benh chua thuc hien khao sat danh gia cuoi ngay nao."
+        headline="Chưa có đánh giá cuối ngày"
+        subline="Người bệnh chưa thực hiện khảo sát đánh giá cuối ngày nào."
       />
     )
   }
@@ -57,5 +57,5 @@ export function EndOfDayAssessmentTab({ matrix, isLoading, isError, onRetry, cur
     }),
   }))
 
-  return <PodMatrixTable rowHeader="Cau hoi" pods={pods} rows={rows} currentPod={currentPod} />
+  return <PodMatrixTable rowHeader="Câu hỏi" pods={pods} rows={rows} currentPod={currentPod} />
 }

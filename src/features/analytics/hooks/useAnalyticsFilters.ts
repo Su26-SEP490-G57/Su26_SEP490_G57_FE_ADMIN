@@ -10,10 +10,10 @@ function isDetailTab(value: string | null): value is DetailTabId {
   return value !== null && (VALID_TABS as string[]).includes(value)
 }
 
-// Wrapper cho useSearchParams giu 4 filter cua trang Thong ke du lieu tren
-// URL (case/tab/surgery/room) — cho phep chia se link + bam Back/Forward giu
-// dung ngu canh dang xem. Tim kiem tu do (chua debounce) KHONG nam trong URL,
-// duoc giu o page-level useState (xem AnalyticsPage.tsx).
+// Wrapper cho useSearchParams giữ 4 filter của trang Thống kê dữ liệu trên
+// URL (case/tab/surgery/room) — cho phép chia sẻ link + bấm Back/Forward giữ
+// đúng ngữ cảnh đang xem. Tìm kiếm tự do (chưa debounce) KHÔNG nằm trong URL,
+// được giữ ở page-level useState (xem AnalyticsPage.tsx).
 export function useAnalyticsFilters() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -23,8 +23,8 @@ export function useAnalyticsFilters() {
   const operationTypeId = surgeryParam ? Number(surgeryParam) : undefined
   const room = searchParams.get('room') ?? undefined
 
-  // Cap nhat 1 key duy nhat, giu nguyen cac key khac; bo key khoi URL neu
-  // value rong/undefined (thay vi ghi chuoi rong).
+  // Cập nhật 1 key duy nhất, giữ nguyên các key khác; bỏ key khỏi URL nếu
+  // value rỗng/undefined (thay vì ghi chuỗi rỗng).
   const setParam = useCallback(
     (key: string, value: string | undefined | null) => {
       setSearchParams(

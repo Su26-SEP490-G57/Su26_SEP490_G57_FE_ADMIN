@@ -26,15 +26,15 @@ interface PatientDetailPanelProps {
 }
 
 const TABS: TabSwitcherItem<DetailTabId>[] = [
-  { id: 'recovery', label: 'Ma tran hoi phuc' },
-  { id: 'compliance', label: 'Tuan thu' },
-  { id: 'assessment', label: 'Danh gia cuoi ngay' },
+  { id: 'recovery', label: 'Ma trận hồi phục' },
+  { id: 'compliance', label: 'Tuân thủ' },
+  { id: 'assessment', label: 'Đánh giá cuối ngày' },
 ]
 
-// Shell chi tiet benh nhan: dong header + TabSwitcher + body cua tab dang
-// active. Luon render DAY DU shell (border, TabSwitcher bi disable) ke ca khi
-// chua chon benh nhan nao — khong render null/rong, va KHONG tu dong chon
-// benh nhan dau tien trong danh sach.
+// Shell chi tiết bệnh nhân: dòng header + TabSwitcher + body của tab đang
+// active. Luôn render ĐẦY ĐỦ shell (border, TabSwitcher bị disable) kể cả khi
+// chưa chọn bệnh nhân nào — không render null/rỗng, và KHÔNG tự động chọn
+// bệnh nhân đầu tiên trong danh sách.
 export function PatientDetailPanel({
   patient,
   isOutsideFilter,
@@ -59,14 +59,14 @@ export function PatientDetailPanel({
               </span>
             </h3>
             <p className="text-xs text-slate-500">
-              Ma: {patient.caseId} · POD {patient.currentPod}
+              Mã: {patient.caseId} · POD {patient.currentPod}
             </p>
             {isOutsideFilter && (
-              <p className="mt-1 text-xs italic text-amber-600">Nguoi benh dang chon khong thuoc bo loc hien tai</p>
+              <p className="mt-1 text-xs italic text-amber-600">Người bệnh đang chọn không thuộc bộ lọc hiện tại</p>
             )}
           </div>
         ) : (
-          <h3 className="font-bold text-slate-800">Chi tiet nguoi benh</h3>
+          <h3 className="font-bold text-slate-800">Chi tiết người bệnh</h3>
         )}
       </div>
 
@@ -78,8 +78,8 @@ export function PatientDetailPanel({
         {!patient ? (
           <AnalyticsEmptyState
             icon="person_search"
-            headline="Chon mot nguoi benh de xem chi tiet"
-            subline="Bam vao 1 the nguoi benh o danh sach ben tren de xem ma tran hoi phuc, tuan thu va danh gia cuoi ngay."
+            headline="Chọn một người bệnh để xem chi tiết"
+            subline="Bấm vào 1 thẻ người bệnh ở danh sách bên trên để xem ma trận hồi phục, tuân thủ và đánh giá cuối ngày."
           />
         ) : activeTab === 'recovery' ? (
           <RecoveryMatrixTab

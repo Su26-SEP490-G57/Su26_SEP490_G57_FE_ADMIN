@@ -14,8 +14,8 @@ interface PodMatrixTableProps {
   currentPod?: number
 }
 
-// Grid primitive dung chung cho ca RecoveryMatrixTab va EndOfDayAssessmentTab
-// — hang x cot POD. Chrome (mau nen header/body) copy tu bang POD co san
+// Grid primitive dùng chung cho cả RecoveryMatrixTab và EndOfDayAssessmentTab
+// — hàng x cột POD. Chrome (màu nền header/body) copy từ bảng POD có sẵn
 // trong HeadNurseDashboard.tsx.
 export function PodMatrixTable({ rowHeader, pods, rows, currentPod }: PodMatrixTableProps) {
   return (

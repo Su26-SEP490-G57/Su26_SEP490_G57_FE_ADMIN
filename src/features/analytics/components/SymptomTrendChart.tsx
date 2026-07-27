@@ -12,11 +12,11 @@ interface SymptomTrendChartProps {
   onRetry: () => void
 }
 
-// Bieu do xu huong trieu chung — stacked area (5 sub-score cong lai bang
-// tong diem cua khao sat). Legend la HTML/Tailwind rieng ben duoi (khong
-// dung legend cua Chart.js) de dong bo voi quy uoc hien co cua
-// HeadNurseDashboard.tsx. Co nut "Xem dang bang" doi canvas sang bang HTML
-// cung so lieu (yeu cau boi WARN contrast cua bang mau khi validate).
+// Biểu đồ xu hướng triệu chứng — stacked area (5 sub-score cộng lại bằng
+// tổng điểm của khảo sát). Legend là HTML/Tailwind riêng bên dưới (không
+// dùng legend của Chart.js) để đồng bộ với quy ước hiện có của
+// HeadNurseDashboard.tsx. Có nút "Xem dạng bảng" đổi canvas sang bảng HTML
+// cùng số liệu (yêu cầu bởi WARN contrast của bảng màu khi validate).
 export function SymptomTrendChart({ trend, isLoading, isFetching, isError, onRetry }: SymptomTrendChartProps) {
   const [showTable, setShowTable] = useState(false)
 
@@ -24,16 +24,16 @@ export function SymptomTrendChart({ trend, isLoading, isFetching, isError, onRet
 
   return (
     <ChartCard
-      title="Bieu do xu huong trieu chung"
-      subtitle="Diem trung binh theo tung POD (0-10)"
+      title="Biểu đồ xu hướng triệu chứng"
+      subtitle="Điểm trung bình theo từng POD (0-10)"
       isLoading={isLoading}
       isFetching={isFetching}
       isError={isError}
       onRetry={onRetry}
       isEmpty={isEmpty}
       emptyIcon="show_chart"
-      emptyHeadline="Chua co du lieu trieu chung"
-      emptySubline="Chua co khao sat trieu chung nao phu hop voi bo loc hien tai."
+      emptyHeadline="Chưa có dữ liệu triệu chứng"
+      emptySubline="Chưa có khảo sát triệu chứng nào phù hợp với bộ lọc hiện tại."
       skeletonClassName="h-64"
       actions={
         !isEmpty && (
@@ -42,7 +42,7 @@ export function SymptomTrendChart({ trend, isLoading, isFetching, isError, onRet
             onClick={() => setShowTable((v) => !v)}
             className="text-xs font-medium text-blue-600 hover:underline"
           >
-            {showTable ? 'Xem dang bieu do' : 'Xem dang bang'}
+            {showTable ? 'Xem dạng biểu đồ' : 'Xem dạng bảng'}
           </button>
         )
       }
@@ -53,7 +53,7 @@ export function SymptomTrendChart({ trend, isLoading, isFetching, isError, onRet
             <table className="w-full text-sm">
               <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-bold uppercase text-slate-500">
                 <tr>
-                  <th className="p-2 text-left">Trieu chung</th>
+                  <th className="p-2 text-left">Triệu chứng</th>
                   {trend.pods.map((pod) => (
                     <th key={pod} className="p-2 text-center">
                       POD{pod}

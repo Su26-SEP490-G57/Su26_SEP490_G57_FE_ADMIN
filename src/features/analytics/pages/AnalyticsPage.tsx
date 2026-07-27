@@ -18,13 +18,13 @@ function patientSearchHaystack(p: PatientListItem): string {
     .join(' ')
 }
 
-// Trang "Thong ke du lieu" (SEP490-377) — bieu do tong quan (xu huong trieu
-// chung + ty le tuan thu) o tren, danh sach nguoi benh gom theo phong o giua
-// (co the loc + tim kiem), va panel chi tiet 3-tab (ma tran hoi phuc / tuan
-// thu / danh gia cuoi ngay) cho 1 nguoi benh duoc chon o duoi.
+// Trang "Thống kê dữ liệu" (SEP490-377) — biểu đồ tổng quan (xu hướng triệu
+// chứng + tỷ lệ tuân thủ) ở trên, danh sách người bệnh gom theo phòng ở giữa
+// (có thể lọc + tìm kiếm), và panel chi tiết 3-tab (ma trận hồi phục / tuân
+// thủ / đánh giá cuối ngày) cho 1 người bệnh được chọn ở dưới.
 //
-// Chi ghep noi (composition) — moi logic hien thi/tinh toan nam trong cac
-// component/hook con o cung feature folder.
+// Chỉ ghép nối (composition) — mọi logic hiển thị/tính toán nằm trong các
+// component/hook con ở cùng feature folder.
 export function AnalyticsPage() {
   const filters = useAnalyticsFilters()
   const [search, setSearch] = useState('')
@@ -47,9 +47,9 @@ export function AnalyticsPage() {
     })
   }, [allPatients, filters.operationTypeId, filters.room, search])
 
-  // Tim benh nhan dang chon tren TOAN BO danh sach (khong phai danh sach da
-  // loc) de neu nguoi dung doi bo loc sau khi da chon 1 nguoi benh o phong
-  // khac, lua chon van duoc GIU NGUYEN thay vi bi mat/tu dong bo.
+  // Tìm bệnh nhân đang chọn trên TOÀN BỘ danh sách (không phải danh sách đã
+  // lọc) để nếu người dùng đổi bộ lọc sau khi đã chọn 1 người bệnh ở phòng
+  // khác, lựa chọn vẫn được GIỮ NGUYÊN thay vì bị mất/tự động bỏ.
   const selectedPatient = useMemo(
     () => (filters.selectedCaseId ? (allPatients.find((p) => p.caseId === filters.selectedCaseId) ?? null) : null),
     [allPatients, filters.selectedCaseId],
@@ -114,17 +114,17 @@ export function AnalyticsPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
             {isFiltered ? (
               <>
-                <p className="mb-3 text-slate-500">Khong co nguoi benh nao phu hop bo loc hien tai</p>
+                <p className="mb-3 text-slate-500">Không có người bệnh nào phù hợp bộ lọc hiện tại</p>
                 <button
                   type="button"
                   onClick={clearAllFilters}
                   className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
                 >
-                  Xoa bo loc
+                  Xóa bộ lọc
                 </button>
               </>
             ) : (
-              <p className="text-slate-400">Khong co nguoi benh nao</p>
+              <p className="text-slate-400">Không có người bệnh nào</p>
             )}
           </div>
         ) : (

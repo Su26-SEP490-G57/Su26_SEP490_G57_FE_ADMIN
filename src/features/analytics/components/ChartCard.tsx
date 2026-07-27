@@ -5,11 +5,11 @@ interface ChartCardProps {
   title: string
   subtitle?: string
   actions?: ReactNode
-  // Lan tai dau tien (chua co du lieu cu de hien) — hien skeleton, KHONG phai
-  // spinner overlay, de tranh layout jump.
+  // Lần tải đầu tiên (chưa có dữ liệu cũ để hiện) — hiện skeleton, KHÔNG phải
+  // spinner overlay, để tránh layout jump.
   isLoading?: boolean
-  // Dang refetch nen (co du lieu cu de hien) — giu nguyen content cu, lam mo
-  // nhe (opacity-60), khong flash skeleton.
+  // Đang refetch nền (có dữ liệu cũ để hiện) — giữ nguyên content cũ, làm mờ
+  // nhẹ (opacity-60), không flash skeleton.
   isFetching?: boolean
   isError?: boolean
   onRetry?: () => void
@@ -17,7 +17,7 @@ interface ChartCardProps {
   emptyIcon?: string
   emptyHeadline?: string
   emptySubline?: string
-  // Chieu cao skeleton phai khop voi content that su de khong bi giat layout.
+  // Chiều cao skeleton phải khớp với content thật sự để không bị giật layout.
   skeletonClassName?: string
   className?: string
   children: ReactNode
@@ -33,7 +33,7 @@ export function ChartCard({
   onRetry,
   isEmpty = false,
   emptyIcon = 'bar_chart',
-  emptyHeadline = 'Chua co du lieu',
+  emptyHeadline = 'Chưa có dữ liệu',
   emptySubline,
   skeletonClassName = 'h-64',
   className = '',
@@ -54,8 +54,8 @@ export function ChartCard({
       ) : isError ? (
         <AnalyticsEmptyState
           icon="error"
-          headline="Khong the tai du lieu"
-          subline="Co loi xay ra khi tai bieu do. Vui long thu lai."
+          headline="Không thể tải dữ liệu"
+          subline="Có lỗi xảy ra khi tải biểu đồ. Vui lòng thử lại."
           action={
             onRetry && (
               <button
@@ -63,7 +63,7 @@ export function ChartCard({
                 onClick={onRetry}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
               >
-                Thu lai
+                Thử lại
               </button>
             )
           }

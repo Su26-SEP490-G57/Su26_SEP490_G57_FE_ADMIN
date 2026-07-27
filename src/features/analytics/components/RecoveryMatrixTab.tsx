@@ -10,8 +10,8 @@ interface RecoveryMatrixTabProps {
   currentPod?: number
 }
 
-// Tab "Ma tran hoi phuc" — cac moc hoi phuc (uong nuoc, an, an mem, trung
-// tien, dai tien) theo tung POD, dung PodMatrixTable lam grid dung chung.
+// Tab "Ma trận hồi phục" — các mốc hồi phục (uống nước, ăn, ăn mềm, trung
+// tiện, đại tiện) theo từng POD, dùng PodMatrixTable làm grid dùng chung.
 export function RecoveryMatrixTab({ matrix, isLoading, isError, onRetry, currentPod }: RecoveryMatrixTabProps) {
   if (isLoading) {
     return <div className="h-48 w-full animate-pulse rounded-lg bg-slate-100" />
@@ -21,15 +21,15 @@ export function RecoveryMatrixTab({ matrix, isLoading, isError, onRetry, current
     return (
       <AnalyticsEmptyState
         icon="error"
-        headline="Khong the tai ma tran hoi phuc"
-        subline="Co loi xay ra khi tai du lieu. Vui long thu lai."
+        headline="Không thể tải ma trận hồi phục"
+        subline="Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại."
         action={
           <button
             type="button"
             onClick={onRetry}
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
           >
-            Thu lai
+            Thử lại
           </button>
         }
       />
@@ -40,8 +40,8 @@ export function RecoveryMatrixTab({ matrix, isLoading, isError, onRetry, current
     return (
       <AnalyticsEmptyState
         icon="timeline"
-        headline="Chua co du lieu hoi phuc"
-        subline="Nguoi benh chua ghi nhan moc hoi phuc nao (uong nuoc, an, trung tien, dai tien)."
+        headline="Chưa có dữ liệu hồi phục"
+        subline="Người bệnh chưa ghi nhận mốc hồi phục nào (uống nước, ăn, trung tiện, đại tiện)."
       />
     )
   }
@@ -60,24 +60,24 @@ export function RecoveryMatrixTab({ matrix, isLoading, isError, onRetry, current
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-4 text-xs sm:grid-cols-4">
         <div>
-          <p className="text-slate-500">So lan muc RED</p>
+          <p className="text-slate-500">Số lần mức RED</p>
           <p className="text-lg font-bold text-red-600">{matrix.summary.redCount}</p>
         </div>
         <div>
-          <p className="text-slate-500">Tong so ngay POD</p>
+          <p className="text-slate-500">Tổng số ngày POD</p>
           <p className="text-lg font-bold text-slate-800">{matrix.summary.totalPodDays ?? '--'}</p>
         </div>
         <div>
-          <p className="text-slate-500">Hoan thanh ERAS</p>
-          <p className="text-lg font-bold text-slate-800">{matrix.summary.erasCompleted ? 'Co' : 'Chua'}</p>
+          <p className="text-slate-500">Hoàn thành ERAS</p>
+          <p className="text-lg font-bold text-slate-800">{matrix.summary.erasCompleted ? 'Có' : 'Chưa'}</p>
         </div>
         <div>
-          <p className="text-slate-500">So lan giu POD</p>
+          <p className="text-slate-500">Số lần giữ POD</p>
           <p className="text-lg font-bold text-slate-800">{matrix.summary.holdCount}</p>
         </div>
       </div>
 
-      <PodMatrixTable rowHeader="Moc hoi phuc" pods={pods} rows={rows} currentPod={currentPod} />
+      <PodMatrixTable rowHeader="Mốc hồi phục" pods={pods} rows={rows} currentPod={currentPod} />
     </div>
   )
 }

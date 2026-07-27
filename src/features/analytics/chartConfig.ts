@@ -1,13 +1,13 @@
-// Cau hinh Chart.js dung chung cho trang Thong ke du lieu.
+// Cấu hình Chart.js dùng chung cho trang Thống kê dữ liệu.
 //
-// Bang mau da duoc chay qua dataviz skill validator
-// (node scripts/validate_palette.js) va PASS toan bo check (lightness band,
-// chroma floor, CVD separation, normal-vision floor). Contrast vs surface co
-// WARN nen bat buoc phai co nhan hien thi / bang so lieu di kem (da lam qua
-// legend HTML + nut "Xem dang bang" trong SymptomTrendChart).
+// Bảng màu đã được chạy qua dataviz skill validator
+// (node scripts/validate_palette.js) và PASS toàn bộ check (lightness band,
+// chroma floor, CVD separation, normal-vision floor). Contrast vs surface có
+// WARN nên bắt buộc phải có nhãn hiển thị / bảng số liệu đi kèm (đã làm qua
+// legend HTML + nút "Xem dạng bảng" trong SymptomTrendChart).
 //
-// KHONG duoc doi thu tu mau — thu tu nay duoc chon de dam bao CVD-safe giua
-// cac cap ke nhau.
+// KHÔNG được đổi thứ tự màu — thứ tự này được chọn để đảm bảo CVD-safe giữa
+// các cặp kề nhau.
 import {
   ArcElement,
   CategoryScale,
@@ -22,12 +22,12 @@ import {
 import type { ChartData, ChartOptions } from 'chart.js'
 import type { ComplianceOverview, SymptomSeriesKey, SymptomTrend } from './types'
 
-// Filler la bat buoc de fill vung (area) cua stacked area chart render duoc -
-// thieu no la 1 loi hay gap, chart se hien ra nhu line thuong khong to mau.
+// Filler là bắt buộc để fill vùng (area) của stacked area chart render được -
+// thiếu nó là 1 lỗi hay gặp, chart sẽ hiện ra như line thường không tô màu.
 ChartJS.register(ArcElement, CategoryScale, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip)
 
 // ---------------------------------------------------------------------------
-// Palette — symptom trend (stacked area), 5 series theo dung thu tu validated
+// Palette — symptom trend (stacked area), 5 series theo đúng thứ tự validated
 // ---------------------------------------------------------------------------
 export const SYMPTOM_COLORS: Record<SymptomSeriesKey, string> = {
   flatus: '#2a78d6',
@@ -38,15 +38,15 @@ export const SYMPTOM_COLORS: Record<SymptomSeriesKey, string> = {
 }
 
 export const SYMPTOM_LABELS: Record<SymptomSeriesKey, string> = {
-  flatus: 'Da trung tien',
-  foodIntake: 'Kha nang an',
-  bloating: 'Chuong bung',
-  vomiting: 'Non nhieu',
-  nausea: 'Buon non',
+  flatus: 'Đã trung tiện',
+  foodIntake: 'Khả năng ăn',
+  bloating: 'Chướng bụng',
+  vomiting: 'Nôn nhiều',
+  nausea: 'Buồn nôn',
 }
 
 // ---------------------------------------------------------------------------
-// Palette — compliance donut (meter, khong phai proportion chart)
+// Palette — compliance donut (meter, không phải proportion chart)
 // ---------------------------------------------------------------------------
 export const COMPLIANCE_COLORS = {
   compliant: '#4a3aa7',
@@ -54,7 +54,7 @@ export const COMPLIANCE_COLORS = {
 } as const
 
 // ---------------------------------------------------------------------------
-// Builders — symptom trend stacked area
+// Builders — biểu đồ xu hướng triệu chứng (stacked area)
 // ---------------------------------------------------------------------------
 export function buildSymptomTrendChartData(trend: SymptomTrend): ChartData<'line'> {
   return {

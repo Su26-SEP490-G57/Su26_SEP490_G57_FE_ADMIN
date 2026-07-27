@@ -8,11 +8,11 @@ interface PatientAnalyticsCardProps {
   onSelect: (patient: PatientListItem) => void
 }
 
-// The che doc-quyen/chi de chon (khong co dropdown doi POD, khong co nut
-// pause/lock hay luu tru — nhung action do thuoc PatientPage, khong thuoc
-// pham vi trang thong ke). Day la CACH DUY NHAT de chon benh nhan cho toan
-// bo panel chi tiet ben duoi nen root phai la <button> that su (khong phai
-// <div onClick>) de dieu huong duoc bang ban phim.
+// Thẻ chế độ đọc-quyền/chỉ để chọn (không có dropdown đổi POD, không có nút
+// pause/lock hay lưu trữ — những action đó thuộc PatientPage, không thuộc
+// phạm vi trang thống kê). Đây là CÁCH DUY NHẤT để chọn bệnh nhân cho toàn
+// bộ panel chi tiết bên dưới nên root phải là <button> thật sự (không phải
+// <div onClick>) để điều hướng được bằng bàn phím.
 export function PatientAnalyticsCard({ patient, isSelected, onSelect }: PatientAnalyticsCardProps) {
   const level = levelKey(patient.level?.name)
   const classes = levelClasses(level)
@@ -38,7 +38,7 @@ export function PatientAnalyticsCard({ patient, isSelected, onSelect }: PatientA
       <p className={`mt-1.5 truncate text-sm font-bold leading-tight ${isSelected ? 'text-white' : 'text-slate-800'}`}>
         {patientName(patient)}
       </p>
-      <p className={`truncate text-[10px] ${isSelected ? 'text-white/70' : 'text-slate-500'}`}>Ma: {patient.caseId}</p>
+      <p className={`truncate text-[10px] ${isSelected ? 'text-white/70' : 'text-slate-500'}`}>Mã: {patient.caseId}</p>
 
       <div className={`mt-1.5 flex items-center gap-1 border-t pt-1.5 ${isSelected ? 'border-white/20' : 'border-slate-200/50'}`}>
         <span className={`material-symbols-outlined text-[12px] ${isSelected ? 'text-white/70' : 'text-slate-400'}`}>schedule</span>

@@ -13,12 +13,12 @@ interface TabSwitcherProps<T extends string> {
   className?: string
 }
 
-// TabSwitcher generic — role="tablist" chuan a11y, dieu huong bang phim
-// Left/Right (roving tabIndex), duoc dieu khien hoan toan tu props (khong co
-// state noi bo) vi parent can dong bo active tab len URL.
+// TabSwitcher generic — role="tablist" chuẩn a11y, điều hướng bằng phím
+// Left/Right (roving tabIndex), được điều khiển hoàn toàn từ props (không có
+// state nội bộ) vì parent cần đồng bộ active tab lên URL.
 //
-// Visual style copy tu HeadNurseDashboard.tsx (hang tab hardcoded truoc day)
-// — gio la 1 component that su hoat dong.
+// Visual style copy từ HeadNurseDashboard.tsx (hàng tab hardcoded trước đây)
+// — giờ là 1 component thật sự hoạt động.
 export function TabSwitcher<T extends string>({ tabs, activeTab, onChange, disabled = false, className = '' }: TabSwitcherProps<T>) {
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([])
 

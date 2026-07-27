@@ -16,14 +16,14 @@ const SELECT_CLASSNAME =
 
 const DEBOUNCE_MS = 300
 
-// Thanh loc cho trang Thong ke du lieu: o tim kiem thu hep danh sach (KHONG
-// phai PatientSearchBar — do la o chon nhanh 1 benh nhan, job khac) + 2 select
-// loc theo loai phau thuat / phong.
+// Thanh lọc cho trang Thống kê dữ liệu: ô tìm kiếm thu hẹp danh sách (KHÔNG
+// phải PatientSearchBar — đó là ô chọn nhanh 1 bệnh nhân, job khác) + 2 select
+// lọc theo loại phẫu thuật / phòng.
 //
-// O tim kiem giu state gõ CUC BO va debounce 300ms truoc khi bao len parent —
-// khong duoc lift raw onChange keystroke thang len state cha, vi codebase nay
-// tung gap loi mat focus khi go tieng Viet (IME) do re-render tu parent
-// (xem comment dau file PatientSearchBar.tsx).
+// Ô tìm kiếm giữ state gõ CỤC BỘ và debounce 300ms trước khi báo lên parent —
+// không được lift raw onChange keystroke thẳng lên state cha, vì codebase này
+// từng gặp lỗi mất focus khi gõ tiếng Việt (IME) do re-render từ parent
+// (xem comment đầu file PatientSearchBar.tsx).
 export function AnalyticsFilterBar({
   operationTypes,
   operationTypeId,
@@ -51,7 +51,7 @@ export function AnalyticsFilterBar({
           type="text"
           value={rawSearch}
           onChange={(e) => setRawSearch(e.target.value)}
-          placeholder="Tim benh nhan, ma, chan doan..."
+          placeholder="Tìm bệnh nhân, mã, chẩn đoán..."
           className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all text-sm"
         />
       </div>
@@ -61,7 +61,7 @@ export function AnalyticsFilterBar({
         onChange={(e) => onOperationTypeChange(e.target.value ? Number(e.target.value) : undefined)}
         className={SELECT_CLASSNAME}
       >
-        <option value="">Loai phau thuat</option>
+        <option value="">Loại phẫu thuật</option>
         {operationTypes.map((type) => (
           <option key={type.id} value={type.id}>
             {type.name}
@@ -70,7 +70,7 @@ export function AnalyticsFilterBar({
       </select>
 
       <select value={room ?? ''} onChange={(e) => onRoomChange(e.target.value || undefined)} className={SELECT_CLASSNAME}>
-        <option value="">Phong</option>
+        <option value="">Phòng</option>
         {rooms.map((r) => (
           <option key={r} value={r}>
             {r}

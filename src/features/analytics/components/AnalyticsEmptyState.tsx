@@ -1,6 +1,6 @@
-// Empty-state dung chung: icon + tieu de + dong phu, dung cho moi noi trong
-// trang Thong ke du lieu can bao "chua co du lieu" (tab recovery/compliance/
-// assessment, danh sach benh nhan rong, chua chon benh nhan, ...).
+// Empty-state dùng chung: icon + tiêu đề + dòng phụ, dùng cho mọi nơi trong
+// trang Thống kê dữ liệu cần báo "chưa có dữ liệu" (tab recovery/compliance/
+// assessment, danh sách bệnh nhân rỗng, chưa chọn bệnh nhân, ...).
 interface AnalyticsEmptyStateProps {
   icon: string
   headline: string

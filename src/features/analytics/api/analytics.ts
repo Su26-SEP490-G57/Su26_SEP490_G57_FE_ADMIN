@@ -18,8 +18,8 @@ import type {
 
 // ---------------------------------------------------------------------------
 // Query key factory - model theo nurseKeys (src/features/nurses/api/nurses.ts).
-// `patient(caseId)` gom ca 3 tab chi tiet cua 1 benh nhan lai 1 cho de co the
-// invalidate ca 3 cung luc sau nay.
+// `patient(caseId)` gom cả 3 tab chi tiết của 1 bệnh nhân lại 1 chỗ để có thể
+// invalidate cả 3 cùng lúc sau này.
 // ---------------------------------------------------------------------------
 export const analyticsKeys = {
   all: ['analytics'] as const,
@@ -33,21 +33,21 @@ export const analyticsKeys = {
 }
 
 // ---------------------------------------------------------------------------
-// Mappers - wire shape (backend that) -> shape FE mong muon (types.ts).
+// Mappers - wire shape (backend thật) -> shape FE mong muốn (types.ts).
 //
-// Backend dang duoc xay song song nen cac hinh dang duoi day co the lech doi
-// chut so voi thuc te cuoi cung - moi mapper la NOI DUY NHAT can sua neu
-// backend doi hinh dang response, cac component tieu thu types.ts khong can
-// doi gi. Toan bo doc field deu dung optional chaining + fallback rong de mot
-// response hoi khac khong lam crash UI (chi suy bien ve trang thai "no data").
+// Backend đang được xây song song nên các hình dạng dưới đây có thể lệch đôi
+// chút so với thực tế cuối cùng - mỗi mapper là NƠI DUY NHẤT cần sửa nếu
+// backend đổi hình dạng response, các component tiêu thụ types.ts không cần
+// đổi gì. Toàn bộ đọc field đều dùng optional chaining + fallback rỗng để một
+// response hơi khác không làm crash UI (chỉ suy biến về trạng thái "no data").
 // ---------------------------------------------------------------------------
 
 const SYMPTOM_SERIES_META: { key: SymptomSeriesKey; label: string; matchKeys: string[] }[] = [
-  { key: 'flatus', label: 'Da trung tien', matchKeys: ['flatus', 'trungtien'] },
-  { key: 'foodIntake', label: 'Kha nang an', matchKeys: ['foodintake', 'food', 'anuong'] },
-  { key: 'bloating', label: 'Chuong bung', matchKeys: ['bloating', 'chuongbung'] },
-  { key: 'vomiting', label: 'Non nhieu', matchKeys: ['vomiting', 'vomit', 'non'] },
-  { key: 'nausea', label: 'Buon non', matchKeys: ['nausea', 'buonnon'] },
+  { key: 'flatus', label: 'Đã trung tiện', matchKeys: ['flatus', 'trungtien'] },
+  { key: 'foodIntake', label: 'Khả năng ăn', matchKeys: ['foodintake', 'food', 'anuong'] },
+  { key: 'bloating', label: 'Chướng bụng', matchKeys: ['bloating', 'chuongbung'] },
+  { key: 'vomiting', label: 'Nôn nhiều', matchKeys: ['vomiting', 'vomit', 'non'] },
+  { key: 'nausea', label: 'Buồn nôn', matchKeys: ['nausea', 'buonnon'] },
 ]
 
 interface RawOverviewQuestion {
@@ -73,8 +73,8 @@ function normalizeKey(key?: string | null): string {
   return (key ?? '').toLowerCase().replace(/[^a-z]/g, '')
 }
 
-// Chuyen response overview (mang phang theo POD) thanh SymptomTrend
-// (mang pods[] + 5 series song song theo dung thu tu mau da validate).
+// Chuyển response overview (mảng phẳng theo POD) thành SymptomTrend
+// (mảng pods[] + 5 series song song theo đúng thứ tự màu đã validate).
 export function toSymptomTrend(raw: unknown): SymptomTrend {
   const response = (raw ?? {}) as RawOverviewResponse
   const entries: RawOverviewPodEntry[] = Array.isArray(response)
@@ -89,9 +89,9 @@ export function toSymptomTrend(raw: unknown): SymptomTrend {
     data: entries.map((entry) => {
       const questions = entry.questions ?? []
 
-      // Uu tien khop theo questionKey; neu BE khong gui questionKey (hoac dat
-      // ten khac), fallback ve vi tri co dinh (thu tu 5 cau hoi con trong 1
-      // POD duoc backend tra nhat quan theo dung thu tu SYMPTOM_SERIES_META).
+      // Ưu tiên khớp theo questionKey; nếu BE không gửi questionKey (hoặc đặt
+      // tên khác), fallback về vị trí cố định (thứ tự 5 câu hỏi con trong 1
+      // POD được backend trả nhất quán theo đúng thứ tự SYMPTOM_SERIES_META).
       const byKey = questions.find((q) => meta.matchKeys.includes(normalizeKey(q.questionKey)))
       if (byKey) return byKey.avgScore ?? null
 
@@ -122,16 +122,16 @@ function toAnalyticsOverview(raw: unknown): AnalyticsOverview {
 }
 
 // ---------------------------------------------------------------------------
-// Recovery matrix - wire shape co `milestones` la 1 object phang
+// Recovery matrix - wire shape có `milestones` là 1 object phẳng
 // ({timeToRedrink, timeToReeat, podSoftDietReached, timeToFlatus, timeToDefecation})
-// thay vi mang RecoveryMilestone[] nhu type FE mong muon.
+// thay vì mảng RecoveryMilestone[] như type FE mong muốn.
 // ---------------------------------------------------------------------------
 const MILESTONE_META: { key: RecoveryMilestoneKey; label: string; rawKeys: string[] }[] = [
-  { key: 'firstDrink', label: 'Uong nuoc dau tien', rawKeys: ['timeToRedrink', 'firstDrink'] },
-  { key: 'firstFood', label: 'An dau tien', rawKeys: ['timeToReeat', 'firstFood'] },
-  { key: 'podSoft', label: 'An thuc an mem', rawKeys: ['podSoftDietReached', 'podSoft'] },
-  { key: 'firstFlatus', label: 'Trung tien dau tien', rawKeys: ['timeToFlatus', 'firstFlatus'] },
-  { key: 'firstStool', label: 'Dai tien dau tien', rawKeys: ['timeToDefecation', 'firstStool'] },
+  { key: 'firstDrink', label: 'Uống nước đầu tiên', rawKeys: ['timeToRedrink', 'firstDrink'] },
+  { key: 'firstFood', label: 'Ăn đầu tiên', rawKeys: ['timeToReeat', 'firstFood'] },
+  { key: 'podSoft', label: 'Ăn thức ăn mềm', rawKeys: ['podSoftDietReached', 'podSoft'] },
+  { key: 'firstFlatus', label: 'Trung tiện đầu tiên', rawKeys: ['timeToFlatus', 'firstFlatus'] },
+  { key: 'firstStool', label: 'Đại tiện đầu tiên', rawKeys: ['timeToDefecation', 'firstStool'] },
 ]
 
 interface RawMilestoneValue {
@@ -182,8 +182,8 @@ export function toRecoveryMatrix(raw: unknown, caseId: string): RecoveryMatrix {
     maxPod,
     milestones,
     summary: {
-      // Backend tra ve field ten `redAlertCount` (khong phai `redCount`) - xem
-      // RecoveryMatrixSummaryDto trong statistics module cua backend.
+      // Backend trả về field tên `redAlertCount` (không phải `redCount`) - xem
+      // RecoveryMatrixSummaryDto trong statistics module của backend.
       redCount: (summary as Record<string, unknown>).redAlertCount as number | undefined ?? summary.redCount ?? 0,
       totalPodDays: summary.totalPodDays ?? null,
       erasCompleted: summary.erasCompleted ?? false,
@@ -194,11 +194,11 @@ export function toRecoveryMatrix(raw: unknown, caseId: string): RecoveryMatrix {
 }
 
 // ---------------------------------------------------------------------------
-// Compliance stats - backend (PatientComplianceResponseDto) tra ve 1 object
-// PHANG: { viewedGuidance, viewedEducation, reminderCount, appAccessCount,
-// assessmentCompletedCount, ... }, khong phai 2 object con checklist/counters
-// nhu ban nhap dau. Van giu fallback doc them nested checklist/counters phong
-// khi backend doi lai hinh dang co cau truc hon.
+// Compliance stats - backend (PatientComplianceResponseDto) trả về 1 object
+// PHẲNG: { viewedGuidance, viewedEducation, reminderCount, appAccessCount,
+// assessmentCompletedCount, ... }, không phải 2 object con checklist/counters
+// như bản nháp đầu. Vẫn giữ fallback đọc thêm nested checklist/counters phòng
+// khi backend đổi lại hình dạng có cấu trúc hơn.
 // ---------------------------------------------------------------------------
 interface RawComplianceStats {
   caseId?: string
@@ -233,10 +233,10 @@ export function toComplianceStats(raw: unknown, caseId: string): ComplianceStats
 }
 
 // ---------------------------------------------------------------------------
-// Assessment matrix - ho tro ca 2 hinh dang co the xay ra:
-//  a) da "question-major" san: { questions: [{questionId, questionText, cells:[...]}] }
-//  b) "pod-major" giong overview: mang theo POD, moi POD co list cau hoi con
-//     -> can pivot lai thanh question-major de PodMatrixTable render theo hang.
+// Assessment matrix - hỗ trợ cả 2 hình dạng có thể xảy ra:
+//  a) đã "question-major" sẵn: { questions: [{questionId, questionText, cells:[...]}] }
+//  b) "pod-major" giống overview: mảng theo POD, mỗi POD có list câu hỏi con
+//     -> cần pivot lại thành question-major để PodMatrixTable render theo hàng.
 // ---------------------------------------------------------------------------
 interface RawAssessmentCell {
   pod?: number
@@ -319,9 +319,9 @@ export function toAssessmentMatrix(raw: unknown, caseId: string): AssessmentMatr
 // React-query hooks
 // ---------------------------------------------------------------------------
 
-// Overview: symptom trend (stacked area) + compliance donut cho toan khoa
-// (co the loc theo loai phau thuat / phong). 404 = chua co du lieu -> null,
-// khong phai loi (backend co the chua deploy route nay).
+// Overview: symptom trend (stacked area) + compliance donut cho toàn khoa
+// (có thể lọc theo loại phẫu thuật / phòng). 404 = chưa có dữ liệu -> null,
+// không phải lỗi (backend có thể chưa deploy route này).
 export function useAnalyticsOverview(params: AnalyticsOverviewParams = {}) {
   return useQuery({
     queryKey: analyticsKeys.overview(params),
@@ -340,7 +340,7 @@ export function useAnalyticsOverview(params: AnalyticsOverviewParams = {}) {
   })
 }
 
-// Recovery matrix (tab "Ma tran hoi phuc") cho 1 benh nhan.
+// Recovery matrix (tab "Ma trận hồi phục") cho 1 bệnh nhân.
 export function useRecoveryMatrix(caseId: string | null) {
   return useQuery({
     queryKey: analyticsKeys.recoveryMatrix(caseId ?? ''),
@@ -357,7 +357,7 @@ export function useRecoveryMatrix(caseId: string | null) {
   })
 }
 
-// Compliance stats (tab "Tuan thu") cho 1 benh nhan.
+// Compliance stats (tab "Tuân thủ") cho 1 bệnh nhân.
 export function useComplianceStats(caseId: string | null) {
   return useQuery({
     queryKey: analyticsKeys.compliance(caseId ?? ''),
@@ -374,7 +374,7 @@ export function useComplianceStats(caseId: string | null) {
   })
 }
 
-// Assessment matrix (tab "Danh gia cuoi ngay") cho 1 benh nhan.
+// Assessment matrix (tab "Đánh giá cuối ngày") cho 1 bệnh nhân.
 export function useAssessmentMatrix(caseId: string | null) {
   return useQuery({
     queryKey: analyticsKeys.assessmentMatrix(caseId ?? ''),

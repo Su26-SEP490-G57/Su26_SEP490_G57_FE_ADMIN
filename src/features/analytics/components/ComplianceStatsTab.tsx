@@ -9,18 +9,18 @@ interface ComplianceStatsTabProps {
 }
 
 const CHECKLIST_ITEMS: { key: keyof ComplianceStats['checklist']; label: string }[] = [
-  { key: 'viewedPodGuide', label: 'Da xem huong dan POD' },
-  { key: 'viewedHealthEducation', label: 'Da xem giao duc suc khoe' },
-  { key: 'completedAssessment', label: 'Da hoan thanh danh gia' },
+  { key: 'viewedPodGuide', label: 'Đã xem hướng dẫn POD' },
+  { key: 'viewedHealthEducation', label: 'Đã xem giáo dục sức khỏe' },
+  { key: 'completedAssessment', label: 'Đã hoàn thành đánh giá' },
 ]
 
 const COUNTER_ITEMS: { key: keyof ComplianceStats['counters']; label: string }[] = [
-  { key: 'completedAssessments', label: 'So danh gia da hoan thanh' },
-  { key: 'reminderCount', label: 'So lan nhac nho' },
-  { key: 'appAccessCount', label: 'So lan truy cap ung dung' },
+  { key: 'completedAssessments', label: 'Số đánh giá đã hoàn thành' },
+  { key: 'reminderCount', label: 'Số lần nhắc nhở' },
+  { key: 'appAccessCount', label: 'Số lần truy cập ứng dụng' },
 ]
 
-// Tab "Tuan thu" — checklist (co/khong) + cac bo dem hanh vi cua benh nhan.
+// Tab "Tuân thủ" — checklist (có/không) + các bộ đếm hành vi của bệnh nhân.
 export function ComplianceStatsTab({ stats, isLoading, isError, onRetry }: ComplianceStatsTabProps) {
   if (isLoading) {
     return <div className="h-48 w-full animate-pulse rounded-lg bg-slate-100" />
@@ -30,15 +30,15 @@ export function ComplianceStatsTab({ stats, isLoading, isError, onRetry }: Compl
     return (
       <AnalyticsEmptyState
         icon="error"
-        headline="Khong the tai du lieu tuan thu"
-        subline="Co loi xay ra khi tai du lieu. Vui long thu lai."
+        headline="Không thể tải dữ liệu tuân thủ"
+        subline="Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại."
         action={
           <button
             type="button"
             onClick={onRetry}
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
           >
-            Thu lai
+            Thử lại
           </button>
         }
       />
@@ -49,8 +49,8 @@ export function ComplianceStatsTab({ stats, isLoading, isError, onRetry }: Compl
     return (
       <AnalyticsEmptyState
         icon="fact_check"
-        headline="Chua co du lieu tuan thu"
-        subline="Nguoi benh chua co hoat dong tuan thu nao duoc ghi nhan tren ung dung."
+        headline="Chưa có dữ liệu tuân thủ"
+        subline="Người bệnh chưa có hoạt động tuân thủ nào được ghi nhận trên ứng dụng."
       />
     )
   }
@@ -75,7 +75,7 @@ export function ComplianceStatsTab({ stats, isLoading, isError, onRetry }: Compl
       </div>
 
       <div className="rounded-lg bg-slate-50 p-4">
-        <h5 className="mb-3 text-xs font-bold uppercase text-slate-500">So lieu</h5>
+        <h5 className="mb-3 text-xs font-bold uppercase text-slate-500">Số liệu</h5>
         <div className="space-y-2">
           {COUNTER_ITEMS.map((item) => (
             <div key={item.key} className="flex items-center justify-between text-sm">
