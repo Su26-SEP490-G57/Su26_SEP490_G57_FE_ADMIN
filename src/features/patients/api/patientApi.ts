@@ -127,3 +127,22 @@ export async function updatePodLevel(caseId: string, podLevel: number) {
 
   return data
 }
+
+// Archive/Unarchive case
+export async function archiveCase(caseId: string, archived: boolean) {
+  const { data } = await api.patch<PatientListItem>(`/patients/${caseId}/archive`, { archived })
+
+  return data
+}
+
+// Get archived cases grouped by operation type
+export async function getArchivedPatients(search?: string) {
+  const { data } = await api.get<{
+    data: Record<string, PatientListItem[]>
+    total: number
+  }>('/patients/archived/list', {
+    params: search ? { search } : undefined,
+  })
+
+  return data
+}

@@ -16,6 +16,13 @@ export const NAV_ITEMS: NavItem[] = [
   // Tạm ẩn màn Tổng quan (dashboard) — bật lại khi cần.
   // { label: 'Tổng quan', icon: 'dashboard', path: '/dashboard', roles: ['head_nurse'] },
   { label: 'Danh sách người bệnh', icon: 'group', path: '/patients', roles: ['head_nurse'] },
+  { label: 'Phác đồ lâm sàng', icon: 'description', path: '/protocols', roles: ['head_nurse'] },
+  {
+    label: 'Bộ câu hỏi đánh giá',
+    icon: 'quiz',
+    path: '/protocols/questions',
+    roles: ['head_nurse'],
+  },
   {
     label: 'Cảnh báo (Alert)',
     icon: 'notifications',
