@@ -23,6 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/protocols/questions',
     roles: ['head_nurse'],
   },
+  { label: 'Lưu trữ hồ sơ', icon: 'archive', path: '/archives', roles: ['head_nurse'] },
   {
     label: 'Cảnh báo (Alert)',
     icon: 'notifications',
@@ -33,7 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Quản lý POD', icon: 'task', path: '/monitoring', roles: ['head_nurse'] },
   { label: 'Đánh giá & Triệu chứng', icon: 'assignment', path: '/recovery', roles: ['head_nurse'] },
   { label: 'Quản lý điều dưỡng', icon: 'medical_services', path: '/nurses', roles: ['head_nurse'] },
-  { label: 'Biểu đồ & Báo cáo', icon: 'analytics', path: '/analytics', roles: ['head_nurse'] },
+  { label: 'Thống kê dữ liệu', icon: 'analytics', path: '/analytics', roles: ['head_nurse'] },
   {
     label: 'Xuất dữ liệu',
     icon: 'file_export',

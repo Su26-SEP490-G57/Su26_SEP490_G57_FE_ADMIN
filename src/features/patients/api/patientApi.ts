@@ -146,3 +146,32 @@ export async function getArchivedPatients(search?: string) {
 
   return data
 }
+
+// ---------------------------------------------------------------------------
+// Query-key factory + hooks bổ sung (dùng cho trang Thống kê dữ liệu).
+// Model theo nurseKeys (src/features/nurses/api/nurses.ts). Các hàm
+// getPatients/getOperationTypes bên trên vẫn giữ nguyên (không sửa) để không
+// phá vỡ cách PatientPage.tsx đang dùng trực tiếp.
+// ---------------------------------------------------------------------------
+export const patientKeys = {
+  all: ['patients'] as const,
+  lists: () => [...patientKeys.all, 'list'] as const,
+  list: (params: PatientQuery = {}) => [...patientKeys.lists(), params] as const,
+  stats: () => [...patientKeys.all, 'stats'] as const,
+  operationTypes: () => [...patientKeys.all, 'operation-types'] as const,
+}
+
+export function usePatients(params: PatientQuery = {}) {
+  return useQuery({
+    queryKey: patientKeys.list(params),
+    queryFn: () => getPatients(params),
+  })
+}
+
+export function useOperationTypes() {
+  return useQuery({
+    queryKey: patientKeys.operationTypes(),
+    queryFn: getOperationTypes,
+    staleTime: Infinity,
+  })
+}
