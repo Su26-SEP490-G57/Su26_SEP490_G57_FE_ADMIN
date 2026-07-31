@@ -11,6 +11,7 @@ import { PatientDetailPanel } from '../components/PatientDetailPanel'
 import { RoomPatientList } from '../components/RoomPatientList'
 import { SymptomTrendChart } from '../components/SymptomTrendChart'
 import { useAnalyticsFilters } from '../hooks/useAnalyticsFilters'
+import { useAnalyticsRealtime } from '../hooks/useAnalyticsRealtime'
 
 function patientSearchHaystack(p: PatientListItem): string {
   return [p.caseId, p.account?.fullName, p.nameInitials, p.roomBed, p.diagnosis, p.operationType?.name]
@@ -28,6 +29,7 @@ function patientSearchHaystack(p: PatientListItem): string {
 export function AnalyticsPage() {
   const filters = useAnalyticsFilters()
   const [search, setSearch] = useState('')
+  useAnalyticsRealtime()
 
   const { data: patientsResponse } = usePatients({ limit: 9999 })
   const { data: operationTypes = [] } = useOperationTypes()
