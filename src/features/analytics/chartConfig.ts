@@ -24,7 +24,16 @@ import type { ComplianceOverview, SymptomSeriesKey, SymptomTrend } from './types
 
 // Filler là bắt buộc để fill vùng (area) của stacked area chart render được -
 // thiếu nó là 1 lỗi hay gặp, chart sẽ hiện ra như line thường không tô màu.
-ChartJS.register(ArcElement, CategoryScale, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip)
+ChartJS.register(
+  ArcElement,
+  CategoryScale,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip,
+)
 
 // ---------------------------------------------------------------------------
 // Palette — symptom trend (stacked area), 5 series theo đúng thứ tự validated

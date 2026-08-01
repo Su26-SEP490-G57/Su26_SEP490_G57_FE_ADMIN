@@ -13,7 +13,13 @@ interface EndOfDayAssessmentTabProps {
 // Tab "Đánh giá cuối ngày" — bảng câu hỏi x POD. Ô điểm là SỐ THUẦN, KHÔNG
 // tô màu nền theo mức độ (tránh nhầm lẫn điểm từng câu với màu triage tổng
 // thể của bệnh nhân).
-export function EndOfDayAssessmentTab({ matrix, isLoading, isError, onRetry, currentPod }: EndOfDayAssessmentTabProps) {
+export function EndOfDayAssessmentTab({
+  matrix,
+  isLoading,
+  isError,
+  onRetry,
+  currentPod,
+}: EndOfDayAssessmentTabProps) {
   if (isLoading) {
     return <div className="h-48 w-full animate-pulse rounded-lg bg-slate-100" />
   }

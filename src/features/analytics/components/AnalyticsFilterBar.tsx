@@ -69,7 +69,11 @@ export function AnalyticsFilterBar({
         ))}
       </select>
 
-      <select value={room ?? ''} onChange={(e) => onRoomChange(e.target.value || undefined)} className={SELECT_CLASSNAME}>
+      <select
+        value={room ?? ''}
+        onChange={(e) => onRoomChange(e.target.value || undefined)}
+        className={SELECT_CLASSNAME}
+      >
         <option value="">Phòng</option>
         {rooms.map((r) => (
           <option key={r} value={r}>

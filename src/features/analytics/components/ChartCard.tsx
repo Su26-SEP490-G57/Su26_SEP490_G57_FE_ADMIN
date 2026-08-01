@@ -71,7 +71,9 @@ export function ChartCard({
       ) : isEmpty ? (
         <AnalyticsEmptyState icon={emptyIcon} headline={emptyHeadline} subline={emptySubline} />
       ) : (
-        <div className={isFetching ? 'opacity-60 transition-opacity' : 'transition-opacity'}>{children}</div>
+        <div className={isFetching ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
+          {children}
+        </div>
       )}
     </div>
   )

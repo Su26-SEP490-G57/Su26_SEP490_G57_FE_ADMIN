@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { Line } from 'react-chartjs-2'
 import type { SymptomTrend } from '../types'
-import { buildSymptomTrendChartData, buildSymptomTrendChartOptions, SYMPTOM_COLORS, SYMPTOM_LABELS } from '../chartConfig'
+import {
+  buildSymptomTrendChartData,
+  buildSymptomTrendChartOptions,
+  SYMPTOM_COLORS,
+  SYMPTOM_LABELS,
+} from '../chartConfig'
 import { ChartCard } from './ChartCard'
 
 interface SymptomTrendChartProps {
@@ -17,7 +22,13 @@ interface SymptomTrendChartProps {
 // dùng legend của Chart.js) để đồng bộ với quy ước hiện có của
 // HeadNurseDashboard.tsx. Có nút "Xem dạng bảng" đổi canvas sang bảng HTML
 // cùng số liệu (yêu cầu bởi WARN contrast của bảng màu khi validate).
-export function SymptomTrendChart({ trend, isLoading, isFetching, isError, onRetry }: SymptomTrendChartProps) {
+export function SymptomTrendChart({
+  trend,
+  isLoading,
+  isFetching,
+  isError,
+  onRetry,
+}: SymptomTrendChartProps) {
   const [showTable, setShowTable] = useState(false)
 
   const isEmpty = !trend || trend.pods.length === 0
@@ -65,11 +76,17 @@ export function SymptomTrendChart({ trend, isLoading, isFetching, isError, onRet
                 {trend.series.map((s) => (
                   <tr key={s.key}>
                     <td className="p-2 text-left font-medium text-slate-700">
-                      <span className="mr-2 inline-block h-2 w-2 rounded-full align-middle" style={{ backgroundColor: SYMPTOM_COLORS[s.key] }} />
+                      <span
+                        className="mr-2 inline-block h-2 w-2 rounded-full align-middle"
+                        style={{ backgroundColor: SYMPTOM_COLORS[s.key] }}
+                      />
                       {s.label}
                     </td>
                     {s.data.map((value, index) => (
-                      <td key={trend.pods[index] ?? index} className="p-2 text-center text-slate-600">
+                      <td
+                        key={trend.pods[index] ?? index}
+                        className="p-2 text-center text-slate-600"
+                      >
                         {value ?? '--'}
                       </td>
                     ))}
@@ -81,12 +98,18 @@ export function SymptomTrendChart({ trend, isLoading, isFetching, isError, onRet
         ) : (
           <>
             <div className="h-64">
-              <Line data={buildSymptomTrendChartData(trend)} options={buildSymptomTrendChartOptions()} />
+              <Line
+                data={buildSymptomTrendChartData(trend)}
+                options={buildSymptomTrendChartOptions()}
+              />
             </div>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
               {trend.series.map((s) => (
                 <div key={s.key} className="flex items-center gap-1.5 text-xs text-slate-500">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: SYMPTOM_COLORS[s.key] }} />
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: SYMPTOM_COLORS[s.key] }}
+                  />
                   {SYMPTOM_LABELS[s.key]}
                 </div>
               ))}

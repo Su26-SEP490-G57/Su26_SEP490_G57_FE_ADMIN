@@ -14,10 +14,10 @@
 
 Web admin dashboard supporting two roles:
 
-| Role | Responsibility |
-|---|---|
+| Role         | Responsibility                                                       |
+| ------------ | -------------------------------------------------------------------- |
 | `head_nurse` | Monitor post-op patients, manage POD assessments, handle ERAS alerts |
-| `admin` | Manage staff accounts, audit logs, permissions, system settings |
+| `admin`      | Manage staff accounts, audit logs, permissions, system settings      |
 
 > Nurse and Patient flows live in the mobile app — not in this repo.
 
@@ -25,19 +25,19 @@ Web admin dashboard supporting two roles:
 
 ## Tech Stack
 
-| Layer | Library |
-|---|---|
-| Framework | React 19 + TypeScript + Vite 8 |
-| Styling | Tailwind CSS v4 |
-| Routing | React Router v7 |
-| Server state | TanStack Query v5 |
-| Client state | Zustand v5 |
-| HTTP client | Axios |
-| Auth | JWT (access token in-memory + refresh token in localStorage) |
-| Forms | React Hook Form + Zod |
-| Charts | Chart.js + react-chartjs-2 |
-| Icons | Lucide React · Material Symbols Outlined (CDN) |
-| Lint / Format | ESLint + Prettier |
+| Layer         | Library                                                      |
+| ------------- | ------------------------------------------------------------ |
+| Framework     | React 19 + TypeScript + Vite 8                               |
+| Styling       | Tailwind CSS v4                                              |
+| Routing       | React Router v7                                              |
+| Server state  | TanStack Query v5                                            |
+| Client state  | Zustand v5                                                   |
+| HTTP client   | Axios                                                        |
+| Auth          | JWT (access token in-memory + refresh token in localStorage) |
+| Forms         | React Hook Form + Zod                                        |
+| Charts        | Chart.js + react-chartjs-2                                   |
+| Icons         | Lucide React · Material Symbols Outlined (CDN)               |
+| Lint / Format | ESLint + Prettier                                            |
 
 ---
 
@@ -71,8 +71,8 @@ npm run dev
 
 ## Environment Variables
 
-| Variable | Description | Example |
-|---|---|---|
+| Variable            | Description          | Example                     |
+| ------------------- | -------------------- | --------------------------- |
 | `VITE_API_BASE_URL` | Backend API base URL | `http://localhost:3000/api` |
 
 ---

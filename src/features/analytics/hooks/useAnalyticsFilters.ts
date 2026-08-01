@@ -18,7 +18,9 @@ export function useAnalyticsFilters() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const selectedCaseId = searchParams.get('case')
-  const activeTab: DetailTabId = isDetailTab(searchParams.get('tab')) ? (searchParams.get('tab') as DetailTabId) : DEFAULT_TAB
+  const activeTab: DetailTabId = isDetailTab(searchParams.get('tab'))
+    ? (searchParams.get('tab') as DetailTabId)
+    : DEFAULT_TAB
   const surgeryParam = searchParams.get('surgery')
   const operationTypeId = surgeryParam ? Number(surgeryParam) : undefined
   const room = searchParams.get('room') ?? undefined
@@ -43,8 +45,14 @@ export function useAnalyticsFilters() {
     [setSearchParams],
   )
 
-  const setSelectedCaseId = useCallback((caseId: string | null) => setParam('case', caseId), [setParam])
-  const setActiveTab = useCallback((tab: DetailTabId) => setParam('tab', tab === DEFAULT_TAB ? undefined : tab), [setParam])
+  const setSelectedCaseId = useCallback(
+    (caseId: string | null) => setParam('case', caseId),
+    [setParam],
+  )
+  const setActiveTab = useCallback(
+    (tab: DetailTabId) => setParam('tab', tab === DEFAULT_TAB ? undefined : tab),
+    [setParam],
+  )
   const setOperationTypeId = useCallback(
     (id: number | undefined) => setParam('surgery', id === undefined ? undefined : String(id)),
     [setParam],
@@ -75,6 +83,16 @@ export function useAnalyticsFilters() {
       setRoom,
       clearFilters,
     }),
-    [selectedCaseId, activeTab, operationTypeId, room, setSelectedCaseId, setActiveTab, setOperationTypeId, setRoom, clearFilters],
+    [
+      selectedCaseId,
+      activeTab,
+      operationTypeId,
+      room,
+      setSelectedCaseId,
+      setActiveTab,
+      setOperationTypeId,
+      setRoom,
+      clearFilters,
+    ],
   )
 }

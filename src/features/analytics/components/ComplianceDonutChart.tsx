@@ -1,6 +1,10 @@
 import { Doughnut } from 'react-chartjs-2'
 import type { ComplianceOverview } from '../types'
-import { buildComplianceDonutData, buildComplianceDonutOptions, COMPLIANCE_COLORS } from '../chartConfig'
+import {
+  buildComplianceDonutData,
+  buildComplianceDonutOptions,
+  COMPLIANCE_COLORS,
+} from '../chartConfig'
 import { ChartCard } from './ChartCard'
 
 interface ComplianceDonutChartProps {
@@ -15,7 +19,13 @@ interface ComplianceDonutChartProps {
 // HỒ (meter), không phải biểu đồ tỷ lệ: con số % lớn được đặt tuyệt đối giữa
 // vòng tròn (kỹ thuật canh giữa copy từ donut có sẵn trong
 // HeadNurseDashboard.tsx: parent relative + child absolute inset-0 flex-center).
-export function ComplianceDonutChart({ overview, isLoading, isFetching, isError, onRetry }: ComplianceDonutChartProps) {
+export function ComplianceDonutChart({
+  overview,
+  isLoading,
+  isFetching,
+  isError,
+  onRetry,
+}: ComplianceDonutChartProps) {
   const isEmpty = !overview || overview.total === 0
   const percent = overview ? Math.round(overview.complianceRate * 100) : 0
 
@@ -36,7 +46,10 @@ export function ComplianceDonutChart({ overview, isLoading, isFetching, isError,
       {overview && (
         <div className="flex flex-col items-center">
           <div className="relative mb-4 h-40 w-40">
-            <Doughnut data={buildComplianceDonutData(overview)} options={buildComplianceDonutOptions()} />
+            <Doughnut
+              data={buildComplianceDonutData(overview)}
+              options={buildComplianceDonutOptions()}
+            />
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-2xl font-bold text-slate-800">{percent}%</span>
               <span className="text-[10px] text-slate-400">tuân thủ</span>
@@ -45,14 +58,20 @@ export function ComplianceDonutChart({ overview, isLoading, isFetching, isError,
           <div className="w-full space-y-1.5 px-2">
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5 text-slate-600">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COMPLIANCE_COLORS.compliant }} />
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: COMPLIANCE_COLORS.compliant }}
+                />
                 Tuân thủ
               </div>
               <span className="font-medium text-slate-700">{overview.compliant}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5 text-slate-600">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COMPLIANCE_COLORS.nonCompliant }} />
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: COMPLIANCE_COLORS.nonCompliant }}
+                />
                 Không tuân thủ
               </div>
               <span className="font-medium text-slate-700">{overview.nonCompliant}</span>

@@ -1,6 +1,7 @@
 export interface PatientListItem {
   caseId: string
-  nameInitials?: string
+  fullName?: string | null
+  nameInitials?: string | null
   age: number
   gender: string
   height: number | null
@@ -11,7 +12,7 @@ export interface PatientListItem {
   operationType: {
     id: number
     name: string
-  }
+  } | null
   method: string
   surgeryDate: string
   currentPod: number
@@ -25,15 +26,15 @@ export interface PatientListItem {
     name: string
     color: string
   } | null
-  lastAssessmentTime?: string | null  // Thời gian đánh giá gần nhất (ISO datetime)
-  erasCompleted: boolean  // Đã hoàn thành ERAS (đạt POD tối đa)
-  erasCompletedDate?: string | null  // Ngày hoàn thành ERAS (ISO datetime)
-  isArchived: boolean  // Đã lưu trữ
+  lastAssessmentTime?: string | null // Thời gian đánh giá gần nhất (ISO datetime)
+  erasCompleted: boolean // Đã hoàn thành ERAS (đạt POD tối đa)
+  erasCompletedDate?: string | null // Ngày hoàn thành ERAS (ISO datetime)
 
   account: {
     id: number
     username: string
     fullName: string
+    phoneNumber?: string | null
     cityProvince?: string | null
     ward?: string | null
     detailedAddress?: string | null
@@ -131,7 +132,7 @@ export interface ArchivePatientRequest {
 }
 
 export interface ArchivedPatientsResponse {
-  data: Record<string, PatientListItem[]>  // Grouped by operation type name
+  data: Record<string, PatientListItem[]> // Grouped by operation type name
   total: number
 }
 

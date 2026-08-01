@@ -12,7 +12,13 @@ interface RecoveryMatrixTabProps {
 
 // Tab "Ma trận hồi phục" — các mốc hồi phục (uống nước, ăn, ăn mềm, trung
 // tiện, đại tiện) theo từng POD, dùng PodMatrixTable làm grid dùng chung.
-export function RecoveryMatrixTab({ matrix, isLoading, isError, onRetry, currentPod }: RecoveryMatrixTabProps) {
+export function RecoveryMatrixTab({
+  matrix,
+  isLoading,
+  isError,
+  onRetry,
+  currentPod,
+}: RecoveryMatrixTabProps) {
   if (isLoading) {
     return <div className="h-48 w-full animate-pulse rounded-lg bg-slate-100" />
   }
@@ -52,7 +58,9 @@ export function RecoveryMatrixTab({ matrix, isLoading, isError, onRetry, current
     label: m.label,
     subLabel: m.occurredAt ? new Date(m.occurredAt).toLocaleString('vi-VN') : undefined,
     cells: pods.map((pod) =>
-      pod === m.pod ? <span className="mx-auto block h-2.5 w-2.5 rounded-full bg-slate-800" /> : null,
+      pod === m.pod ? (
+        <span className="mx-auto block h-2.5 w-2.5 rounded-full bg-slate-800" />
+      ) : null,
     ),
   }))
 
@@ -69,7 +77,9 @@ export function RecoveryMatrixTab({ matrix, isLoading, isError, onRetry, current
         </div>
         <div>
           <p className="text-slate-500">Hoàn thành ERAS</p>
-          <p className="text-lg font-bold text-slate-800">{matrix.summary.erasCompleted ? 'Có' : 'Chưa'}</p>
+          <p className="text-lg font-bold text-slate-800">
+            {matrix.summary.erasCompleted ? 'Có' : 'Chưa'}
+          </p>
         </div>
         <div>
           <p className="text-slate-500">Số lần giữ POD</p>

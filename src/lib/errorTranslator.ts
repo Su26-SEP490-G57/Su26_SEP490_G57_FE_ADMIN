@@ -4,7 +4,11 @@
  * @param fallbackMessage - Message mặc định nếu không match pattern nào
  * @param suppressConsole - Có suppress console.error không (mặc định: false)
  */
-export function translateError(error: unknown, fallbackMessage = 'Có lỗi xảy ra', suppressConsole = false): string {
+export function translateError(
+  error: unknown,
+  fallbackMessage = 'Có lỗi xảy ra',
+  suppressConsole = false,
+): string {
   // Suppress console error if needed (for expected errors like 409 Conflict)
   if (suppressConsole) {
     // Prevent error from being logged to console
@@ -18,12 +22,15 @@ export function translateError(error: unknown, fallbackMessage = 'Có lỗi xả
   const msg = (error as { response?: { data?: { message?: string | string[] } } })?.response?.data
     ?.message
 
-  let errorText = Array.isArray(msg) ? msg.join(', ') : msg || fallbackMessage
+  const errorText = Array.isArray(msg) ? msg.join(', ') : msg || fallbackMessage
 
   const lowerText = errorText.toLowerCase()
 
   // Common error patterns
-  if ((lowerText.includes('case') || lowerText.includes('patient')) && lowerText.includes('already exist')) {
+  if (
+    (lowerText.includes('case') || lowerText.includes('patient')) &&
+    lowerText.includes('already exist')
+  ) {
     return 'Mã bệnh nhân đã tồn tại trong hệ thống'
   }
 

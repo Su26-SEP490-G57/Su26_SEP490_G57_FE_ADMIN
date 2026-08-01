@@ -9,9 +9,17 @@ interface AnalyticsEmptyStateProps {
   className?: string
 }
 
-export function AnalyticsEmptyState({ icon, headline, subline, action, className = '' }: AnalyticsEmptyStateProps) {
+export function AnalyticsEmptyState({
+  icon,
+  headline,
+  subline,
+  action,
+  className = '',
+}: AnalyticsEmptyStateProps) {
   return (
-    <div className={`flex flex-col items-center justify-center gap-2 py-10 text-center ${className}`}>
+    <div
+      className={`flex flex-col items-center justify-center gap-2 py-10 text-center ${className}`}
+    >
       <div className="rounded-full bg-slate-100 p-4">
         <span className="material-symbols-outlined text-[32px] text-slate-400">{icon}</span>
       </div>

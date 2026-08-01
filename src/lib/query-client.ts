@@ -24,7 +24,12 @@ export const queryClient = new QueryClient({
       refetchOnReconnect: true,
       retry: (failureCount, error) => {
         // Không retry lỗi phía client (4XX)
-        if (error instanceof AxiosError && error.status && error.status >= 400 && error.status < 500) {
+        if (
+          error instanceof AxiosError &&
+          error.status &&
+          error.status >= 400 &&
+          error.status < 500
+        ) {
           return false
         }
         // Retry tối đa 3 lần cho lỗi server/network

@@ -4,7 +4,12 @@ import { groupPatientsByRoom } from '../../../lib/patientGrouping'
 import { matchesQuery } from '../../../lib/vietnameseSearch'
 import { useOperationTypes, usePatients } from '../../patients/api/patientApi'
 import type { PatientListItem } from '../../patients/types'
-import { useAnalyticsOverview, useAssessmentMatrix, useComplianceStats, useRecoveryMatrix } from '../api/analytics'
+import {
+  useAnalyticsOverview,
+  useAssessmentMatrix,
+  useComplianceStats,
+  useRecoveryMatrix,
+} from '../api/analytics'
 import { AnalyticsFilterBar } from '../components/AnalyticsFilterBar'
 import { ComplianceDonutChart } from '../components/ComplianceDonutChart'
 import { PatientDetailPanel } from '../components/PatientDetailPanel'
@@ -14,7 +19,14 @@ import { useAnalyticsFilters } from '../hooks/useAnalyticsFilters'
 import { useAnalyticsRealtime } from '../hooks/useAnalyticsRealtime'
 
 function patientSearchHaystack(p: PatientListItem): string {
-  return [p.caseId, p.account?.fullName, p.nameInitials, p.roomBed, p.diagnosis, p.operationType?.name]
+  return [
+    p.caseId,
+    p.account?.fullName,
+    p.nameInitials,
+    p.roomBed,
+    p.diagnosis,
+    p.operationType?.name,
+  ]
     .filter(Boolean)
     .join(' ')
 }
@@ -36,14 +48,19 @@ export function AnalyticsPage() {
   const allPatients = useMemo(() => patientsResponse?.data ?? [], [patientsResponse])
 
   const rooms = useMemo(
-    () => groupPatientsByRoom(allPatients).map((g) => g.room).filter((r) => r !== 'Chưa phân phòng'),
+    () =>
+      groupPatientsByRoom(allPatients)
+        .map((g) => g.room)
+        .filter((r) => r !== 'Chưa phân phòng'),
     [allPatients],
   )
 
   const filteredPatients = useMemo(() => {
     return allPatients.filter((p) => {
-      if (filters.operationTypeId !== undefined && p.operationTypeId !== filters.operationTypeId) return false
-      if (filters.room && (p.roomBed?.split('/')[0]?.trim() || 'Chưa phân phòng') !== filters.room) return false
+      if (filters.operationTypeId !== undefined && p.operationTypeId !== filters.operationTypeId)
+        return false
+      if (filters.room && (p.roomBed?.split('/')[0]?.trim() || 'Chưa phân phòng') !== filters.room)
+        return false
       if (search && !matchesQuery(patientSearchHaystack(p), search)) return false
       return true
     })
@@ -53,7 +70,10 @@ export function AnalyticsPage() {
   // lọc) để nếu người dùng đổi bộ lọc sau khi đã chọn 1 người bệnh ở phòng
   // khác, lựa chọn vẫn được GIỮ NGUYÊN thay vì bị mất/tự động bỏ.
   const selectedPatient = useMemo(
-    () => (filters.selectedCaseId ? (allPatients.find((p) => p.caseId === filters.selectedCaseId) ?? null) : null),
+    () =>
+      filters.selectedCaseId
+        ? (allPatients.find((p) => p.caseId === filters.selectedCaseId) ?? null)
+        : null,
     [allPatients, filters.selectedCaseId],
   )
   const isOutsideFilter =
@@ -66,7 +86,10 @@ export function AnalyticsPage() {
     setSearch('')
   }
 
-  const overviewQuery = useAnalyticsOverview({ operationTypeId: filters.operationTypeId, room: filters.room })
+  const overviewQuery = useAnalyticsOverview({
+    operationTypeId: filters.operationTypeId,
+    room: filters.room,
+  })
   const recoveryQuery = useRecoveryMatrix(filters.selectedCaseId)
   const complianceQuery = useComplianceStats(filters.selectedCaseId)
   const assessmentQuery = useAssessmentMatrix(filters.selectedCaseId)
@@ -84,7 +107,14 @@ export function AnalyticsPage() {
           onSearchChange={setSearch}
         />
       ),
-      [operationTypes, filters.operationTypeId, filters.setOperationTypeId, rooms, filters.room, filters.setRoom],
+      [
+        operationTypes,
+        filters.operationTypeId,
+        filters.setOperationTypeId,
+        rooms,
+        filters.room,
+        filters.setRoom,
+      ],
     ),
   )
 
@@ -116,7 +146,9 @@ export function AnalyticsPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
             {isFiltered ? (
               <>
-                <p className="mb-3 text-slate-500">Không có người bệnh nào phù hợp bộ lọc hiện tại</p>
+                <p className="mb-3 text-slate-500">
+                  Không có người bệnh nào phù hợp bộ lọc hiện tại
+                </p>
                 <button
                   type="button"
                   onClick={clearAllFilters}

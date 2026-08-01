@@ -45,7 +45,12 @@ export interface AnalyticsOverviewParams {
 // ---------------------------------------------------------------------------
 // Recovery matrix — mốc hồi phục theo POD
 // ---------------------------------------------------------------------------
-export type RecoveryMilestoneKey = 'firstDrink' | 'firstFood' | 'podSoft' | 'firstFlatus' | 'firstStool'
+export type RecoveryMilestoneKey =
+  | 'firstDrink'
+  | 'firstFood'
+  | 'podSoft'
+  | 'firstFlatus'
+  | 'firstStool'
 
 export interface RecoveryMilestone {
   key: RecoveryMilestoneKey

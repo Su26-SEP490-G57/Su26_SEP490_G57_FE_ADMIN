@@ -24,12 +24,15 @@ import type {
 export const analyticsKeys = {
   all: ['analytics'] as const,
   overviews: () => [...analyticsKeys.all, 'overview'] as const,
-  overview: (params: AnalyticsOverviewParams = {}) => [...analyticsKeys.overviews(), params] as const,
+  overview: (params: AnalyticsOverviewParams = {}) =>
+    [...analyticsKeys.overviews(), params] as const,
   patients: () => [...analyticsKeys.all, 'patient'] as const,
   patient: (caseId: string) => [...analyticsKeys.patients(), caseId] as const,
-  recoveryMatrix: (caseId: string) => [...analyticsKeys.patient(caseId), 'recovery-matrix'] as const,
+  recoveryMatrix: (caseId: string) =>
+    [...analyticsKeys.patient(caseId), 'recovery-matrix'] as const,
   compliance: (caseId: string) => [...analyticsKeys.patient(caseId), 'compliance'] as const,
-  assessmentMatrix: (caseId: string) => [...analyticsKeys.patient(caseId), 'assessment-matrix'] as const,
+  assessmentMatrix: (caseId: string) =>
+    [...analyticsKeys.patient(caseId), 'assessment-matrix'] as const,
 }
 
 // ---------------------------------------------------------------------------
@@ -79,7 +82,7 @@ export function toSymptomTrend(raw: unknown): SymptomTrend {
   const response = (raw ?? {}) as RawOverviewResponse
   const entries: RawOverviewPodEntry[] = Array.isArray(response)
     ? (response as RawOverviewPodEntry[])
-    : response.symptomTrend ?? response.pods ?? response.data ?? []
+    : (response.symptomTrend ?? response.pods ?? response.data ?? [])
 
   const pods = entries.map((entry, index) => entry.pod ?? index)
 
@@ -184,7 +187,10 @@ export function toRecoveryMatrix(raw: unknown, caseId: string): RecoveryMatrix {
     summary: {
       // Backend trả về field tên `redAlertCount` (không phải `redCount`) - xem
       // RecoveryMatrixSummaryDto trong statistics module của backend.
-      redCount: (summary as Record<string, unknown>).redAlertCount as number | undefined ?? summary.redCount ?? 0,
+      redCount:
+        ((summary as Record<string, unknown>).redAlertCount as number | undefined) ??
+        summary.redCount ??
+        0,
       totalPodDays: summary.totalPodDays ?? null,
       erasCompleted: summary.erasCompleted ?? false,
       erasCompletedDate: summary.erasCompletedDate ?? null,
@@ -215,7 +221,8 @@ export function toComplianceStats(raw: unknown, caseId: string): ComplianceStats
   const response = (raw ?? {}) as RawComplianceStats
   const checklist = response.checklist ?? {}
   const counters = response.counters ?? {}
-  const assessmentCompletedCount = counters.completedAssessments ?? response.assessmentCompletedCount ?? 0
+  const assessmentCompletedCount =
+    counters.completedAssessments ?? response.assessmentCompletedCount ?? 0
 
   return {
     caseId: response.caseId ?? caseId,
@@ -266,7 +273,9 @@ interface RawAssessmentMatrix {
   data?: RawAssessmentPodEntry[]
 }
 
-function pivotPodMajorToQuestionMajor(podEntries: RawAssessmentPodEntry[]): AssessmentQuestionRow[] {
+function pivotPodMajorToQuestionMajor(
+  podEntries: RawAssessmentPodEntry[],
+): AssessmentQuestionRow[] {
   const rowsByQuestion = new Map<number, AssessmentQuestionRow>()
 
   for (const podEntry of podEntries) {
@@ -292,7 +301,9 @@ export function toAssessmentMatrix(raw: unknown, caseId: string): AssessmentMatr
   const response = (raw ?? {}) as RawAssessmentMatrix
 
   const alreadyQuestionMajor =
-    Array.isArray(response.questions) && response.questions.length > 0 && Array.isArray(response.questions[0]?.cells)
+    Array.isArray(response.questions) &&
+    response.questions.length > 0 &&
+    Array.isArray(response.questions[0]?.cells)
 
   const questions: AssessmentQuestionRow[] = alreadyQuestionMajor
     ? (response.questions ?? []).map((row) => ({
@@ -306,7 +317,8 @@ export function toAssessmentMatrix(raw: unknown, caseId: string): AssessmentMatr
       }))
     : pivotPodMajorToQuestionMajor(response.pods ?? response.data ?? [])
 
-  const maxPod = response.maxPod ?? Math.max(0, ...questions.flatMap((q) => q.cells.map((c) => c.pod)))
+  const maxPod =
+    response.maxPod ?? Math.max(0, ...questions.flatMap((q) => q.cells.map((c) => c.pod)))
 
   return {
     caseId: response.caseId ?? caseId,

@@ -39,7 +39,10 @@ export function PodMatrixTable({ rowHeader, pods, rows, currentPod }: PodMatrixT
                 {row.subLabel && <p className="text-xs text-slate-400">{row.subLabel}</p>}
               </td>
               {row.cells.map((cell, index) => (
-                <td key={pods[index] ?? index} className={`p-2 text-center ${pods[index] === currentPod ? 'bg-blue-50' : ''}`}>
+                <td
+                  key={pods[index] ?? index}
+                  className={`p-2 text-center ${pods[index] === currentPod ? 'bg-blue-50' : ''}`}
+                >
                   {cell}
                 </td>
               ))}

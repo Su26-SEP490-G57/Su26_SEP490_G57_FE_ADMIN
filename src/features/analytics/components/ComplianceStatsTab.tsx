@@ -21,7 +21,12 @@ const COUNTER_ITEMS: { key: keyof ComplianceStats['counters']; label: string }[]
 ]
 
 // Tab "Tuân thủ" — checklist (có/không) + các bộ đếm hành vi của bệnh nhân.
-export function ComplianceStatsTab({ stats, isLoading, isError, onRetry }: ComplianceStatsTabProps) {
+export function ComplianceStatsTab({
+  stats,
+  isLoading,
+  isError,
+  onRetry,
+}: ComplianceStatsTabProps) {
   if (isLoading) {
     return <div className="h-48 w-full animate-pulse rounded-lg bg-slate-100" />
   }
@@ -64,7 +69,9 @@ export function ComplianceStatsTab({ stats, isLoading, isError, onRetry }: Compl
             const done = stats.checklist[item.key]
             return (
               <div key={item.key} className="flex items-center gap-2 text-sm">
-                <span className={`material-symbols-outlined text-[18px] ${done ? 'text-green-600' : 'text-slate-300'}`}>
+                <span
+                  className={`material-symbols-outlined text-[18px] ${done ? 'text-green-600' : 'text-slate-300'}`}
+                >
                   {done ? 'check_circle' : 'radio_button_unchecked'}
                 </span>
                 <span className={done ? 'text-slate-700' : 'text-slate-400'}>{item.label}</span>

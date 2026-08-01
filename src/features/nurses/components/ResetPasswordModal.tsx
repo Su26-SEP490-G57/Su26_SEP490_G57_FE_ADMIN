@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { translateError } from '../../../lib/errorTranslator'
 import { useUpdateNurse } from '../api/nurses'
 
@@ -9,42 +12,64 @@ interface ResetPasswordModalProps {
   nurseName: string
 }
 
-export function ResetPasswordModal({ isOpen, onClose, nurseId, nurseName }: ResetPasswordModalProps) {
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+type FormValues = {
+  password: string
+}
+
+const passwordSchema = z.object({
+  password: z
+    .string()
+    .trim()
+    .min(1, 'Mật khẩu không được để trống')
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+    .max(100, 'Mật khẩu không được vượt quá 100 ký tự'),
+})
+
+export function ResetPasswordModal({
+  isOpen,
+  onClose,
+  nurseId,
+  nurseName,
+}: ResetPasswordModalProps) {
+  const [submitError, setSubmitError] = useState('')
   const updateMutation = useUpdateNurse()
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { password: '' },
+    mode: 'onSubmit',
+  })
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    reset({ password: '' })
+  }, [isOpen, reset])
 
   if (!isOpen) return null
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+  const onSubmit = (values: FormValues) => {
+    setSubmitError('')
 
-    if (!password) {
-      setError('Mật khẩu không được để trống')
-      return
-    }
-
-    if (password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự')
-      return
-    }
-
-    if (password.length > 100) {
-      setError('Mật khẩu không được vượt quá 100 ký tự')
-      return
-    }
-
-    try {
-      await updateMutation.mutateAsync({
+    updateMutation.mutate(
+      {
         id: nurseId,
-        data: { password },
-      })
-      setPassword('')
-      onClose()
-    } catch (err: any) {
-      setError(translateError(err, 'Có lỗi xảy ra khi đặt lại mật khẩu'))
-    }
+        data: { password: values.password },
+      },
+      {
+        onSuccess: () => {
+          reset({ password: '' })
+          onClose()
+        },
+        onError: (err) => {
+          setSubmitError(translateError(err, 'Có lỗi xảy ra khi đặt lại mật khẩu'))
+        },
+      },
+    )
   }
 
   return (
@@ -65,7 +90,7 @@ export function ResetPasswordModal({ isOpen, onClose, nurseId, nurseName }: Rese
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           <div className="text-sm text-slate-600">
             Bạn đang đặt lại mật khẩu cho điều dưỡng:{' '}
             <span className="font-bold text-slate-800">{nurseName}</span> (Mã:{' '}
@@ -81,24 +106,26 @@ export function ResetPasswordModal({ isOpen, onClose, nurseId, nurseName }: Rese
             </label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              {...register('password')}
               placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#00459a] focus:bg-white focus:ring-2 focus:ring-[#00459a]/10"
               autoFocus
             />
+            {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
           </div>
 
-          {error && (
+          {submitError && (
             <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-xs font-medium text-red-600">
-              <span className="material-symbols-outlined text-[16px] flex-shrink-0">error</span>
-              <p>{error}</p>
+              <span className="material-symbols-outlined text-[16px] shrink-0">error</span>
+              <p>{submitError}</p>
             </div>
           )}
 
           {updateMutation.isSuccess && (
             <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-xs font-medium text-green-600">
-              <span className="material-symbols-outlined text-[16px] flex-shrink-0">check_circle</span>
+              <span className="material-symbols-outlined text-[16px] flex-shrink-0">
+                check_circle
+              </span>
               <p>Đổi mật khẩu thành công!</p>
             </div>
           )}

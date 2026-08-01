@@ -1,17 +1,16 @@
-/* eslint-disable no-useless-catch */
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import type {
-    AssessmentDetailResponse,
-    CreatePatientPayload,
-    LatestAssessmentResponse,
-    OperationType,
-    PatientListItem,
-    PatientListResponse,
-    PatientQuery,
-    PodLockRequest,
-    PodLockResponse,
-    UpdatePatientPayload
+  AssessmentDetailResponse,
+  CreatePatientPayload,
+  LatestAssessmentResponse,
+  OperationType,
+  PatientListItem,
+  PatientListResponse,
+  PatientQuery,
+  PodLockRequest,
+  PodLockResponse,
+  UpdatePatientPayload,
 } from '../types'
 
 export async function getPatients(query?: PatientQuery) {
@@ -95,70 +94,48 @@ export async function getOperationTypes() {
 }
 
 export async function getLatestAssessment(caseId: string) {
-  try {
-    const response = await api.get<LatestAssessmentResponse>(
-      `/symptom-surveys/patient/${caseId}/latest`,
-      {
-        // Không throw error cho 404 - coi như valid response
-        validateStatus: (status) => status === 200 || status === 404,
-      }
-    )
+  const response = await api.get<LatestAssessmentResponse>(
+    `/symptom-surveys/patient/${caseId}/latest`,
+    {
+      // Không throw error cho 404 - coi như valid response
+      validateStatus: (status) => status === 200 || status === 404,
+    },
+  )
 
-    // Nếu 404 thì trả về null
-    if (response.status === 404) {
-      return null
-    }
-
-    return response.data
-  } catch (error) {
-    // Các lỗi khác (network, 500, etc.)
-    throw error
+  // Nếu 404 thì trả về null
+  if (response.status === 404) {
+    return null
   }
+
+  return response.data
 }
 
 export async function getAssessmentDetail(assessmentId: number) {
-  const { data } = await api.get<AssessmentDetailResponse>(
-    `/symptom-surveys/${assessmentId}`,
-  )
+  const { data } = await api.get<AssessmentDetailResponse>(`/symptom-surveys/${assessmentId}`)
 
   return data
 }
 
-export async function updatePodLock(
-  caseId: string,
-  body: PodLockRequest,
-) {
-  const { data } = await api.patch<PodLockResponse>(
-    `/patients/${caseId}/pod-lock`,
-    body,
-  )
+export async function updatePodLock(caseId: string, body: PodLockRequest) {
+  const { data } = await api.patch<PodLockResponse>(`/patients/${caseId}/pod-lock`, body)
 
   return data
 }
 
-export async function updatePodLevel(
-  caseId: string,
-  podLevel: number,
-) {
-  const { data } = await api.patch<PatientListItem>(
-    `/patients/${caseId}/pod-level`,
-    { podLevel },
-  )
+export async function updatePodLevel(caseId: string, podLevel: number) {
+  const { data } = await api.patch<PatientListItem>(`/patients/${caseId}/pod-level`, { podLevel })
 
   return data
 }
 
-// Archive/Unarchive patient
-export async function archivePatient(caseId: string, archived: boolean) {
-  const { data } = await api.patch<PatientListItem>(
-    `/patients/${caseId}/archive`,
-    { archived },
-  )
+// Archive/Unarchive case
+export async function archiveCase(caseId: string, archived: boolean) {
+  const { data } = await api.patch<PatientListItem>(`/patients/${caseId}/archive`, { archived })
 
   return data
 }
 
-// Get archived patients grouped by operation type
+// Get archived cases grouped by operation type
 export async function getArchivedPatients(search?: string) {
   const { data } = await api.get<{
     data: Record<string, PatientListItem[]>
@@ -171,10 +148,10 @@ export async function getArchivedPatients(search?: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Query-key factory + hooks bo sung (dung cho trang Thong ke du lieu).
-// Model theo nurseKeys (src/features/nurses/api/nurses.ts). Cac ham
-// getPatients/getOperationTypes ben tren van giu nguyen (khong sua) de khong
-// pha vo cach PatientPage.tsx dang dung truc tiep.
+// Query-key factory + hooks bổ sung (dùng cho trang Thống kê dữ liệu).
+// Model theo nurseKeys (src/features/nurses/api/nurses.ts). Các hàm
+// getPatients/getOperationTypes bên trên vẫn giữ nguyên (không sửa) để không
+// phá vỡ cách PatientPage.tsx đang dùng trực tiếp.
 // ---------------------------------------------------------------------------
 export const patientKeys = {
   all: ['patients'] as const,

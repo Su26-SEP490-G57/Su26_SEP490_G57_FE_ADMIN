@@ -54,7 +54,9 @@ export function PatientDetailPanel({
           <div>
             <h3 className="flex items-center gap-2 font-bold text-slate-800">
               {patientName(patient)}
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${classes.badgeBg} ${classes.text}`}>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${classes.badgeBg} ${classes.text}`}
+              >
                 {classes.label}
               </span>
             </h3>
@@ -62,7 +64,9 @@ export function PatientDetailPanel({
               Mã: {patient.caseId} · POD {patient.currentPod}
             </p>
             {isOutsideFilter && (
-              <p className="mt-1 text-xs italic text-amber-600">Người bệnh đang chọn không thuộc bộ lọc hiện tại</p>
+              <p className="mt-1 text-xs italic text-amber-600">
+                Người bệnh đang chọn không thuộc bộ lọc hiện tại
+              </p>
             )}
           </div>
         ) : (

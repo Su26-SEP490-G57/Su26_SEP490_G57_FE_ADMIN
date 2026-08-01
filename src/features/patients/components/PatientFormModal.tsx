@@ -1,9 +1,16 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { z } from 'zod'
 import { translateError } from '../../../lib/errorTranslator'
 import { createPatient, updatePatient } from '../api/patientApi'
 import { useProvinces, useWards } from '../api/vn-address'
-import type { CreatePatientPayload, OperationType, PatientListItem, UpdatePatientPayload } from '../types'
+import type {
+  CreatePatientPayload,
+  OperationType,
+  PatientListItem,
+  UpdatePatientPayload,
+} from '../types'
 
 interface PatientFormModalProps {
   isOpen: boolean
@@ -18,7 +25,17 @@ const inputCls =
   'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500'
 const labelCls = 'mb-1 block text-xs font-medium text-slate-500'
 
-function Field({ label, required = false, className = '', children }: { label: string; required?: boolean; className?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  required = false,
+  className = '',
+  children,
+}: {
+  label: string
+  required?: boolean
+  className?: string
+  children: React.ReactNode
+}) {
   return (
     <div className={className}>
       <label className={labelCls}>
@@ -41,142 +58,203 @@ function emptyToUndefined(v: string): string | undefined {
   return v.trim() === '' ? undefined : v.trim()
 }
 
-export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationTypes }: PatientFormModalProps) {
+const createPatientSchema = (isEdit: boolean) =>
+  z
+    .object({
+      caseId: z.string(),
+      fullName: z.string(),
+      age: z.string(),
+      gender: z.string(),
+      height: z.string(),
+      weight: z.string(),
+      detailedAddress: z.string(),
+      operationTypeId: z.string(),
+      method: z.string(),
+      surgeryDate: z.string(),
+      hasGiAnastomosis: z.string(),
+      diagnosis: z.string(),
+      roomBed: z.string(),
+      provinceCode: z.string(),
+      ward: z.string(),
+    })
+    .superRefine((values, ctx) => {
+      if (!isEdit && !values.caseId.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['caseId'], message: 'Mã bệnh nhân là bắt buộc' })
+      }
+
+      if (!values.fullName.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['fullName'], message: 'Họ tên là bắt buộc' })
+      }
+
+      if (!values.age.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['age'], message: 'Tuổi là bắt buộc' })
+      }
+
+      if (!values.gender.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['gender'], message: 'Giới tính là bắt buộc' })
+      }
+
+      if (!values.height.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['height'], message: 'Chiều cao là bắt buộc' })
+      }
+
+      if (!values.weight.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['weight'], message: 'Cân nặng là bắt buộc' })
+      }
+
+      if (!values.operationTypeId.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['operationTypeId'],
+          message: 'Loại phẫu thuật là bắt buộc',
+        })
+      }
+
+      if (!values.method.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['method'], message: 'Phương pháp mổ là bắt buộc' })
+      }
+
+      if (!values.surgeryDate.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['surgeryDate'],
+          message: 'Ngày phẫu thuật là bắt buộc',
+        })
+      }
+
+      if (!values.hasGiAnastomosis.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['hasGiAnastomosis'],
+          message: 'Có miệng nối tiêu hoá là bắt buộc',
+        })
+      }
+
+      if (!values.diagnosis.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['diagnosis'], message: 'Chẩn đoán là bắt buộc' })
+      }
+
+      if (!values.roomBed.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['roomBed'], message: 'Buồng giường là bắt buộc' })
+      }
+    })
+
+type FormValues = z.infer<ReturnType<typeof createPatientSchema>>
+
+function buildDefaultValues(patient?: PatientListItem | null): FormValues {
+  return {
+    caseId: patient?.caseId ?? '',
+    fullName: patient?.account?.fullName ?? '',
+    age: patient?.age != null ? String(patient.age) : '',
+    gender: patient?.gender ?? '',
+    height: patient?.height != null ? String(patient.height) : '',
+    weight: patient?.weight != null ? String(patient.weight) : '',
+    detailedAddress: patient?.account?.detailedAddress ?? '',
+    operationTypeId: patient?.operationType?.id != null ? String(patient.operationType.id) : '',
+    method: patient?.method ?? '',
+    surgeryDate: patient?.surgeryDate ? patient.surgeryDate.split('T')[0] : '',
+    hasGiAnastomosis:
+      patient?.hasGiAnastomosis == null ? '' : patient.hasGiAnastomosis ? 'true' : 'false',
+    diagnosis: patient?.diagnosis ?? '',
+    roomBed: patient?.roomBed ?? '',
+    provinceCode: '',
+    ward: patient?.account?.ward ?? '',
+  }
+}
+
+export function PatientFormModal({
+  isOpen,
+  onClose,
+  onSaved,
+  patient,
+  operationTypes,
+}: PatientFormModalProps) {
   const isEdit = !!patient
-
-  // Clinical / account fields
-  const [caseId, setCaseId] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [age, setAge] = useState('')
-  const [gender, setGender] = useState('')
-  const [height, setHeight] = useState('')
-  const [weight, setWeight] = useState('')
-  const [detailedAddress, setDetailedAddress] = useState('')
-  const [operationTypeId, setOperationTypeId] = useState('')
-  const [method, setMethod] = useState('')
-  const [surgeryDate, setSurgeryDate] = useState('')
-  const [hasGiAnastomosis, setHasGiAnastomosis] = useState('')
-  const [diagnosis, setDiagnosis] = useState('')
-  const [roomBed, setRoomBed] = useState('')
-
-  // Address (tỉnh/thành lưu theo tên; cần code để load phường/xã)
-  const [provinceCode, setProvinceCode] = useState<number | null>(null)
-  const [ward, setWard] = useState('')
-  const [provinceSearch, setProvinceSearch] = useState('')
-  const [provinceSearchTimeout, setProvinceSearchTimeout] = useState<number | null>(null)
-  const [wardSearch, setWardSearch] = useState('')
-  const [wardSearchTimeout, setWardSearchTimeout] = useState<number | null>(null)
-
-  const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [provinceSearch, setProvinceSearch] = useState('')
+  const [provinceSearchTimeout, setProvinceSearchTimeout] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null)
+  const [wardSearch, setWardSearch] = useState('')
+  const [wardSearchTimeout, setWardSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(
+    null,
+  )
 
   const { data: provinces = [] } = useProvinces()
-  const { data: wards = [] } = useWards(provinceCode)
 
-  // BMI tự tính từ chiều cao (cm) & cân nặng (kg).
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<FormValues>({
+    defaultValues: buildDefaultValues(patient),
+    mode: 'onSubmit',
+    resolver: zodResolver(createPatientSchema(isEdit)),
+  })
+
+  const heightValue = useWatch({ control, name: 'height' }) ?? ''
+  const weightValue = useWatch({ control, name: 'weight' }) ?? ''
+  const selectedProvinceCode = useWatch({ control, name: 'provinceCode' }) ?? ''
+  const selectedWard = useWatch({ control, name: 'ward' }) ?? ''
+  const selectedGender = useWatch({ control, name: 'gender' }) ?? ''
+  const selectedOperationTypeId = useWatch({ control, name: 'operationTypeId' }) ?? ''
+  const selectedHasGiAnastomosis = useWatch({ control, name: 'hasGiAnastomosis' }) ?? ''
+
+  const { data: wards = [] } = useWards(selectedProvinceCode ? Number(selectedProvinceCode) : null)
+
   const bmi = useMemo(() => {
-    const h = Number(height)
-    const w = Number(weight)
+    const h = Number(heightValue)
+    const w = Number(weightValue)
     if (!h || !w) return ''
     return (w / (h / 100) ** 2).toFixed(1)
-  }, [height, weight])
+  }, [heightValue, weightValue])
 
-  // Đồng bộ state khi mở modal.
   useEffect(() => {
     if (!isOpen) return
-    setErrors({})
-    setSubmitError('')
-    if (patient) {
-      setCaseId(patient.caseId)
-      setFullName(patient.account?.fullName ?? '')
-      setAge(patient.age != null ? String(patient.age) : '')
-      setGender(patient.gender ?? '')
-      setHeight(patient.height != null ? String(patient.height) : '')
-      setWeight(patient.weight != null ? String(patient.weight) : '')
-      setDetailedAddress(patient.account?.detailedAddress ?? '')
-      setOperationTypeId(patient.operationTypeId != null ? String(patient.operationTypeId) : '')
-      setMethod(patient.method ?? '')
-      setSurgeryDate(patient.surgeryDate ? patient.surgeryDate.split('T')[0] : '')
-      setHasGiAnastomosis(
-        patient.hasGiAnastomosis == null ? '' : patient.hasGiAnastomosis ? 'true' : 'false',
-      )
-      setDiagnosis(patient.diagnosis ?? '')
-      setRoomBed(patient.roomBed ?? '')
-      setWard(patient.account?.ward ?? '')
-      setProvinceCode(null) // sẽ được resolve từ tên ở effect bên dưới
-    } else {
-      setCaseId('')
-      setFullName('')
-      setAge('')
-      setGender('')
-      setHeight('')
-      setWeight('')
-      setDetailedAddress('')
-      setOperationTypeId('')
-      setMethod('')
-      setSurgeryDate('')
-      setHasGiAnastomosis('')
-      setDiagnosis('')
-      setRoomBed('')
-      setWard('')
-      setProvinceCode(null)
-    }
-  }, [isOpen, patient])
+    reset(buildDefaultValues(patient))
+  }, [isOpen, patient, reset])
 
-  // Khi sửa: map tên tỉnh đã lưu -> code để load phường/xã.
   useEffect(() => {
     if (!isOpen || !patient?.account?.cityProvince || provinces.length === 0) return
     const match = provinces.find((p) => p.name === patient.account?.cityProvince)
-    if (match) setProvinceCode(match.code)
-  }, [isOpen, patient, provinces])
+    if (match) {
+      setValue('provinceCode', String(match.code), { shouldValidate: true, shouldDirty: true })
+    }
+  }, [isOpen, patient, provinces, setValue])
 
   if (!isOpen) return null
 
-  const cityProvince = provinces.find((p) => p.code === provinceCode)?.name ?? ''
+  const cityProvince = provinces.find((p) => p.code === Number(selectedProvinceCode))?.name ?? ''
 
-  function validate() {
-    const e: Record<string, string> = {}
-
-    // Required fields
-    if (!isEdit && !caseId.trim()) e.caseId = 'Mã bệnh nhân là bắt buộc'
-    if (!fullName.trim()) e.fullName = 'Họ tên là bắt buộc'
-    if (!age.trim()) e.age = 'Tuổi là bắt buộc'
-    if (!gender.trim()) e.gender = 'Giới tính là bắt buộc'
-    if (!height.trim()) e.height = 'Chiều cao là bắt buộc'
-    if (!weight.trim()) e.weight = 'Cân nặng là bắt buộc'
-    if (!operationTypeId.trim()) e.operationTypeId = 'Loại phẫu thuật là bắt buộc'
-    if (!method.trim()) e.method = 'Phương pháp mổ là bắt buộc'
-    if (!surgeryDate.trim()) e.surgeryDate = 'Ngày phẫu thuật là bắt buộc'
-    if (!hasGiAnastomosis.trim()) e.hasGiAnastomosis = 'Có miệng nối tiêu hoá là bắt buộc'
-    if (!diagnosis.trim()) e.diagnosis = 'Chẩn đoán là bắt buộc'
-    if (!roomBed.trim()) e.roomBed = 'Buồng giường là bắt buộc'
-
-    setErrors(e)
-    return Object.keys(e).length === 0
+  const handleClose = () => {
+    setSubmitError('')
+    onClose()
   }
 
-  async function handleSubmit(ev: React.FormEvent) {
-    ev.preventDefault()
+  const onSubmit = async (values: FormValues) => {
     setSubmitError('')
-    if (!validate()) return
 
-    const common: Partial<CreatePatientPayload> = {
-      fullName: fullName.trim(),
-      age: toNumber(age),
-      gender: emptyToUndefined(gender),
-      height: toNumber(height),
-      weight: toNumber(weight),
+    const common = {
+      fullName: values.fullName.trim(),
+      age: toNumber(values.age),
+      gender: emptyToUndefined(values.gender),
+      height: toNumber(values.height),
+      weight: toNumber(values.weight),
       bmi: bmi === '' ? undefined : Number(bmi),
       cityProvince: emptyToUndefined(cityProvince),
-      ward: emptyToUndefined(ward),
-      detailedAddress: emptyToUndefined(detailedAddress),
-      operationTypeId: toNumber(operationTypeId),
-      method: emptyToUndefined(method),
-      surgeryDate: emptyToUndefined(surgeryDate),
-      hasGiAnastomosis: hasGiAnastomosis === '' ? undefined : hasGiAnastomosis === 'true',
-      diagnosis: emptyToUndefined(diagnosis),
-      roomBed: emptyToUndefined(roomBed),
+      ward: emptyToUndefined(values.ward),
+      detailedAddress: emptyToUndefined(values.detailedAddress),
+      operationTypeId: toNumber(values.operationTypeId),
+      method: emptyToUndefined(values.method),
+      surgeryDate: emptyToUndefined(values.surgeryDate),
+      hasGiAnastomosis:
+        values.hasGiAnastomosis === '' ? undefined : values.hasGiAnastomosis === 'true',
+      diagnosis: emptyToUndefined(values.diagnosis),
+      roomBed: emptyToUndefined(values.roomBed),
     }
 
     try {
@@ -184,23 +262,18 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
       if (isEdit && patient?.account) {
         await updatePatient(patient.account.id, common as UpdatePatientPayload)
       } else {
-        await createPatient({ caseId: caseId.trim(), ...common } as CreatePatientPayload)
+        await createPatient({ caseId: values.caseId.trim(), ...common } as CreatePatientPayload)
       }
       onSaved()
       onClose()
     } catch (err) {
-      console.log('🔴 Submit error caught:', err)
-
-      // Type assertion for axios error
-      const axiosError = err as { response?: { status?: number } }
-      console.log('🔴 Error response:', axiosError.response)
-
-      // Suppress console log cho lỗi validation (400, 409 là expected)
-      const status = axiosError.response?.status
+      const status = (err as { response?: { status?: number } })?.response?.status
       const shouldSuppress = status === 400 || status === 409
-      const errorMessage = translateError(err as Error, 'Có lỗi xảy ra khi lưu hồ sơ bệnh án', shouldSuppress)
-
-      console.log('🔴 Translated error:', errorMessage)
+      const errorMessage = translateError(
+        err,
+        'Có lỗi xảy ra khi lưu hồ sơ bệnh án',
+        shouldSuppress,
+      )
       setSubmitError(errorMessage)
     } finally {
       setSaving(false)
@@ -215,12 +288,19 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
           <h3 className="flex-1 text-center text-lg font-bold text-slate-800">
             {isEdit ? 'Sửa hồ sơ bệnh nhân' : 'Thêm hồ sơ bệnh án'}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600" title="Đóng">
+          <button
+            onClick={handleClose}
+            className="text-slate-400 hover:text-slate-600"
+            title="Đóng"
+          >
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="max-h-[calc(90vh-9rem)] space-y-4 overflow-y-auto px-6 py-5">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="max-h-[calc(90vh-9rem)] space-y-4 overflow-y-auto px-6 py-5"
+        >
           {submitError && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600">
               {submitError}
@@ -231,42 +311,58 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="Mã bệnh nhân" required={!isEdit}>
               <input
-                value={caseId}
+                {...register('caseId', {
+                  onChange: (e) =>
+                    setValue('caseId', e.target.value.toUpperCase(), { shouldValidate: true }),
+                })}
                 disabled={isEdit}
-                onChange={(e) => setCaseId(e.target.value.toUpperCase())}
                 placeholder="Ví dụ: CASE-001"
                 className={inputCls}
               />
-              {errors.caseId && <p className="mt-1 text-xs text-red-500">{errors.caseId}</p>}
+              {errors.caseId && (
+                <p className="mt-1 text-xs text-red-500">{errors.caseId.message}</p>
+              )}
             </Field>
             <Field label="Họ tên đầy đủ" required>
-              <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} />
-              {errors.fullName && <p className="mt-1 text-xs text-red-500">{errors.fullName}</p>}
+              <input {...register('fullName')} className={inputCls} />
+              {errors.fullName && (
+                <p className="mt-1 text-xs text-red-500">{errors.fullName.message}</p>
+              )}
             </Field>
           </div>
 
           {/* Tuổi / Giới tính / Chiều cao / Cân nặng / BMI */}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
             <Field label="Tuổi" required>
-              <input type="number" min={0} value={age} onChange={(e) => setAge(e.target.value)} className={inputCls} />
-              {errors.age && <p className="mt-1 text-xs text-red-500">{errors.age}</p>}
+              <input type="number" min={0} {...register('age')} className={inputCls} />
+              {errors.age && <p className="mt-1 text-xs text-red-500">{errors.age.message}</p>}
             </Field>
             <Field label="Giới tính" required>
-              <select value={gender} onChange={(e) => setGender(e.target.value)} className={inputCls}>
+              <select
+                value={selectedGender}
+                onChange={(e) => setValue('gender', e.target.value, { shouldValidate: true })}
+                className={inputCls}
+              >
                 <option value="">--</option>
                 <option value="Nam">Nam</option>
                 <option value="Nữ">Nữ</option>
                 <option value="Khác">Khác</option>
               </select>
-              {errors.gender && <p className="mt-1 text-xs text-red-500">{errors.gender}</p>}
+              {errors.gender && (
+                <p className="mt-1 text-xs text-red-500">{errors.gender.message}</p>
+              )}
             </Field>
             <Field label="Chiều cao (cm)" required>
-              <input type="number" value={height} onChange={(e) => setHeight(e.target.value)} className={inputCls} />
-              {errors.height && <p className="mt-1 text-xs text-red-500">{errors.height}</p>}
+              <input type="number" {...register('height')} className={inputCls} />
+              {errors.height && (
+                <p className="mt-1 text-xs text-red-500">{errors.height.message}</p>
+              )}
             </Field>
             <Field label="Cân nặng (kg)" required>
-              <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} className={inputCls} />
-              {errors.weight && <p className="mt-1 text-xs text-red-500">{errors.weight}</p>}
+              <input type="number" {...register('weight')} className={inputCls} />
+              {errors.weight && (
+                <p className="mt-1 text-xs text-red-500">{errors.weight.message}</p>
+              )}
             </Field>
             <Field label="BMI">
               <input value={bmi} disabled className={inputCls} />
@@ -277,27 +373,25 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Field label="Thành phố">
               <select
-                value={provinceCode ?? ''}
+                value={selectedProvinceCode}
                 onChange={(e) => {
-                  setProvinceCode(e.target.value ? Number(e.target.value) : null)
-                  setWard('')
+                  setValue('provinceCode', e.target.value, { shouldValidate: true })
+                  setValue('ward', '', { shouldValidate: true })
                 }}
                 onKeyDown={(e) => {
                   if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
                     const char = e.key.toLowerCase()
                     setProvinceSearch((prev) => prev + char)
 
-
-                    if (provinceSearchTimeout) clearTimeout(provinceSearchTimeout as unknown as number)
-
-                    setProvinceSearchTimeout(setTimeout(() => setProvinceSearch(''), 1000) as unknown as number)
+                    if (provinceSearchTimeout) clearTimeout(provinceSearchTimeout)
+                    setProvinceSearchTimeout(setTimeout(() => setProvinceSearch(''), 1000))
 
                     const match = provinces.find((p) =>
-                      p.name.toLowerCase().startsWith(provinceSearch + char)
+                      p.name.toLowerCase().startsWith(provinceSearch + char),
                     )
                     if (match) {
-                      setProvinceCode(match.code)
-                      setWard('')
+                      setValue('provinceCode', String(match.code), { shouldValidate: true })
+                      setValue('ward', '', { shouldValidate: true })
                     }
                   }
                 }}
@@ -313,23 +407,21 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
             </Field>
             <Field label="Quận, xã">
               <select
-                value={ward}
-                onChange={(e) => setWard(e.target.value)}
-                disabled={!provinceCode}
+                value={selectedWard}
+                onChange={(e) => setValue('ward', e.target.value, { shouldValidate: true })}
+                disabled={!selectedProvinceCode}
                 onKeyDown={(e) => {
                   if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
                     const char = e.key.toLowerCase()
                     setWardSearch((prev) => prev + char)
 
-
-                    if (wardSearchTimeout) clearTimeout(wardSearchTimeout as unknown as number)
-
-                    setWardSearchTimeout(setTimeout(() => setWardSearch(''), 1000) as unknown as number)
+                    if (wardSearchTimeout) clearTimeout(wardSearchTimeout)
+                    setWardSearchTimeout(setTimeout(() => setWardSearch(''), 1000))
 
                     const match = wards.find((w) =>
-                      w.name.toLowerCase().startsWith(wardSearch + char)
+                      w.name.toLowerCase().startsWith(wardSearch + char),
                     )
-                    if (match) setWard(match.name)
+                    if (match) setValue('ward', match.name, { shouldValidate: true })
                   }
                 }}
                 className={inputCls}
@@ -343,11 +435,7 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
               </select>
             </Field>
             <Field label="Địa chỉ chi tiết">
-              <input
-                value={detailedAddress}
-                onChange={(e) => setDetailedAddress(e.target.value)}
-                className={inputCls}
-              />
+              <input {...register('detailedAddress')} className={inputCls} />
             </Field>
           </div>
 
@@ -355,8 +443,10 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <Field label="Loại phẫu thuật" required>
               <select
-                value={operationTypeId}
-                onChange={(e) => setOperationTypeId(e.target.value)}
+                value={selectedOperationTypeId}
+                onChange={(e) =>
+                  setValue('operationTypeId', e.target.value, { shouldValidate: true })
+                }
                 className={inputCls}
               >
                 <option value="">--</option>
@@ -366,49 +456,60 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
                   </option>
                 ))}
               </select>
-              {errors.operationTypeId && <p className="mt-1 text-xs text-red-500">{errors.operationTypeId}</p>}
+              {errors.operationTypeId && (
+                <p className="mt-1 text-xs text-red-500">{errors.operationTypeId.message}</p>
+              )}
             </Field>
             <Field label="Phương pháp mổ" required>
-              <input value={method} onChange={(e) => setMethod(e.target.value)} className={inputCls} />
-              {errors.method && <p className="mt-1 text-xs text-red-500">{errors.method}</p>}
+              <input {...register('method')} className={inputCls} />
+              {errors.method && (
+                <p className="mt-1 text-xs text-red-500">{errors.method.message}</p>
+              )}
             </Field>
             <Field label="Ngày phẫu thuật" required>
-              <input
-                type="date"
-                value={surgeryDate}
-                onChange={(e) => setSurgeryDate(e.target.value)}
-                className={inputCls}
-              />
-              {errors.surgeryDate && <p className="mt-1 text-xs text-red-500">{errors.surgeryDate}</p>}
+              <input type="date" {...register('surgeryDate')} className={inputCls} />
+              {errors.surgeryDate && (
+                <p className="mt-1 text-xs text-red-500">{errors.surgeryDate.message}</p>
+              )}
             </Field>
             <Field label="Có miệng nối tiêu hoá" required>
               <select
-                value={hasGiAnastomosis}
-                onChange={(e) => setHasGiAnastomosis(e.target.value)}
+                value={selectedHasGiAnastomosis}
+                onChange={(e) =>
+                  setValue('hasGiAnastomosis', e.target.value, { shouldValidate: true })
+                }
                 className={inputCls}
               >
                 <option value="">--</option>
                 <option value="true">Có</option>
                 <option value="false">Không</option>
               </select>
-              {errors.hasGiAnastomosis && <p className="mt-1 text-xs text-red-500">{errors.hasGiAnastomosis}</p>}
+              {errors.hasGiAnastomosis && (
+                <p className="mt-1 text-xs text-red-500">{errors.hasGiAnastomosis.message}</p>
+              )}
             </Field>
           </div>
 
           {/* Chẩn đoán / Buồng giường */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
             <Field label="Chẩn đoán" required>
-              <input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} className={inputCls} />
-              {errors.diagnosis && <p className="mt-1 text-xs text-red-500">{errors.diagnosis}</p>}
+              <input {...register('diagnosis')} className={inputCls} />
+              {errors.diagnosis && (
+                <p className="mt-1 text-xs text-red-500">{errors.diagnosis.message}</p>
+              )}
             </Field>
             <Field label="Buồng giường" required>
               <input
-                value={roomBed}
-                onChange={(e) => setRoomBed(e.target.value.toUpperCase())}
+                {...register('roomBed', {
+                  onChange: (e) =>
+                    setValue('roomBed', e.target.value.toUpperCase(), { shouldValidate: true }),
+                })}
                 placeholder="Ví dụ: P101-B1"
                 className={inputCls}
               />
-              {errors.roomBed && <p className="mt-1 text-xs text-red-500">{errors.roomBed}</p>}
+              {errors.roomBed && (
+                <p className="mt-1 text-xs text-red-500">{errors.roomBed.message}</p>
+              )}
             </Field>
           </div>
 
@@ -416,7 +517,7 @@ export function PatientFormModal({ isOpen, onClose, onSaved, patient, operationT
           <div className="flex justify-center gap-4 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="rounded-lg border border-slate-200 bg-slate-50 px-8 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100"
             >
               Huỷ

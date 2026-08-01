@@ -30,19 +30,33 @@ export function PatientAnalyticsCard({ patient, isSelected, onSelect }: PatientA
     >
       <div className="flex items-center gap-1.5">
         <span className={`h-2 w-2 flex-shrink-0 rounded-full ${classes.dot}`} />
-        <span className={`text-[10px] font-bold uppercase tracking-wide ${isSelected ? 'text-white/90' : classes.text}`}>
+        <span
+          className={`text-[10px] font-bold uppercase tracking-wide ${isSelected ? 'text-white/90' : classes.text}`}
+        >
           POD {patient.currentPod} · {patient.operationType?.name ?? 'N/A'}
         </span>
       </div>
 
-      <p className={`mt-1.5 truncate text-sm font-bold leading-tight ${isSelected ? 'text-white' : 'text-slate-800'}`}>
+      <p
+        className={`mt-1.5 truncate text-sm font-bold leading-tight ${isSelected ? 'text-white' : 'text-slate-800'}`}
+      >
         {patientName(patient)}
       </p>
-      <p className={`truncate text-[10px] ${isSelected ? 'text-white/70' : 'text-slate-500'}`}>Mã: {patient.caseId}</p>
+      <p className={`truncate text-[10px] ${isSelected ? 'text-white/70' : 'text-slate-500'}`}>
+        Mã: {patient.caseId}
+      </p>
 
-      <div className={`mt-1.5 flex items-center gap-1 border-t pt-1.5 ${isSelected ? 'border-white/20' : 'border-slate-200/50'}`}>
-        <span className={`material-symbols-outlined text-[12px] ${isSelected ? 'text-white/70' : 'text-slate-400'}`}>schedule</span>
-        <span className={`text-[9px] font-medium ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>
+      <div
+        className={`mt-1.5 flex items-center gap-1 border-t pt-1.5 ${isSelected ? 'border-white/20' : 'border-slate-200/50'}`}
+      >
+        <span
+          className={`material-symbols-outlined text-[12px] ${isSelected ? 'text-white/70' : 'text-slate-400'}`}
+        >
+          schedule
+        </span>
+        <span
+          className={`text-[9px] font-medium ${isSelected ? 'text-white/80' : 'text-slate-500'}`}
+        >
           {formatLastAssessment(patient.lastAssessmentTime)}
         </span>
       </div>

@@ -19,7 +19,13 @@ interface TabSwitcherProps<T extends string> {
 //
 // Visual style copy từ HeadNurseDashboard.tsx (hàng tab hardcoded trước đây)
 // — giờ là 1 component thật sự hoạt động.
-export function TabSwitcher<T extends string>({ tabs, activeTab, onChange, disabled = false, className = '' }: TabSwitcherProps<T>) {
+export function TabSwitcher<T extends string>({
+  tabs,
+  activeTab,
+  onChange,
+  disabled = false,
+  className = '',
+}: TabSwitcherProps<T>) {
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   function focusAndSelect(index: number) {
@@ -48,7 +54,10 @@ export function TabSwitcher<T extends string>({ tabs, activeTab, onChange, disab
   }
 
   return (
-    <div role="tablist" className={`flex h-full gap-8 text-xs font-medium text-slate-500 ${className}`}>
+    <div
+      role="tablist"
+      className={`flex h-full gap-8 text-xs font-medium text-slate-500 ${className}`}
+    >
       {tabs.map((tab, index) => {
         const isActive = tab.id === activeTab
         return (
