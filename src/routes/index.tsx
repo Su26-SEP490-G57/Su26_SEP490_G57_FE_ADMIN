@@ -10,6 +10,7 @@ import { PatientPage } from '../features/patients/pages/PatientPage'
 import { NutritionGuidePage } from '../features/protocols/pages/NutritionGuidePage'
 import { ProtocolsPage } from '../features/protocols/pages/ProtocolsPage'
 import { QuestionManagementPage } from '../features/protocols/pages/QuestionManagementPage'
+import { RecoveryPage } from '../features/recovery/pages/RecoveryPage'
 import { AuthLayout } from '../layouts/auth-layout/AuthLayout'
 import { MainLayout } from '../layouts/main-layout/MainLayout'
 
@@ -36,8 +37,8 @@ export function AppRoutes() {
           <Route path={ROUTES.QUESTIONS} element={<QuestionManagementPage />} />
           <Route path={ROUTES.ALERTS} element={<Placeholder title="Cảnh báo (Alert)" />} />
           <Route path={ROUTES.MONITORING} element={<Placeholder title="Quản lý POD" />} />
-          <Route path={ROUTES.RECOVERY} element={<Placeholder title="Đánh giá & Triệu chứng" />} />
           <Route path={ROUTES.ANALYTICS} element={<AnalyticsPage />} />
+          <Route path={ROUTES.RECOVERY} element={<RecoveryPage />} />
           <Route path={ROUTES.EXPORT} element={<Placeholder title="Xuất dữ liệu" />} />
           <Route path={ROUTES.NOTIFICATIONS} element={<Placeholder title="Thông báo" />} />
           <Route path={ROUTES.STAFF} element={<Placeholder title="Quản lý nhân viên" />} />
