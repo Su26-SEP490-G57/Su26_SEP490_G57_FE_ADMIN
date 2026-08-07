@@ -89,3 +89,33 @@ export function useDeleteNurse() {
     },
   })
 }
+
+// 6. Get all hospital rooms with active patient count
+export function useHospitalRooms() {
+  return useQuery({
+    queryKey: ['hospital-rooms'],
+    queryFn: async () => {
+      const response = await api.get<{ roomCode: string; patientCount: number }[]>('/nurses/rooms')
+      return response.data
+    },
+  })
+}
+
+// 7. Assign rooms to a nurse
+export function useAssignNurseRooms() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, roomCodes }: { id: number; roomCodes: string[] }) => {
+      const response = await api.post<{ nurseUserId: number; assignedRooms: string[] }>(
+        `/nurses/${id}/assign-rooms`,
+        { roomCodes }
+      )
+      return response.data
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: nurseKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: nurseKeys.detail(variables.id) })
+      queryClient.invalidateQueries({ queryKey: ['hospital-rooms'] })
+    },
+  })
+}

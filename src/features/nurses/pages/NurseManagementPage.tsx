@@ -5,6 +5,8 @@ import { NurseFormModal } from '../components/NurseFormModal'
 import { ResetPasswordModal } from '../components/ResetPasswordModal'
 import type { Nurse } from '../types'
 
+import { NurseRoomAssignmentModal } from '../components/NurseRoomAssignmentModal'
+
 export function NurseManagementPage() {
   // Queries & Mutations state
   const [search, setSearch] = useState('')
@@ -36,6 +38,10 @@ export function NurseManagementPage() {
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false)
   const [resetNurse, setResetNurse] = useState<{ id: number; name: string } | null>(null)
 
+  // Room Assignment Modal
+  const [isAssignRoomsOpen, setIsAssignRoomsOpen] = useState(false)
+  const [assignRoomsNurse, setAssignRoomsNurse] = useState<Nurse | null>(null)
+
   const deleteMutation = useDeleteNurse()
   const updateMutation = useUpdateNurse()
 
@@ -56,6 +62,11 @@ export function NurseManagementPage() {
   const handleOpenResetPassword = (id: number, name: string) => {
     setResetNurse({ id, name })
     setIsResetPasswordOpen(true)
+  }
+
+  const handleOpenAssignRooms = (nurse: Nurse) => {
+    setAssignRoomsNurse(nurse)
+    setIsAssignRoomsOpen(true)
   }
 
   const handleToggleActive = async (nurse: Nurse) => {
@@ -87,7 +98,7 @@ export function NurseManagementPage() {
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-slate-800">Danh sách điều dưỡng</h2>
             <p className="text-xs text-slate-500">
-              Quản lý danh sách tài khoản, thông tin liên lạc và vai trò của điều dưỡng
+              Quản lý danh sách tài khoản, thông tin liên lạc, phân công phòng bệnh và vai trò của điều dưỡng
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -128,7 +139,7 @@ export function NurseManagementPage() {
                     Tên điều dưỡng
                   </th>
                   <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Số điện thoại
+                    Phòng phụ trách
                   </th>
                   <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">
                     Vai trò
@@ -212,9 +223,22 @@ export function NurseManagementPage() {
                         <td className="px-6 py-4 font-bold text-slate-800 text-sm">
                           {nurse.fullName}
                         </td>
-                        {/* Phone Column */}
+                        {/* Assigned Rooms Column */}
                         <td className="px-6 py-4 text-slate-600 text-sm">
-                          {nurse.phoneNumber || '—'}
+                          <div className="flex flex-wrap gap-1 items-center">
+                            {nurse.assignedRooms && nurse.assignedRooms.length > 0 ? (
+                              nurse.assignedRooms.map((r) => (
+                                <span
+                                  key={r}
+                                  className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-[#00459a] border border-blue-100"
+                                >
+                                  {r}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400 italic text-xs">Chưa phân công</span>
+                            )}
+                          </div>
                         </td>
                         {/* Role Column */}
                         <td className="px-6 py-4 text-slate-600 text-sm">
@@ -242,6 +266,15 @@ export function NurseManagementPage() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="inline-flex items-center gap-2">
+                            <button
+                              onClick={() => handleOpenAssignRooms(nurse)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-blue-50 hover:text-[#00459a] transition-all"
+                              title="Phân công phòng"
+                            >
+                              <span className="material-symbols-outlined text-[20px]">
+                                meeting_room
+                              </span>
+                            </button>
                             <button
                               onClick={() => setSelectedNurseId(nurse.id)}
                               className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-[#00459a] transition-all"
@@ -336,6 +369,7 @@ export function NurseManagementPage() {
         onResetPassword={() =>
           selectedNurse && handleOpenResetPassword(selectedNurse.id, selectedNurse.fullName)
         }
+        onAssignRooms={() => selectedNurse && handleOpenAssignRooms(selectedNurse)}
       />
 
       {/* MODALS */}
@@ -357,6 +391,17 @@ export function NurseManagementPage() {
           }}
           nurseId={resetNurse.id}
           nurseName={resetNurse.name}
+        />
+      )}
+
+      {isAssignRoomsOpen && assignRoomsNurse && (
+        <NurseRoomAssignmentModal
+          isOpen={isAssignRoomsOpen}
+          nurse={assignRoomsNurse}
+          onClose={() => {
+            setIsAssignRoomsOpen(false)
+            setAssignRoomsNurse(null)
+          }}
         />
       )}
     </div>
