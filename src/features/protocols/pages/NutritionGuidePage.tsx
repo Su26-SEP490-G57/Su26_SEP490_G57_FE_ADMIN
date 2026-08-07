@@ -67,6 +67,9 @@ export function NutritionGuidePage() {
   const [volumeMax, setVolumeMax] = useState<number>(0)
   const [foods, setFoods] = useState<string[]>([])
   const [drinks, setDrinks] = useState<string[]>([])
+  const [forbiddenFoods, setForbiddenFoods] = useState<string[]>([])
+  const [forbiddenDrinks, setForbiddenDrinks] = useState<string[]>([])
+  const [upgradeCriteria, setUpgradeCriteria] = useState<string[]>([])
 
   // Track original values to detect changes
   const [originalValues, setOriginalValues] = useState({
@@ -77,6 +80,9 @@ export function NutritionGuidePage() {
     volumeMax: 0,
     foods: [] as string[],
     drinks: [] as string[],
+    forbiddenFoods: [] as string[],
+    forbiddenDrinks: [] as string[],
+    upgradeCriteria: [] as string[],
   })
 
   // Check if there are any changes
@@ -88,9 +94,24 @@ export function NutritionGuidePage() {
       volumeMin !== originalValues.volumeMin ||
       volumeMax !== originalValues.volumeMax ||
       JSON.stringify(foods) !== JSON.stringify(originalValues.foods) ||
-      JSON.stringify(drinks) !== JSON.stringify(originalValues.drinks)
+      JSON.stringify(drinks) !== JSON.stringify(originalValues.drinks) ||
+      JSON.stringify(forbiddenFoods) !== JSON.stringify(originalValues.forbiddenFoods) ||
+      JSON.stringify(forbiddenDrinks) !== JSON.stringify(originalValues.forbiddenDrinks) ||
+      JSON.stringify(upgradeCriteria) !== JSON.stringify(originalValues.upgradeCriteria)
     )
-  }, [mealCountMin, mealCountMax, mealDetails, volumeMin, volumeMax, foods, drinks, originalValues])
+  }, [
+    mealCountMin,
+    mealCountMax,
+    mealDetails,
+    volumeMin,
+    volumeMax,
+    foods,
+    drinks,
+    forbiddenFoods,
+    forbiddenDrinks,
+    upgradeCriteria,
+    originalValues,
+  ])
 
   // Fetch operation type and POD protocols from API
   useEffect(() => {
@@ -137,6 +158,9 @@ export function NutritionGuidePage() {
         volumeMax: pod.volumePerMealMax || 0,
         foods: pod.recommendedFoods || [],
         drinks: pod.recommendedDrinks || [],
+        forbiddenFoods: pod.forbiddenFoods || [],
+        forbiddenDrinks: pod.forbiddenDrinks || [],
+        upgradeCriteria: pod.upgradeCriteria || [],
       }
 
       setMealCountMin(newValues.mealCountMin)
@@ -146,19 +170,22 @@ export function NutritionGuidePage() {
       setVolumeMax(newValues.volumeMax)
       setFoods(newValues.foods)
       setDrinks(newValues.drinks)
+      setForbiddenFoods(newValues.forbiddenFoods)
+      setForbiddenDrinks(newValues.forbiddenDrinks)
+      setUpgradeCriteria(newValues.upgradeCriteria)
       setOriginalValues(newValues)
     }
   }, [selectedPodId, podProtocols])
 
   function handleAddFood() {
-    const name = prompt('Nhập tên món ăn:')
+    const name = prompt('Nhập tên món ăn khuyên dùng:')
     if (name?.trim()) {
       setFoods([...foods, name.trim()])
     }
   }
 
   function handleAddDrink() {
-    const name = prompt('Nhập tên đồ uống:')
+    const name = prompt('Nhập tên đồ uống khuyên dùng:')
     if (name?.trim()) {
       setDrinks([...drinks, name.trim()])
     }
@@ -170,6 +197,39 @@ export function NutritionGuidePage() {
 
   function handleRemoveDrink(index: number) {
     setDrinks(drinks.filter((_, i) => i !== index))
+  }
+
+  function handleAddForbiddenFood() {
+    const name = prompt('Nhập tên món ăn hạn chế / cấm:')
+    if (name?.trim()) {
+      setForbiddenFoods([...forbiddenFoods, name.trim()])
+    }
+  }
+
+  function handleRemoveForbiddenFood(index: number) {
+    setForbiddenFoods(forbiddenFoods.filter((_, i) => i !== index))
+  }
+
+  function handleAddForbiddenDrink() {
+    const name = prompt('Nhập tên đồ uống hạn chế / cấm:')
+    if (name?.trim()) {
+      setForbiddenDrinks([...forbiddenDrinks, name.trim()])
+    }
+  }
+
+  function handleRemoveForbiddenDrink(index: number) {
+    setForbiddenDrinks(forbiddenDrinks.filter((_, i) => i !== index))
+  }
+
+  function handleAddUpgradeCriterion() {
+    const text = prompt('Nhập tiêu chí chuyển chế độ ăn:')
+    if (text?.trim()) {
+      setUpgradeCriteria([...upgradeCriteria, text.trim()])
+    }
+  }
+
+  function handleRemoveUpgradeCriterion(index: number) {
+    setUpgradeCriteria(upgradeCriteria.filter((_, i) => i !== index))
   }
 
   async function handleSave() {
@@ -185,6 +245,9 @@ export function NutritionGuidePage() {
         volumePerMealMax: volumeMax,
         recommendedFoods: foods,
         recommendedDrinks: drinks,
+        forbiddenFoods,
+        forbiddenDrinks,
+        upgradeCriteria,
       })
 
       showToast(`Đã lưu cấu hình ${currentPod.label}`, 'success')
@@ -203,6 +266,9 @@ export function NutritionGuidePage() {
         volumeMax,
         foods: [...foods],
         drinks: [...drinks],
+        forbiddenFoods: [...forbiddenFoods],
+        forbiddenDrinks: [...forbiddenDrinks],
+        upgradeCriteria: [...upgradeCriteria],
       })
     } catch (error) {
       console.error('Error saving POD protocol:', error)
@@ -219,6 +285,9 @@ export function NutritionGuidePage() {
     setVolumeMax(originalValues.volumeMax)
     setFoods(originalValues.foods)
     setDrinks(originalValues.drinks)
+    setForbiddenFoods(originalValues.forbiddenFoods)
+    setForbiddenDrinks(originalValues.forbiddenDrinks)
+    setUpgradeCriteria(originalValues.upgradeCriteria)
   }
 
   async function handleAddPOD() {
@@ -582,6 +651,103 @@ export function NutritionGuidePage() {
                     >
                       <span className="material-symbols-outlined text-sm">add</span>
                       Thêm đồ uống
+                    </button>
+                  </div>
+                </div>
+
+                {/* Forbidden Foods */}
+                <div className="p-6 rounded-xl bg-red-50/60 border border-red-200">
+                  <label className="block font-semibold text-red-800 mb-4 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm text-red-600">block</span>
+                    Món ăn hạn chế / cấm
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {forbiddenFoods.map((food, index) => (
+                      <div
+                        key={index}
+                        className="bg-red-100 text-red-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-sm font-medium border border-red-300"
+                      >
+                        <span>{food}</span>
+                        <button
+                          onClick={() => handleRemoveForbiddenFood(index)}
+                          className="material-symbols-outlined text-sm opacity-60 hover:opacity-100 cursor-pointer"
+                        >
+                          close
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={handleAddForbiddenFood}
+                      className="flex items-center gap-1 px-4 py-1 rounded-full border border-dashed border-red-600 text-red-600 hover:bg-red-100 transition-all text-sm font-medium"
+                    >
+                      <span className="material-symbols-outlined text-sm">add</span>
+                      Thêm món hạn chế
+                    </button>
+                  </div>
+                </div>
+
+                {/* Forbidden Drinks */}
+                <div className="p-6 rounded-xl bg-red-50/60 border border-red-200">
+                  <label className="block font-semibold text-red-800 mb-4 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm text-red-600">
+                      no_drinks
+                    </span>
+                    Đồ uống hạn chế / cấm
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {forbiddenDrinks.map((drink, index) => (
+                      <div
+                        key={index}
+                        className="bg-red-100 text-red-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-sm font-medium border border-red-300"
+                      >
+                        <span>{drink}</span>
+                        <button
+                          onClick={() => handleRemoveForbiddenDrink(index)}
+                          className="material-symbols-outlined text-sm opacity-60 hover:opacity-100 cursor-pointer"
+                        >
+                          close
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={handleAddForbiddenDrink}
+                      className="flex items-center gap-1 px-4 py-1 rounded-full border border-dashed border-red-600 text-red-600 hover:bg-red-100 transition-all text-sm font-medium"
+                    >
+                      <span className="material-symbols-outlined text-sm">add</span>
+                      Thêm đồ uống hạn chế
+                    </button>
+                  </div>
+                </div>
+
+                {/* Upgrade Criteria */}
+                <div className="p-6 rounded-xl bg-sky-50 border border-sky-200">
+                  <label className="block font-semibold text-sky-900 mb-4 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm text-sky-600">
+                      trending_up
+                    </span>
+                    Tiêu chí xem xét nâng mức ăn
+                  </label>
+                  <div className="space-y-2">
+                    {upgradeCriteria.map((criterion, index) => (
+                      <div
+                        key={index}
+                        className="bg-white text-sky-800 px-3 py-2 rounded-lg flex items-center justify-between text-sm font-medium border border-sky-200 shadow-sm"
+                      >
+                        <span>{criterion}</span>
+                        <button
+                          onClick={() => handleRemoveUpgradeCriterion(index)}
+                          className="material-symbols-outlined text-sm text-slate-400 hover:text-red-500 cursor-pointer"
+                        >
+                          close
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={handleAddUpgradeCriterion}
+                      className="flex items-center gap-1 px-4 py-2 rounded-lg border border-dashed border-sky-600 text-sky-600 hover:bg-sky-100 transition-all text-sm font-medium w-full justify-center"
+                    >
+                      <span className="material-symbols-outlined text-sm">add</span>
+                      Thêm tiêu chí nâng mức ăn
                     </button>
                   </div>
                 </div>

@@ -9,8 +9,14 @@ export interface Nurse {
   detailedAddress: string | null
   roles: string[] // e.g. ['Nurse'] or ['Head_Nurse']
   isActive: boolean
+  assignedRooms?: string[]
   createdAt: string
   updatedAt: string
+}
+
+export interface HospitalRoom {
+  roomCode: string
+  patientCount: number
 }
 
 export interface PaginatedNurses {

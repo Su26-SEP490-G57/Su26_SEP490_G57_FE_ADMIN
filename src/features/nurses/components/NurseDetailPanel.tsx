@@ -5,6 +5,7 @@ interface NurseDetailPanelProps {
   onClose: () => void
   onEdit: () => void
   onResetPassword: () => void
+  onAssignRooms: () => void
 }
 
 export function NurseDetailPanel({
@@ -12,6 +13,7 @@ export function NurseDetailPanel({
   onClose,
   onEdit,
   onResetPassword,
+  onAssignRooms,
 }: NurseDetailPanelProps) {
   const { data: nurse, isLoading, isError } = useNurse(nurseId)
 
@@ -151,11 +153,32 @@ export function NurseDetailPanel({
                   {formatDate(nurse.createdAt)}
                 </span>
               </div>
+              <div className="flex justify-between items-start gap-4 pt-2 border-t border-slate-100">
+                <span className="text-slate-500 font-medium whitespace-nowrap">Phòng phụ trách:</span>
+                <div className="flex flex-wrap justify-end gap-1">
+                  {nurse.assignedRooms && nurse.assignedRooms.length > 0 ? (
+                    nurse.assignedRooms.map((r) => (
+                      <span key={r} className="rounded bg-blue-50 px-2 py-0.5 text-xs font-bold text-[#00459a]">
+                        {r}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-400 italic text-xs">Chưa phân công</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 pt-2">
+            <button
+              onClick={onAssignRooms}
+              className="flex items-center justify-center gap-2 rounded-xl bg-blue-50 py-3 text-sm font-bold text-[#00459a] border border-blue-200 transition-all hover:bg-blue-100"
+            >
+              <span className="material-symbols-outlined text-[18px]">meeting_room</span>
+              Phân công phòng bệnh
+            </button>
             <button
               onClick={onEdit}
               className="flex items-center justify-center gap-2 rounded-xl bg-[#00459a] py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition-all hover:bg-blue-700 hover:shadow-blue-700/20"
