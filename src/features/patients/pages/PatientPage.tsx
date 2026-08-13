@@ -10,6 +10,8 @@ import {
   getLatestAssessment,
   getOperationTypes,
   getPatients,
+  triggerDailyDietProgression,
+  updateDietLevel,
   updatePatient,
   updatePodLevel,
   updatePodLock,
@@ -23,6 +25,14 @@ import type {
   PatientListItem,
   UpdatePatientPayload,
 } from '../types'
+
+export const DIET_LEVEL_LABELS: Record<number, string> = {
+  0: 'Bắt đầu uống',
+  1: 'Lỏng lượng nhỏ',
+  2: 'Lỏng đầy đủ dinh dưỡng',
+  3: 'Bán lỏng hoặc bán đặc mềm',
+  4: 'Chế độ ăn mềm',
+}
 
 function displayValue<T>(value: T | null | undefined) {
   return value ?? '--'
@@ -388,10 +398,15 @@ export function PatientPage() {
                   <span>Hoàn thành</span>
                 </span>
               ) : (
-                // Not completed: Show POD and surgery info
-                <span className="text-[10px] font-semibold text-slate-700 whitespace-nowrap">
-                  POD {patient.currentPod} • {patient.operationType?.name || 'N/A'}
-                </span>
+                // Not completed: Show POD and diet info
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-[10px] font-semibold text-slate-700 whitespace-nowrap">
+                    POD {patient.currentPod} • {patient.operationType?.name || 'N/A'}
+                  </span>
+                  <span className="text-[9px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 truncate">
+                    Mức ăn: {DIET_LEVEL_LABELS[patient.currentDietLevel ?? 0] || `Mức ${patient.currentDietLevel ?? 0}`}
+                  </span>
+                </div>
               )}
             </div>
           </div>
@@ -531,10 +546,40 @@ export function PatientPage() {
     queryClient.invalidateQueries({ queryKey: ['patients', 'stats'] })
   }
 
+  const [scanningDiet, setScanningDiet] = useState(false)
+
+  async function handleTriggerDailyDietScan() {
+    try {
+      setScanningDiet(true)
+      const res = await triggerDailyDietProgression()
+      alert(
+        `Quét mức ăn cuối ngày thành công!\n- Tổng số ca xử lý: ${res.totalProcessed}\n- Số ca được tăng mức ăn (XANH): ${res.advancedCount}\n- Số ca giữ nguyên mức ăn (VÀNG/ĐỎ/Thiếu bài): ${res.maintainedCount}`,
+      )
+      await refreshAfterMutation()
+    } catch (error) {
+      console.error('Error triggering daily diet scan:', error)
+      alert('Có lỗi xảy ra khi thực hiện quét mức ăn.')
+    } finally {
+      setScanningDiet(false)
+    }
+  }
+
   // Inject toolbar into header - wrap in useMemo to prevent infinite loop
   const headerActions = useMemo(
     () => (
       <>
+        <button
+          onClick={handleTriggerDailyDietScan}
+          disabled={scanningDiet}
+          className="bg-emerald-600 text-white px-3.5 py-2 rounded-lg flex items-center gap-1.5 font-semibold shadow-sm hover:bg-emerald-700 active:scale-95 transition-all shrink-0 text-sm disabled:opacity-50"
+          title="Quét đánh giá cuối ngày và tự động nâng mức ăn theo phác đồ"
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            {scanningDiet ? 'hourglass_top' : 'autorenew'}
+          </span>
+          <span>{scanningDiet ? 'Đang quét...' : 'Quét mức ăn cuối ngày'}</span>
+        </button>
+
         <button
           onClick={handleAddNew}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold shadow-sm hover:opacity-90 active:scale-95 transition-all shrink-0"
@@ -546,7 +591,7 @@ export function PatientPage() {
         <PatientSearchBar patients={patients} onSelect={setSelectedPatient} />
       </>
     ),
-    [patients],
+    [patients, scanningDiet],
   )
 
   useHeaderActions(headerActions)
@@ -576,6 +621,9 @@ export function PatientPage() {
 
     try {
       setSaving(true)
+      if (editedPatient.currentDietLevel !== undefined) {
+        await updateDietLevel(selectedPatient.caseId, Number(editedPatient.currentDietLevel))
+      }
       await updatePatient(selectedPatient.account.id, editedPatient as UpdatePatientPayload)
 
       const list = await reloadPatients()
@@ -1074,6 +1122,61 @@ export function PatientPage() {
                           onChange={(e) => handleFieldChange('roomBed', e.target.value)}
                           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                         />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Chế độ dinh dưỡng (Diet Level) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-base font-bold text-slate-800">
+                        Chế độ dinh dưỡng (Diet Level)
+                      </h3>
+                      <span className="text-xs text-slate-500">
+                        Tự động tăng vào cuối ngày nếu bài đánh giá đạt XANH
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 rounded-xl bg-emerald-50/50 border border-emerald-100 p-5">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-emerald-900 font-semibold">
+                          Mức độ ăn hiện tại
+                        </label>
+                        <select
+                          value={getDisplayValue(
+                            'currentDietLevel',
+                            selectedPatient.currentDietLevel ?? 0,
+                          )}
+                          onChange={(e) =>
+                            handleFieldChange('currentDietLevel', Number(e.target.value))
+                          }
+                          className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                        >
+                          <option value={0}>Mức 0 – Bắt đầu uống</option>
+                          <option value={1}>Mức 1 – Lỏng lượng nhỏ</option>
+                          <option value={2}>Mức 2 – Lỏng đầy đủ dinh dưỡng</option>
+                          <option value={3}>Mức 3 – Bán lỏng hoặc bán đặc mềm</option>
+                          <option value={4}>Mức 4 – Chế độ ăn mềm</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-slate-500">
+                          Quy tắc tăng mức tiếp theo
+                        </label>
+                        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                          {(selectedPatient.currentDietLevel ?? 0) >= 4 ? (
+                            <span className="font-semibold text-emerald-700 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                              Đã đạt mức ăn mềm tối đa (Mức 4)
+                            </span>
+                          ) : (
+                            <span>
+                              Đánh giá cuối ngày đạt <strong className="text-emerald-700">XANH</strong> ➔ Tự động lên{' '}
+                              <strong className="text-emerald-800">
+                                {DIET_LEVEL_LABELS[(selectedPatient.currentDietLevel ?? 0) + 1]}
+                              </strong>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

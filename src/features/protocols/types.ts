@@ -21,6 +21,7 @@ export interface PodProtocolResponseDto {
   podId: number
   operationTypeId: number
   label: string
+  dietLevel: number
   mealsPerDayMin: number | null
   mealsPerDayMax: number | null
   mealInstruction: string | null
@@ -29,12 +30,16 @@ export interface PodProtocolResponseDto {
   volumeInstruction: string | null
   recommendedFoods: string[]
   recommendedDrinks: string[]
+  forbiddenFoods: string[]
+  forbiddenDrinks: string[]
+  upgradeCriteria: string[]
   updatedAt: Date | null
   createdAt: Date
 }
 
 export interface CreatePodProtocolDto {
   label: string
+  dietLevel?: number
   mealsPerDayMin?: number
   mealsPerDayMax?: number
   mealInstruction?: string
@@ -43,10 +48,14 @@ export interface CreatePodProtocolDto {
   volumeInstruction?: string
   recommendedFoods?: string[]
   recommendedDrinks?: string[]
+  forbiddenFoods?: string[]
+  forbiddenDrinks?: string[]
+  upgradeCriteria?: string[]
 }
 
 export interface UpdatePodProtocolDto {
   label?: string
+  dietLevel?: number
   mealsPerDayMin?: number
   mealsPerDayMax?: number
   mealInstruction?: string
@@ -55,4 +64,7 @@ export interface UpdatePodProtocolDto {
   volumeInstruction?: string
   recommendedFoods?: string[]
   recommendedDrinks?: string[]
+  forbiddenFoods?: string[]
+  forbiddenDrinks?: string[]
+  upgradeCriteria?: string[]
 }
