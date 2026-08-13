@@ -128,6 +128,18 @@ export async function updatePodLevel(caseId: string, podLevel: number) {
   return data
 }
 
+export async function updateDietLevel(caseId: string, dietLevel: number) {
+  const { data } = await api.patch<PatientListItem>(`/patients/${caseId}/diet-level`, { dietLevel })
+
+  return data
+}
+
+export async function triggerDailyDietProgression() {
+  const { data } = await api.post('/diet-guidance/cron/process-daily-diet-progression')
+
+  return data
+}
+
 // Archive/Unarchive case
 export async function archiveCase(caseId: string, archived: boolean) {
   const { data } = await api.patch<PatientListItem>(`/patients/${caseId}/archive`, { archived })
