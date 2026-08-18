@@ -1,4 +1,4 @@
-import type { ComplianceStats } from '../types'
+import type { AssessmentSlotStatus, ComplianceStats } from '../types'
 import { AnalyticsEmptyState } from './AnalyticsEmptyState'
 
 interface ComplianceStatsTabProps {
@@ -9,10 +9,22 @@ interface ComplianceStatsTabProps {
 }
 
 const CHECKLIST_ITEMS: { key: keyof ComplianceStats['checklist']; label: string }[] = [
-  { key: 'viewedPodGuide', label: 'Đã xem hướng dẫn POD' },
-  { key: 'viewedHealthEducation', label: 'Đã xem giáo dục sức khỏe' },
-  { key: 'completedAssessment', label: 'Đã hoàn thành đánh giá' },
+  { key: 'viewedPodGuide', label: 'Hướng dẫn ăn' },
+  { key: 'viewedHealthEducation', label: 'Giáo dục sức khỏe' },
+  { key: 'completedAssessment', label: 'Đánh giá định kỳ' },
 ]
+
+const SLOT_ROWS: { key: 'morningAssessmentStatus' | 'afternoonAssessmentStatus'; label: string }[] =
+  [
+    { key: 'morningAssessmentStatus', label: 'Khung giờ sáng (06:00 - 08:00)' },
+    { key: 'afternoonAssessmentStatus', label: 'Khung giờ chiều (16:00 - 18:00)' },
+  ]
+
+const SLOT_STATUS_DISPLAY: Record<AssessmentSlotStatus, { label: string; textClass: string }> = {
+  COMPLETED: { label: 'Hoàn thành', textClass: 'text-green-600' },
+  PENDING: { label: 'Chưa làm', textClass: 'text-amber-600' },
+  MISSED: { label: 'Bỏ lỡ', textClass: 'text-red-600' },
+}
 
 const COUNTER_ITEMS: { key: keyof ComplianceStats['counters']; label: string }[] = [
   { key: 'completedAssessments', label: 'Số đánh giá đã hoàn thành' },
@@ -63,7 +75,18 @@ export function ComplianceStatsTab({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div className="rounded-lg bg-slate-50 p-4">
-        <h5 className="mb-3 text-xs font-bold uppercase text-slate-500">Checklist</h5>
+        <div className="mb-3 flex items-center justify-between">
+          <h5 className="text-xs font-bold uppercase text-slate-500">Checklist</h5>
+          <span
+            className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${
+              stats.isDailyCompliant
+                ? 'border-green-200 bg-green-50 text-green-700'
+                : 'border-red-200 bg-red-50 text-red-700'
+            }`}
+          >
+            {stats.isDailyCompliant ? 'Đã tuân thủ' : 'Chưa tuân thủ đầy đủ'}
+          </span>
+        </div>
         <div className="space-y-2">
           {CHECKLIST_ITEMS.map((item) => {
             const done = stats.checklist[item.key]
@@ -78,6 +101,20 @@ export function ComplianceStatsTab({
               </div>
             )
           })}
+          <div className="ml-6 space-y-1.5 border-l border-slate-200 pl-3 pt-1">
+            {SLOT_ROWS.map((slot) => {
+              const status = stats.checklist[slot.key]
+              const display = status
+                ? SLOT_STATUS_DISPLAY[status]
+                : { label: 'Chưa làm', textClass: 'text-slate-400' }
+              return (
+                <div key={slot.key} className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500">{slot.label}</span>
+                  <span className={`font-semibold ${display.textClass}`}>{display.label}</span>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
 

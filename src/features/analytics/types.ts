@@ -77,10 +77,17 @@ export interface RecoveryMatrix {
 // ---------------------------------------------------------------------------
 // Compliance stats — checklist + counters cho 1 bệnh nhân
 // ---------------------------------------------------------------------------
+export type AssessmentSlotStatus = 'COMPLETED' | 'PENDING' | 'MISSED'
+
 export interface ComplianceChecklist {
   viewedPodGuide: boolean
   viewedHealthEducation: boolean
+  /** true only when both morning & afternoon assessment slots are COMPLETED. */
   completedAssessment: boolean
+  /** Khung giờ sáng (06:00 - 08:00). null nếu bệnh nhân chưa bắt đầu ERAS. */
+  morningAssessmentStatus: AssessmentSlotStatus | null
+  /** Khung giờ chiều (16:00 - 18:00). null nếu bệnh nhân chưa bắt đầu ERAS. */
+  afternoonAssessmentStatus: AssessmentSlotStatus | null
 }
 
 export interface ComplianceCounters {
@@ -93,6 +100,8 @@ export interface ComplianceStats {
   caseId: string
   checklist: ComplianceChecklist
   counters: ComplianceCounters
+  /** true only if all 3 checklist items are done (diet + education + both assessment slots). */
+  isDailyCompliant: boolean
 }
 
 // ---------------------------------------------------------------------------

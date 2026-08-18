@@ -215,6 +215,9 @@ interface RawComplianceStats {
   reminderCount?: number
   appAccessCount?: number
   assessmentCompletedCount?: number
+  morningAssessmentStatus?: ComplianceStats['checklist']['morningAssessmentStatus']
+  afternoonAssessmentStatus?: ComplianceStats['checklist']['afternoonAssessmentStatus']
+  isDailyCompliant?: boolean
 }
 
 export function toComplianceStats(raw: unknown, caseId: string): ComplianceStats {
@@ -223,19 +226,32 @@ export function toComplianceStats(raw: unknown, caseId: string): ComplianceStats
   const counters = response.counters ?? {}
   const assessmentCompletedCount =
     counters.completedAssessments ?? response.assessmentCompletedCount ?? 0
+  const morningAssessmentStatus =
+    checklist.morningAssessmentStatus ?? response.morningAssessmentStatus ?? null
+  const afternoonAssessmentStatus =
+    checklist.afternoonAssessmentStatus ?? response.afternoonAssessmentStatus ?? null
+  const viewedPodGuide = checklist.viewedPodGuide ?? response.viewedGuidance ?? false
+  const viewedHealthEducation = checklist.viewedHealthEducation ?? response.viewedEducation ?? false
+  const completedAssessment =
+    checklist.completedAssessment ??
+    (morningAssessmentStatus === 'COMPLETED' && afternoonAssessmentStatus === 'COMPLETED')
 
   return {
     caseId: response.caseId ?? caseId,
     checklist: {
-      viewedPodGuide: checklist.viewedPodGuide ?? response.viewedGuidance ?? false,
-      viewedHealthEducation: checklist.viewedHealthEducation ?? response.viewedEducation ?? false,
-      completedAssessment: checklist.completedAssessment ?? assessmentCompletedCount > 0,
+      viewedPodGuide,
+      viewedHealthEducation,
+      completedAssessment,
+      morningAssessmentStatus,
+      afternoonAssessmentStatus,
     },
     counters: {
       completedAssessments: assessmentCompletedCount,
       reminderCount: counters.reminderCount ?? response.reminderCount ?? 0,
       appAccessCount: counters.appAccessCount ?? response.appAccessCount ?? 0,
     },
+    isDailyCompliant:
+      response.isDailyCompliant ?? (viewedPodGuide && viewedHealthEducation && completedAssessment),
   }
 }
 
