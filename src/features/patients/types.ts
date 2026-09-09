@@ -16,6 +16,7 @@ export interface PatientListItem {
   method: string
   surgeryDate: string
   currentPod: number
+  currentDietLevel: number
   roomBed: string
   hasGiAnastomosis: boolean | null
   isLocked: boolean
