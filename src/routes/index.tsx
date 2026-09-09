@@ -3,11 +3,10 @@ import { ROUTES } from '../constants/routes'
 import { AnalyticsPage } from '../features/analytics/pages/AnalyticsPage'
 import { AuthGuard } from '../features/auth/components/AuthGuard'
 import { LoginPage } from '../features/auth/pages/LoginPage'
-import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
 import { NurseManagementPage } from '../features/nurses/pages/NurseManagementPage'
 import { ArchivePage } from '../features/patients/pages/ArchivePage'
-import { PatientPage } from '../features/patients/pages/PatientPage'
 import { NutritionGuidePage } from '../features/protocols/pages/NutritionGuidePage'
+import { PatientPage } from '../features/patients/pages/PatientPage'
 import { ProtocolsPage } from '../features/protocols/pages/ProtocolsPage'
 import { QuestionManagementPage } from '../features/protocols/pages/QuestionManagementPage'
 import { AuthLayout } from '../layouts/auth-layout/AuthLayout'
@@ -28,7 +27,7 @@ export function AppRoutes() {
 
       <Route element={<AuthGuard />}>
         <Route element={<MainLayout />}>
-          <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+          <Route path={ROUTES.DASHBOARD} element={<Navigate to={ROUTES.PATIENTS} replace />} />
           <Route path={ROUTES.PATIENTS} element={<PatientPage />} />
           <Route path={ROUTES.ARCHIVES} element={<ArchivePage />} />
           <Route path={ROUTES.PROTOCOLS} element={<ProtocolsPage />} />
