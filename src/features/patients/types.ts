@@ -8,6 +8,7 @@ export interface PatientListItem {
   weight: number | null
   bmi: number | null
   diagnosis: string
+  comorbidities?: string[] | null
   operationTypeId: number
   operationType: {
     id: number
@@ -58,6 +59,7 @@ export interface CreatePatientPayload {
   surgeryDate?: string
   hasGiAnastomosis?: boolean
   diagnosis?: string
+  comorbidities?: string[]
   roomBed?: string
 }
 
