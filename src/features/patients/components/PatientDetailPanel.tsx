@@ -111,13 +111,11 @@ export function PatientDetailPanel({ patient, onClose }: PatientDetailPanelProps
                 Tóm tắt đánh giá
               </h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <p className="text-slate-500">Buồn nôn/Chướng bụng:</p>
-                <p className="font-semibold text-slate-800">{latestAssessment.totalScore} Điểm</p>
-                <p className="text-slate-500">Màu phân loại:</p>
+                <p className="text-slate-500">Mức độ cảnh báo (Triage):</p>
                 <p
-                  className={`font-bold ${latestAssessment.triageColor === 'RED' ? 'text-red-600' : latestAssessment.triageColor === 'YELLOW' ? 'text-yellow-600' : 'text-green-600'}`}
+                  className={`font-extrabold ${latestAssessment.triageLevel === 'RED' ? 'text-red-600' : latestAssessment.triageLevel === 'YELLOW' ? 'text-yellow-600' : 'text-green-600'}`}
                 >
-                  {latestAssessment.triageColor}
+                  {latestAssessment.triageLevel}
                 </p>
               </div>
               <button className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-semibold underline">

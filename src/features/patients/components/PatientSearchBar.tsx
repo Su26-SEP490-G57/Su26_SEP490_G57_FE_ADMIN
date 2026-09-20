@@ -238,7 +238,7 @@ export function PatientSearchBar({ patients, onSelect }: PatientSearchBarProps) 
                       </p>
                     </div>
                     <span className="flex-shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                      POD {patient.currentPod}
+                      Mức {patient.currentPod}
                     </span>
                   </button>
                 </li>

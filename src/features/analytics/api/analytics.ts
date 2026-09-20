@@ -56,13 +56,13 @@ const SYMPTOM_SERIES_META: { key: SymptomSeriesKey; label: string; matchKeys: st
 interface RawOverviewQuestion {
   questionId?: number
   questionKey?: string
-  avgScore?: number | null
+  avgTriageValue?: number | null
 }
 
 interface RawOverviewPodEntry {
   pod?: number
   questions?: RawOverviewQuestion[]
-  avgTotalScore?: number | null
+  avgTotalTriage?: number | null
 }
 
 interface RawOverviewResponse {
@@ -96,9 +96,9 @@ export function toSymptomTrend(raw: unknown): SymptomTrend {
       // tên khác), fallback về vị trí cố định (thứ tự 5 câu hỏi con trong 1
       // POD được backend trả nhất quán theo đúng thứ tự SYMPTOM_SERIES_META).
       const byKey = questions.find((q) => meta.matchKeys.includes(normalizeKey(q.questionKey)))
-      if (byKey) return byKey.avgScore ?? null
+      if (byKey) return byKey.avgTriageValue ?? null
 
-      return questions[seriesIndex]?.avgScore ?? null
+      return questions[seriesIndex]?.avgTriageValue ?? null
     }),
   }))
 
@@ -247,7 +247,7 @@ export function toComplianceStats(raw: unknown, caseId: string): ComplianceStats
 // ---------------------------------------------------------------------------
 interface RawAssessmentCell {
   pod?: number
-  score?: number | null
+  optionTriageLevel?: string | null
   optionText?: string | null
 }
 interface RawAssessmentQuestionRow {
@@ -258,7 +258,7 @@ interface RawAssessmentQuestionRow {
 interface RawAssessmentPodQuestion {
   questionId?: number
   questionText?: string
-  score?: number | null
+  optionTriageLevel?: string | null
   optionText?: string | null
 }
 interface RawAssessmentPodEntry {
@@ -289,7 +289,11 @@ function pivotPodMajorToQuestionMajor(
         questionText: q.questionText ?? '',
         cells: [],
       }
-      row.cells.push({ pod, score: q.score ?? null, optionText: q.optionText ?? null })
+      row.cells.push({
+        pod,
+        optionTriageLevel: q.optionTriageLevel ?? null,
+        optionText: q.optionText ?? null,
+      })
       rowsByQuestion.set(questionId, row)
     }
   }
@@ -311,7 +315,7 @@ export function toAssessmentMatrix(raw: unknown, caseId: string): AssessmentMatr
         questionText: row.questionText ?? '',
         cells: (row.cells ?? []).map((cell) => ({
           pod: cell.pod ?? 0,
-          score: cell.score ?? null,
+          optionTriageLevel: cell.optionTriageLevel ?? null,
           optionText: cell.optionText ?? null,
         })),
       }))

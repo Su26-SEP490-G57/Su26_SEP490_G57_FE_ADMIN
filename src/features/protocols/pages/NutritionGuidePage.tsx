@@ -6,13 +6,13 @@ import { Toast } from '../../../components/Toast'
 import { getPatients } from '../../patients/api/patientApi'
 import { useHeaderActions } from '../../../layouts/main-layout/HeaderContext'
 import {
-  createPodProtocol,
-  deletePodProtocol,
+  createDietLevelProtocol,
+  deleteDietLevelProtocol,
+  getDietLevelProtocols,
   getOperationTypeById,
-  getPodProtocols,
-  updatePodProtocol,
+  updateDietLevelProtocol,
 } from '../api/dietGuidanceApi'
-import type { OperationTypeResponseDto, PodProtocolResponseDto } from '../types'
+import type { DietLevelProtocolResponseDto, OperationTypeResponseDto } from '../types'
 
 export function NutritionGuidePage() {
   const navigate = useNavigate()
@@ -21,8 +21,8 @@ export function NutritionGuidePage() {
 
   const [loading, setLoading] = useState(true)
   const [operationType, setOperationType] = useState<OperationTypeResponseDto | null>(null)
-  const [podProtocols, setPodProtocols] = useState<PodProtocolResponseDto[]>([])
-  const [selectedPodId, setSelectedPodId] = useState<number | null>(null)
+  const [dietLevelProtocols, setDietLevelProtocols] = useState<DietLevelProtocolResponseDto[]>([])
+  const [selectedDietLevelId, setSelectedDietLevelId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   // Confirm modal state
@@ -56,8 +56,8 @@ export function NutritionGuidePage() {
     setToast({ show: true, message, type })
   }
 
-  // Get current POD config
-  const currentPod = podProtocols.find((p) => p.podId === selectedPodId)
+  // Get current diet level protocol config
+  const currentDietLevel = dietLevelProtocols.find((p) => p.dietLevelId === selectedDietLevelId)
 
   // State for editing
   const [mealCountMin, setMealCountMin] = useState<number>(0)
@@ -99,19 +99,19 @@ export function NutritionGuidePage() {
 
       try {
         setLoading(true)
-        const [opType, pods] = await Promise.all([
+        const [opType, protocols] = await Promise.all([
           getOperationTypeById(operationTypeId),
-          getPodProtocols(operationTypeId),
+          getDietLevelProtocols(operationTypeId),
         ])
         setOperationType(opType)
 
-        // Sort PODs by podId to ensure correct order
-        const sortedPods = [...pods].sort((a, b) => a.podId - b.podId)
-        setPodProtocols(sortedPods)
+        // Sort diet level protocols by podId to ensure correct order
+        const sortedProtocols = [...protocols].sort((a, b) => a.dietLevelId - b.dietLevelId)
+        setDietLevelProtocols(sortedProtocols)
 
-        // Select first POD by default
-        if (sortedPods.length > 0) {
-          setSelectedPodId(sortedPods[0].podId)
+        // Select first diet level by default
+        if (sortedProtocols.length > 0) {
+          setSelectedDietLevelId(sortedProtocols[0].dietLevelId)
         }
       } catch (error) {
         console.error('Error loading data:', error)
@@ -127,16 +127,16 @@ export function NutritionGuidePage() {
   // Update form state when selected POD changes
 
   useEffect(() => {
-    const pod = podProtocols.find((p) => p.podId === selectedPodId)
-    if (pod) {
+    const protocol = dietLevelProtocols.find((p) => p.dietLevelId === selectedDietLevelId)
+    if (protocol) {
       const newValues = {
-        mealCountMin: pod.mealsPerDayMin || 0,
-        mealCountMax: pod.mealsPerDayMax || 0,
-        mealDetails: pod.mealInstruction || '',
-        volumeMin: pod.volumePerMealMin || 0,
-        volumeMax: pod.volumePerMealMax || 0,
-        foods: pod.recommendedFoods || [],
-        drinks: pod.recommendedDrinks || [],
+        mealCountMin: protocol.mealsPerDayMin || 0,
+        mealCountMax: protocol.mealsPerDayMax || 0,
+        mealDetails: protocol.mealInstruction || '',
+        volumeMin: protocol.volumePerMealMin || 0,
+        volumeMax: protocol.volumePerMealMax || 0,
+        foods: protocol.recommendedFoods || [],
+        drinks: protocol.recommendedDrinks || [],
       }
 
       setMealCountMin(newValues.mealCountMin)
@@ -148,7 +148,7 @@ export function NutritionGuidePage() {
       setDrinks(newValues.drinks)
       setOriginalValues(newValues)
     }
-  }, [selectedPodId, podProtocols])
+  }, [selectedDietLevelId, dietLevelProtocols])
 
   function handleAddFood() {
     const name = prompt('Nhập tên món ăn:')
@@ -173,11 +173,11 @@ export function NutritionGuidePage() {
   }
 
   async function handleSave() {
-    if (!currentPod || !operationTypeId) return
+    if (!currentDietLevel || !operationTypeId) return
 
     try {
-      await updatePodProtocol(operationTypeId, currentPod.podId, {
-        label: currentPod.label,
+      await updateDietLevelProtocol(operationTypeId, currentDietLevel.dietLevelId, {
+        label: currentDietLevel.label,
         mealsPerDayMin: mealCountMin,
         mealsPerDayMax: mealCountMax,
         mealInstruction: mealDetails || undefined,
@@ -187,12 +187,12 @@ export function NutritionGuidePage() {
         recommendedDrinks: drinks,
       })
 
-      showToast(`Đã lưu cấu hình ${currentPod.label}`, 'success')
+      showToast(`Đã lưu cấu hình ${currentDietLevel.label}`, 'success')
 
       // Reload data and sort by podId
-      const pods = await getPodProtocols(operationTypeId)
-      const sortedPods = [...pods].sort((a, b) => a.podId - b.podId)
-      setPodProtocols(sortedPods)
+      const protocols = await getDietLevelProtocols(operationTypeId)
+      const sortedProtocols = [...protocols].sort((a, b) => a.dietLevelId - b.dietLevelId)
+      setDietLevelProtocols(sortedProtocols)
 
       // Update original values after successful save
       setOriginalValues({
@@ -205,7 +205,7 @@ export function NutritionGuidePage() {
         drinks: [...drinks],
       })
     } catch (error) {
-      console.error('Error saving POD protocol:', error)
+      console.error('Error saving diet level protocol:', error)
       showToast('Không thể lưu. Vui lòng thử lại.', 'error')
     }
   }
@@ -221,16 +221,19 @@ export function NutritionGuidePage() {
     setDrinks(originalValues.drinks)
   }
 
-  async function handleAddPOD() {
+  async function handleAddDietLevel() {
     if (!operationTypeId) return
 
-    // Tự động tạo label POD tiếp theo
-    const nextPodNumber = podProtocols.length
-    const newLabel = `POD ${nextPodNumber}`
+    // Tính nextDietLevel = max(dietLevel) + 1 để tránh duplicate khi có protocol bị xóa
+    const maxDietLevel =
+      dietLevelProtocols.length > 0 ? Math.max(...dietLevelProtocols.map((p) => p.dietLevel)) : 0
+    const nextDietLevel = maxDietLevel + 1
+    const newLabel = `Mức ${nextDietLevel}`
 
     try {
-      await createPodProtocol(operationTypeId, {
+      await createDietLevelProtocol(operationTypeId, {
         label: newLabel,
+        dietLevel: nextDietLevel,
         mealsPerDayMin: 0,
         mealsPerDayMax: 0,
         mealInstruction: '',
@@ -243,101 +246,97 @@ export function NutritionGuidePage() {
       showToast(`Đã thêm ${newLabel}`, 'success')
 
       // Reload data and sort by podId
-      const pods = await getPodProtocols(operationTypeId)
-      const sortedPods = [...pods].sort((a, b) => a.podId - b.podId)
-      setPodProtocols(sortedPods)
+      const protocols = await getDietLevelProtocols(operationTypeId)
+      const sortedProtocols = [...protocols].sort((a, b) => a.dietLevelId - b.dietLevelId)
+      setDietLevelProtocols(sortedProtocols)
 
-      // Select the newly created POD (should be last after sorting)
-      if (sortedPods.length > 0) {
-        setSelectedPodId(sortedPods[sortedPods.length - 1].podId)
+      // Select the newly created diet level (should be last after sorting)
+      if (sortedProtocols.length > 0) {
+        setSelectedDietLevelId(sortedProtocols[sortedProtocols.length - 1].dietLevelId)
       }
     } catch (error) {
-      console.error('Error creating POD:', error)
-      showToast('Không thể thêm POD. Vui lòng thử lại.', 'error')
+      console.error('Error creating diet level:', error)
+      showToast('Không thể thêm mức ăn. Vui lòng thử lại.', 'error')
     }
   }
 
-  async function handleDeletePOD(podId: number) {
+  async function handleDeleteDietLevel(dietLevelIdToDelete: number) {
     if (!operationTypeId) return
 
-    const pod = podProtocols.find((p) => p.podId === podId)
-    if (!pod) return
+    const protocol = dietLevelProtocols.find((p) => p.dietLevelId === dietLevelIdToDelete)
+    if (!protocol) return
 
-    const podNumber = Number(pod.label.match(/\d+/)?.[0])
-    if (!Number.isInteger(podNumber)) {
-      showToast(`Không xác định được số POD của "${pod.label}".`, 'error')
-      return
-    }
+    const dietLevelNumber = protocol.dietLevel ?? 0
 
     try {
       const response = await getPatients({ operationTypeId, limit: 9999 })
       const patientCount = response.data.filter(
-        (patient) => patient.currentPod === podNumber && !patient.erasCompleted,
+        (patient) => (patient.currentDietLevel ?? 0) === dietLevelNumber,
       ).length
 
       if (patientCount > 0) {
         showToast(
-          `Không thể xóa ${pod.label}: hiện có ${patientCount} người bệnh đang ở POD này.`,
+          `Không thể xóa ${protocol.label}: hiện có ${patientCount} người bệnh đang ở mức ăn này.`,
           'warning',
         )
         return
       }
     } catch (error) {
-      console.error('Error checking patients for POD deletion:', error)
-      showToast('Không thể kiểm tra người bệnh đang ở POD. Vui lòng thử lại.', 'error')
+      console.error('Error checking patients for diet level deletion:', error)
+      showToast('Không thể kiểm tra người bệnh đang ở mức ăn. Vui lòng thử lại.', 'error')
       return
     }
 
-    // Check if POD has any meaningful content (beyond default values of 0)
+    // Check if diet level has any meaningful content (beyond default values of 0)
     const hasContent =
-      (pod.mealsPerDayMin && pod.mealsPerDayMin > 0) ||
-      (pod.mealsPerDayMax && pod.mealsPerDayMax > 0) ||
-      (pod.mealInstruction && pod.mealInstruction.trim().length > 0) ||
-      (pod.volumePerMealMin && pod.volumePerMealMin > 0) ||
-      (pod.volumePerMealMax && pod.volumePerMealMax > 0) ||
-      (pod.volumeInstruction && pod.volumeInstruction.trim().length > 0) ||
-      (pod.recommendedFoods && pod.recommendedFoods.length > 0) ||
-      (pod.recommendedDrinks && pod.recommendedDrinks.length > 0)
+      (protocol.mealsPerDayMin && protocol.mealsPerDayMin > 0) ||
+      (protocol.mealsPerDayMax && protocol.mealsPerDayMax > 0) ||
+      (protocol.mealInstruction && protocol.mealInstruction.trim().length > 0) ||
+      (protocol.volumePerMealMin && protocol.volumePerMealMin > 0) ||
+      (protocol.volumePerMealMax && protocol.volumePerMealMax > 0) ||
+      (protocol.volumeInstruction && protocol.volumeInstruction.trim().length > 0) ||
+      (protocol.recommendedFoods && protocol.recommendedFoods.length > 0) ||
+      (protocol.recommendedDrinks && protocol.recommendedDrinks.length > 0)
 
-    // Only show confirm if POD has content
+    // Only show confirm if diet level has content
     if (hasContent) {
       setConfirmModal({
         isOpen: true,
-        title: 'Xác nhận xóa POD',
-        message: `"${pod.label}" có dữ liệu. Bạn có chắc chắn muốn xóa?`,
-        onConfirm: () => executeDeletePOD(podId),
+        title: 'Xác nhận xóa mức ăn',
+        message: `"${protocol.label}" có dữ liệu. Bạn có chắc chắn muốn xóa?`,
+        onConfirm: () => executeDeleteDietLevel(dietLevelIdToDelete),
       })
       return
     }
 
     // Delete directly if no content
-    await executeDeletePOD(podId)
+    await executeDeleteDietLevel(dietLevelIdToDelete)
   }
 
-  async function executeDeletePOD(podId: number) {
+  async function executeDeleteDietLevel(dietLevelIdToDelete: number) {
     if (!operationTypeId) return
 
-    const pod = podProtocols.find((p) => p.podId === podId)
-    if (!pod) return
+    const protocol = dietLevelProtocols.find((p) => p.dietLevelId === dietLevelIdToDelete)
+    if (!protocol) return
 
     try {
-      await deletePodProtocol(operationTypeId, podId)
-      showToast(`Đã xóa ${pod.label}`, 'success')
+      await deleteDietLevelProtocol(operationTypeId, dietLevelIdToDelete)
+      showToast(`Đã xóa ${protocol.label}`, 'success')
 
-      // Reload data and sort by podId
-      const pods = await getPodProtocols(operationTypeId)
-      const sortedPods = [...pods].sort((a, b) => a.podId - b.podId)
-      setPodProtocols(sortedPods)
+      // Reload data and sort by dietLevelId
+      const protocols = await getDietLevelProtocols(operationTypeId)
+      const sortedProtocols = [...protocols].sort((a, b) => a.dietLevelId - b.dietLevelId)
+      setDietLevelProtocols(sortedProtocols)
 
-      // Select first POD if current one was deleted
-      if (selectedPodId === podId && sortedPods.length > 0) {
-        setSelectedPodId(sortedPods[0].podId)
+      // Select first diet level if current one was deleted
+      if (selectedDietLevelId === dietLevelIdToDelete && sortedProtocols.length > 0) {
+        setSelectedDietLevelId(sortedProtocols[0].dietLevelId)
       }
 
       setConfirmModal({ ...confirmModal, isOpen: false })
     } catch (error) {
-      console.error('Error deleting POD:', error)
-      showToast('Không thể xóa POD. Vui lòng thử lại.', 'error')
+      console.error('Error deleting diet level:', error)
+      showToast('Không thể xóa mức ăn. Vui lòng thử lại.', 'error')
       setConfirmModal({ ...confirmModal, isOpen: false })
     }
   }
@@ -388,47 +387,54 @@ export function NutritionGuidePage() {
               {operationType?.name || 'Chi tiết loại phẫu thuật'}
             </h1>
 
-            {/* POD Tabs */}
-            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit">
-              {podProtocols.map((pod) => (
-                <div
-                  key={pod.podId}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedPodId(pod.podId)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      setSelectedPodId(pod.podId)
-                    }
-                  }}
-                  className={`flex items-center gap-2 px-8 py-2 rounded-lg font-semibold transition-all ${
-                    selectedPodId === pod.podId
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  <span>{pod.label}</span>
-                  {selectedPodId === pod.podId && (
-                    <button
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        handleDeletePOD(pod.podId)
-                      }}
-                      className="ml-1 hover:bg-blue-700 rounded-full p-0.5 transition-colors"
-                      title="Xóa POD"
-                    >
-                      <span className="material-symbols-outlined text-sm">close</span>
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                onClick={handleAddPOD}
-                className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all ml-4"
+            {/* Mức ăn tabs */}
+            <div className="relative">
+              <div
+                className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-hide"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
-                <span className="material-symbols-outlined">add</span>
-              </button>
+                {dietLevelProtocols.map((pod) => (
+                  <div
+                    key={pod.dietLevelId}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedDietLevelId(pod.dietLevelId)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        setSelectedDietLevelId(pod.dietLevelId)
+                      }
+                    }}
+                    className={`flex items-center gap-2 px-8 py-2 rounded-lg font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
+                      selectedDietLevelId === pod.dietLevelId
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <span>{pod.label}</span>
+                    {selectedDietLevelId === pod.dietLevelId && (
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleDeleteDietLevel(pod.dietLevelId)
+                        }}
+                        className="ml-1 hover:bg-blue-700 rounded-full p-0.5 transition-colors"
+                        title="Xóa mức ăn"
+                      >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={handleAddDietLevel}
+                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all flex-shrink-0 ml-2"
+                  title=" thêm mức ăn"
+                >
+                  <span className="material-symbols-outlined">add</span>
+                </button>
+              </div>
+              <div className="absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-slate-100 to-transparent pointer-events-none"></div>
             </div>
           </div>
 

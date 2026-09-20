@@ -59,7 +59,7 @@ export function EndOfDayAssessmentTab({
     label: q.questionText,
     cells: pods.map((pod) => {
       const cell = q.cells.find((c) => c.pod === pod)
-      return <span className="text-slate-700">{cell?.score ?? '--'}</span>
+      return <span className="text-slate-700">{cell?.optionText ?? '--'}</span>
     }),
   }))
 
