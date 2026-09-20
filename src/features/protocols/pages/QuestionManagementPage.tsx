@@ -3,11 +3,14 @@ import { ConfirmModal } from '../../../components/ConfirmModal'
 import { useHeaderActions } from '../../../layouts/main-layout/HeaderContext'
 import { api } from '../../../lib/api'
 
+type TriageLevel = 'GREEN' | 'YELLOW' | 'RED'
+
 interface Answer {
   id: string
   label: string
   text: string
-  score: number
+  triageLevel: TriageLevel | null
+  optionDefinition: string
 }
 
 interface Question {
@@ -23,8 +26,8 @@ type SurveyOptionResponse = {
   id?: number
   optionText?: string
   text?: string
-  scoreValue?: number
-  score?: number
+  optionTriageLevel?: TriageLevel | null
+  optionDefinition?: string | null
 }
 
 type SurveyQuestionResponse = {
@@ -44,7 +47,71 @@ type CreateQuestionPayload = {
   questionText: string
   orderNumber: number
   isDefault: boolean
-  options: Array<{ optionText: string; scoreValue: number }>
+  options: Array<{ optionText: string; optionTriageLevel: TriageLevel; optionDefinition?: string }>
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const TRIAGE_CONFIG: Record<
+  TriageLevel,
+  { label: string; bg: string; text: string; border: string; ring: string }
+> = {
+  GREEN: {
+    label: 'Xanh',
+    bg: 'bg-green-50',
+    text: 'text-green-700',
+    border: 'border-green-300',
+    ring: 'ring-green-400',
+  },
+  YELLOW: {
+    label: 'Vàng',
+    bg: 'bg-yellow-50',
+    text: 'text-yellow-700',
+    border: 'border-yellow-300',
+    ring: 'ring-yellow-400',
+  },
+  RED: {
+    label: 'Đỏ',
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+    border: 'border-red-300',
+    ring: 'ring-red-400',
+  },
+}
+
+function TriageSelector({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: TriageLevel | null
+  onChange: (v: TriageLevel) => void
+  disabled?: boolean
+}) {
+  return (
+    <div className="flex gap-1">
+      {(['GREEN', 'YELLOW', 'RED'] as const).map((level) => {
+        const cfg = TRIAGE_CONFIG[level]
+        const isSelected = value === level
+        return (
+          <button
+            key={level}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(level)}
+            title={cfg.label}
+            className={`px-2.5 py-1 rounded text-xs font-bold border transition-all disabled:opacity-50 ${
+              isSelected
+                ? `${cfg.bg} ${cfg.text} ${cfg.border} ring-2 ${cfg.ring}`
+                : `bg-white text-slate-400 border-slate-200 hover:${cfg.bg} hover:${cfg.text} hover:${cfg.border}`
+            }`}
+          >
+            {cfg.label}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 function normalizeQuestion(item: SurveyQuestionResponse, index = 0): Question {
@@ -59,7 +126,8 @@ function normalizeQuestion(item: SurveyQuestionResponse, index = 0): Question {
       id: String(option.optionId ?? option.id ?? `option-${optionIndex}`),
       label: String.fromCharCode(65 + optionIndex),
       text: option.optionText ?? option.text ?? '',
-      score: option.scoreValue ?? option.score ?? 0,
+      triageLevel: option.optionTriageLevel ?? null,
+      optionDefinition: option.optionDefinition ?? '',
     })),
   }
 }
@@ -79,8 +147,8 @@ function createDraftQuestion(order: number): Question {
     title: '',
     isDefault: false,
     answers: [
-      { id: crypto.randomUUID(), label: 'A', text: '', score: 0 },
-      { id: crypto.randomUUID(), label: 'B', text: '', score: 1 },
+      { id: crypto.randomUUID(), label: 'A', text: '', triageLevel: null, optionDefinition: '' },
+      { id: crypto.randomUUID(), label: 'B', text: '', triageLevel: null, optionDefinition: '' },
     ],
   }
 }
@@ -88,13 +156,26 @@ function createDraftQuestion(order: number): Question {
 function getValidationError(question: Question): string | null {
   if (!question.title.trim()) return 'Vui lòng nhập nội dung câu hỏi.'
   if (question.answers.length === 0) return 'Câu hỏi phải có ít nhất một phương án trả lời.'
-  if (question.answers.some((answer) => !answer.text.trim()))
+  if (question.answers.some((a) => !a.text.trim()))
     return 'Vui lòng nhập nội dung cho tất cả phương án.'
-  if (question.answers.some((answer) => !Number.isInteger(answer.score) || answer.score < 0)) {
-    return 'Điểm của mỗi phương án phải là số nguyên không âm.'
-  }
+  if (question.answers.some((a) => a.triageLevel === null))
+    return 'Vui lòng chọn mức cảnh báo (Xanh / Vàng / Đỏ) cho tất cả phương án.'
   return null
 }
+
+function TriageBadge({ level }: { level: TriageLevel | null }) {
+  if (!level) return <span className="text-[10px] text-slate-400 italic">Chưa cấu hình</span>
+  const cfg = TRIAGE_CONFIG[level]
+  return (
+    <span
+      className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${cfg.bg} ${cfg.text} ${cfg.border} border`}
+    >
+      {cfg.label}
+    </span>
+  )
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export function QuestionManagementPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -121,7 +202,6 @@ export function QuestionManagementPage() {
         setErrorMessage('Không thể tải bộ câu hỏi đánh giá. Vui lòng thử lại.')
       }
     }
-
     void loadQuestions()
   }, [])
 
@@ -146,7 +226,6 @@ export function QuestionManagementPage() {
       closeEditor()
       return
     }
-
     setExpandedQuestionId(question.id)
     setEditingQuestion(structuredClone(question))
     setOriginalQuestion(structuredClone(question))
@@ -157,8 +236,7 @@ export function QuestionManagementPage() {
     if (!originalQuestion && editingQuestion) {
       setQuestions((current) => current.filter((question) => question.id !== editingQuestion.id))
     }
-
-    const nextOrder = Math.max(0, ...questions.map((question) => question.order)) + 1
+    const nextOrder = Math.max(0, ...questions.map((q) => q.order)) + 1
     const draft = createDraftQuestion(nextOrder)
     setQuestions((current) => [...current, draft])
     setExpandedQuestionId(draft.id)
@@ -181,20 +259,33 @@ export function QuestionManagementPage() {
       isDefault: question.isDefault,
     })
 
-    const originalAnswers = new Map(original.answers.map((answer) => [answer.id, answer]))
+    const originalAnswers = new Map(original.answers.map((a) => [a.id, a]))
+
     for (const answer of question.answers) {
       const previous = originalAnswers.get(answer.id)
       if (!previous) {
+        // Đáp án mới — tạo option với optionTriageLevel
         await api.post(`/symptom-surveys/questions/${question.id}/options`, {
           optionText: answer.text.trim(),
-          scoreValue: answer.score,
+          optionTriageLevel: answer.triageLevel as TriageLevel,
+          ...(answer.optionDefinition.trim() && {
+            optionDefinition: answer.optionDefinition.trim(),
+          }),
         })
         continue
       }
-      if (previous.text !== answer.text || previous.score !== answer.score) {
+      // Chỉ PATCH khi có thay đổi thực sự
+      if (
+        previous.text !== answer.text ||
+        previous.triageLevel !== answer.triageLevel ||
+        previous.optionDefinition !== answer.optionDefinition
+      ) {
         await api.patch(`/symptom-surveys/questions/${question.id}/options/${answer.id}`, {
           optionText: answer.text.trim(),
-          scoreValue: answer.score,
+          optionTriageLevel: answer.triageLevel as TriageLevel,
+          ...(answer.optionDefinition.trim() && {
+            optionDefinition: answer.optionDefinition.trim(),
+          }),
         })
       }
     }
@@ -216,9 +307,10 @@ export function QuestionManagementPage() {
           questionText: editingQuestion.title.trim(),
           orderNumber: editingQuestion.order,
           isDefault: editingQuestion.isDefault,
-          options: editingQuestion.answers.map((answer) => ({
-            optionText: answer.text.trim(),
-            scoreValue: answer.score,
+          options: editingQuestion.answers.map((a) => ({
+            optionText: a.text.trim(),
+            optionTriageLevel: a.triageLevel as TriageLevel,
+            ...(a.optionDefinition.trim() && { optionDefinition: a.optionDefinition.trim() }),
           })),
         }
         const { data } = await api.post<SurveyQuestionResponse>(
@@ -229,9 +321,9 @@ export function QuestionManagementPage() {
       }
 
       setQuestions((current) => {
-        const exists = current.some((question) => question.id === editingQuestion.id)
+        const exists = current.some((q) => q.id === editingQuestion.id)
         const next = exists
-          ? current.map((question) => (question.id === editingQuestion.id ? saved : question))
+          ? current.map((q) => (q.id === editingQuestion.id ? saved : q))
           : [...current, saved]
         return [...next].sort((a, b) => a.order - b.order)
       })
@@ -246,7 +338,7 @@ export function QuestionManagementPage() {
 
   function handleCancelEdit() {
     if (!originalQuestion && editingQuestion) {
-      setQuestions((current) => current.filter((question) => question.id !== editingQuestion.id))
+      setQuestions((current) => current.filter((q) => q.id !== editingQuestion.id))
     }
     closeEditor()
   }
@@ -334,6 +426,26 @@ export function QuestionManagementPage() {
         </button>
       </div>
 
+      {/* Chú thích mức cảnh báo */}
+      <div className="flex items-center gap-4 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-600">
+        <span className="font-semibold text-slate-500 shrink-0">Mức cảnh báo:</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-500" />
+          <span className="text-green-700 font-medium">Xanh</span>
+          <span className="text-slate-400 ml-1">— không kích cảnh báo</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-yellow-500" />
+          <span className="text-yellow-700 font-medium">Vàng</span>
+          <span className="text-slate-400 ml-1">— kích cảnh báo vàng</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500" />
+          <span className="text-red-700 font-medium">Đỏ</span>
+          <span className="text-slate-400 ml-1">— kích cảnh báo đỏ (ưu tiên cao nhất)</span>
+        </span>
+      </div>
+
       {errorMessage && (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
@@ -351,6 +463,7 @@ export function QuestionManagementPage() {
               key={question.id}
               className="bg-white rounded-xl border border-slate-200 shadow-sm transition-all"
             >
+              {/* Header câu hỏi */}
               <div
                 onClick={() => handleToggleQuestion(question)}
                 className="p-6 cursor-pointer hover:bg-slate-50"
@@ -364,129 +477,170 @@ export function QuestionManagementPage() {
                     expand_more
                   </span>
                 </div>
+
+                {/* Preview đáp án khi thu gọn */}
                 {!isExpanded && (
-                  <div className="ml-8 grid grid-cols-2 md:grid-cols-3 gap-y-2">
+                  <div className="ml-8 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5">
                     {question.answers.map((answer) => (
-                      <div key={answer.id} className="text-sm text-slate-600">
-                        <span className="font-semibold text-slate-400 mr-2">{answer.label}.</span>
-                        {answer.text}
-                        <span className="ml-2 text-slate-400">({answer.score} điểm)</span>
+                      <div
+                        key={answer.id}
+                        className="flex items-center gap-2 text-sm text-slate-600"
+                      >
+                        <span className="font-semibold text-slate-400 shrink-0">
+                          {answer.label}.
+                        </span>
+                        <span className="truncate">{answer.text}</span>
+                        <TriageBadge level={answer.triageLevel} />
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
+              {/* Form chỉnh sửa */}
               {isExpanded && editingQuestion && (
                 <div
                   onClick={(event) => event.stopPropagation()}
-                  className="px-6 pb-6 space-y-6 border-t border-slate-100"
+                  className="px-6 pb-6 space-y-5 border-t border-slate-200 bg-slate-50/30"
                 >
+                  {/* Nội dung câu hỏi */}
                   <div className="pt-6 space-y-2">
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700">
-                        Nội dung câu hỏi
-                      </label>
-                      <input
-                        className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        type="text"
-                        value={currentEdit.title}
-                        onChange={(event) =>
-                          setEditingQuestion({ ...editingQuestion, title: event.target.value })
-                        }
-                        placeholder="Nhập nội dung câu hỏi"
-                      />
-                    </div>
+                    <label className="text-sm font-semibold text-slate-700">Nội dung câu hỏi</label>
+                    <input
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                      type="text"
+                      value={currentEdit.title}
+                      onChange={(event) =>
+                        setEditingQuestion({ ...editingQuestion, title: event.target.value })
+                      }
+                      placeholder="Ví dụ: Bạn có triệu chứng nôn không?"
+                    />
                   </div>
 
-                  <div className="space-y-4">
+                  {/* Danh sách đáp án */}
+                  <div className="space-y-2.5">
                     <label className="text-sm font-semibold text-slate-700">
                       Các phương án trả lời
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+
+                    {/* Grid 2 cột */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {currentEdit.answers.map((answer, index) => (
-                        <div key={answer.id} className="flex items-center space-x-3">
-                          <span className="text-sm font-bold text-slate-400 w-4">
-                            {answer.label}.
-                          </span>
-                          <input
-                            className="flex-1 px-3 py-2 border-2 border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            type="text"
-                            value={answer.text}
-                            onChange={(event) => {
-                              const answers = [...editingQuestion.answers]
-                              answers[index] = { ...answers[index], text: event.target.value }
-                              setEditingQuestion({ ...editingQuestion, answers })
-                            }}
-                            placeholder="Nhập câu trả lời"
-                          />
-                          <input
-                            className="w-20 px-3 py-2 border-2 border-slate-300 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={answer.score}
-                            onChange={(event) => {
-                              const answers = [...editingQuestion.answers]
-                              answers[index] = {
-                                ...answers[index],
-                                score: Number(event.target.value),
-                              }
-                              setEditingQuestion({ ...editingQuestion, answers })
-                            }}
-                            aria-label={`Điểm phương án ${answer.label}`}
-                          />
+                        <div
+                          key={answer.id}
+                          className="rounded-lg border border-slate-200 bg-white p-3 hover:border-slate-300 transition-colors"
+                        >
+                          {/* Label + Input + Delete */}
+                          <div className="flex items-start gap-2 mb-2">
+                            <span className="mt-2 text-sm font-bold text-slate-500 w-6 shrink-0">
+                              {answer.label}.
+                            </span>
+                            <input
+                              className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                              type="text"
+                              value={answer.text}
+                              onChange={(event) => {
+                                const answers = [...editingQuestion.answers]
+                                answers[index] = { ...answers[index], text: event.target.value }
+                                setEditingQuestion({ ...editingQuestion, answers })
+                              }}
+                              placeholder="Nội dung phương án"
+                            />
+                            {currentEdit.answers.length > 1 && (
+                              <button
+                                type="button"
+                                disabled={isSaving}
+                                onClick={() => {
+                                  const answers = editingQuestion.answers
+                                    .filter((_, i) => i !== index)
+                                    .map((a, i) => ({
+                                      ...a,
+                                      label: String.fromCharCode(65 + i),
+                                    }))
+                                  setEditingQuestion({ ...editingQuestion, answers })
+                                }}
+                                className="mt-1 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all disabled:opacity-50 shrink-0"
+                                title="Xóa phương án"
+                              >
+                                <span className="material-symbols-outlined text-base">close</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Triage selector */}
+                          <div className="ml-8 flex items-center gap-2">
+                            <span className="text-xs font-medium text-slate-600 shrink-0">
+                              Cảnh báo:
+                            </span>
+                            <TriageSelector
+                              value={answer.triageLevel}
+                              disabled={isSaving}
+                              onChange={(level) => {
+                                const answers = [...editingQuestion.answers]
+                                answers[index] = { ...answers[index], triageLevel: level }
+                                setEditingQuestion({ ...editingQuestion, answers })
+                              }}
+                            />
+                          </div>
                         </div>
                       ))}
+
+                      {/* Nút thêm phương án (trong grid) */}
                       <button
+                        type="button"
+                        disabled={isSaving || editingQuestion.answers.length >= 26}
                         onClick={() => {
-                          const index = editingQuestion.answers.length
-                          if (index < 26)
-                            setEditingQuestion({
-                              ...editingQuestion,
-                              answers: [
-                                ...editingQuestion.answers,
-                                {
-                                  id: `new-option-${crypto.randomUUID()}`,
-                                  label: String.fromCharCode(65 + index),
-                                  text: '',
-                                  score: 0,
-                                },
-                              ],
-                            })
+                          const nextIndex = editingQuestion.answers.length
+                          setEditingQuestion({
+                            ...editingQuestion,
+                            answers: [
+                              ...editingQuestion.answers,
+                              {
+                                id: `new-option-${crypto.randomUUID()}`,
+                                label: String.fromCharCode(65 + nextIndex),
+                                text: '',
+                                triageLevel: null,
+                                optionDefinition: '',
+                              },
+                            ],
+                          })
                         }}
-                        className="flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg py-2 text-blue-600 hover:bg-blue-50 text-sm font-medium"
+                        className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-slate-300 rounded-lg py-6 text-blue-600 hover:border-blue-400 hover:bg-blue-50 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       >
-                        <span className="material-symbols-outlined text-sm mr-2">add</span>Thêm câu
-                        trả lời
+                        <span className="material-symbols-outlined text-2xl">add_circle</span>
+                        <span>Thêm phương án</span>
                       </button>
                     </div>
                   </div>
 
+                  {/* Lỗi validation */}
                   {validationError && hasChanges && (
                     <p className="text-sm text-red-600">{validationError}</p>
                   )}
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+
+                  {/* Footer actions */}
+                  <div className="flex items-center justify-between pt-5 border-t border-slate-200">
                     <button
                       onClick={() => handleDeleteQuestion(question)}
                       disabled={isSaving}
-                      className="px-6 py-2 rounded-lg text-red-600 font-medium hover:bg-red-50 disabled:opacity-50 flex items-center gap-2"
+                      className="px-5 py-2 rounded-lg text-red-600 font-semibold hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-xl">delete</span>Xóa câu hỏi
+                      <span className="material-symbols-outlined text-lg">delete</span>
+                      Xóa câu hỏi
                     </button>
                     {hasChanges && (
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center gap-3">
                         <button
                           onClick={handleCancelEdit}
                           disabled={isSaving}
-                          className="px-6 py-2 rounded-lg text-slate-600 font-medium hover:bg-slate-100 disabled:opacity-50"
+                          className="px-6 py-2 rounded-lg text-slate-600 font-semibold hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           Hủy
                         </button>
                         <button
                           onClick={() => void handleSaveQuestion()}
                           disabled={isSaving || Boolean(validationError)}
-                          className="px-8 py-2 bg-blue-600 text-white rounded-lg font-medium shadow-md shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50"
+                          className="px-8 py-2 bg-blue-600 text-white rounded-lg font-semibold shadow-sm hover:bg-blue-700 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                           {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
                         </button>
