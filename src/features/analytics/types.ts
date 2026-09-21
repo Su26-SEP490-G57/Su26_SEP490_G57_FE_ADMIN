@@ -100,8 +100,8 @@ export interface ComplianceStats {
 // ---------------------------------------------------------------------------
 export interface AssessmentCell {
   pod: number
-  score: number | null
   optionText: string | null
+  optionTriageLevel: string | null
 }
 
 export interface AssessmentQuestionRow {

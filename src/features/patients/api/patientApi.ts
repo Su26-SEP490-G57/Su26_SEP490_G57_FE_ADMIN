@@ -21,6 +21,12 @@ export async function getPatients(query?: PatientQuery) {
   return data
 }
 
+export async function getPatient(caseId: string) {
+  const { data } = await api.get<PatientListItem>(`/patients/${caseId}`)
+
+  return data
+}
+
 // Tạo bệnh nhân (case + tài khoản đăng nhập liên kết).
 export async function createPatient(payload: CreatePatientPayload) {
   const { data } = await api.post<PatientListItem>('/patients', payload)
@@ -118,6 +124,15 @@ export async function getAssessmentDetail(assessmentId: number) {
 
 export async function updatePodLock(caseId: string, body: PodLockRequest) {
   const { data } = await api.patch<PodLockResponse>(`/patients/${caseId}/pod-lock`, body)
+
+  return data
+}
+
+export async function updateDietLevel(caseId: string, dietLevel: number, reason: string) {
+  const { data } = await api.patch<PatientListItem>(`/patients/${caseId}/diet-level`, {
+    dietLevel,
+    reason,
+  })
 
   return data
 }

@@ -3,7 +3,7 @@ export interface OperationTypeResponseDto {
   id: number
   name: string
   description: string | null
-  podCount: number
+  dietLevelCount: number
 }
 
 export interface CreateOperationTypeDto {
@@ -16,11 +16,12 @@ export interface UpdateOperationTypeDto {
   description?: string
 }
 
-// POD Protocol DTOs
-export interface PodProtocolResponseDto {
-  podId: number
+// Diet Level Protocol DTOs (wire contract keeps backend field names; FE maps to clean names)
+export interface DietLevelProtocolResponseDto {
+  dietLevelId: number
   operationTypeId: number
   label: string
+  dietLevel: number
   mealsPerDayMin: number | null
   mealsPerDayMax: number | null
   mealInstruction: string | null
@@ -33,8 +34,9 @@ export interface PodProtocolResponseDto {
   createdAt: Date
 }
 
-export interface CreatePodProtocolDto {
+export interface CreateDietLevelProtocolDto {
   label: string
+  dietLevel?: number
   mealsPerDayMin?: number
   mealsPerDayMax?: number
   mealInstruction?: string
@@ -45,8 +47,9 @@ export interface CreatePodProtocolDto {
   recommendedDrinks?: string[]
 }
 
-export interface UpdatePodProtocolDto {
+export interface UpdateDietLevelProtocolDto {
   label?: string
+  dietLevel?: number
   mealsPerDayMin?: number
   mealsPerDayMax?: number
   mealInstruction?: string

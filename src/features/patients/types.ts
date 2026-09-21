@@ -17,6 +17,7 @@ export interface PatientListItem {
   method: string
   surgeryDate: string
   currentPod: number
+  currentDietLevel: number
   roomBed: string
   hasGiAnastomosis: boolean | null
   isLocked: boolean
@@ -94,8 +95,7 @@ export interface LatestAssessmentResponse {
   evaluationDatetime: string
   podContext: number
   shiftPeriod: string
-  totalScore: number
-  triageColor: string
+  triageLevel: string
 }
 
 export interface AssessmentDetailResponse {
@@ -104,14 +104,13 @@ export interface AssessmentDetailResponse {
   evaluationDatetime: string
   podContext: number
   shiftPeriod: string
-  totalScore: number
-  triageColor: string
+  triageLevel: string
   details: {
     questionId: number
     questionText: string
     selectedOptionId: number
     optionText: string
-    scoreEarned: number
+    optionTriageLevel: string
   }[]
 
   recommendation: string

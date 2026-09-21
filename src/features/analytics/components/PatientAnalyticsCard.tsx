@@ -33,7 +33,7 @@ export function PatientAnalyticsCard({ patient, isSelected, onSelect }: PatientA
         <span
           className={`text-[10px] font-bold uppercase tracking-wide ${isSelected ? 'text-white/90' : classes.text}`}
         >
-          POD {patient.currentPod} · {patient.operationType?.name ?? 'N/A'}
+          Mức {patient.currentPod} · {patient.operationType?.name ?? 'N/A'}
         </span>
       </div>
 
