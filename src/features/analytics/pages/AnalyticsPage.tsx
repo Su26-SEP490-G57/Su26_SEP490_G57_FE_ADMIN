@@ -17,7 +17,6 @@ import { AnalyticsFilterBar } from '../components/AnalyticsFilterBar'
 import { ComplianceDonutChart } from '../components/ComplianceDonutChart'
 import { PatientDetailPanel } from '../components/PatientDetailPanel'
 import { RoomPatientList } from '../components/RoomPatientList'
-import { SymptomTrendChart } from '../components/SymptomTrendChart'
 import { useAnalyticsFilters } from '../hooks/useAnalyticsFilters'
 import { useAnalyticsRealtime } from '../hooks/useAnalyticsRealtime'
 
@@ -126,25 +125,16 @@ export function AnalyticsPage() {
 
   return (
     <div className="space-y-6 p-8 pb-12">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <SymptomTrendChart
-            trend={overviewQuery.data?.symptomTrend}
-            isLoading={overviewQuery.isLoading}
-            isFetching={overviewQuery.isFetching && !overviewQuery.isLoading}
-            isError={overviewQuery.isError}
-            onRetry={() => overviewQuery.refetch()}
-          />
-        </div>
-        <div className="lg:col-span-1">
-          <ComplianceDonutChart
-            overview={overviewQuery.data?.compliance}
-            isLoading={overviewQuery.isLoading}
-            isFetching={overviewQuery.isFetching && !overviewQuery.isLoading}
-            isError={overviewQuery.isError}
-            onRetry={() => overviewQuery.refetch()}
-          />
-        </div>
+      {/* Đã bỏ Biểu đồ xu hướng triệu chứng (SymptomTrendChart) theo yêu cầu —
+          chỉ còn donut tuân thủ, giữ ở khổ hẹp thay vì kéo giãn hết chiều rộng. */}
+      <div className="max-w-md">
+        <ComplianceDonutChart
+          overview={overviewQuery.data?.compliance}
+          isLoading={overviewQuery.isLoading}
+          isFetching={overviewQuery.isFetching && !overviewQuery.isLoading}
+          isError={overviewQuery.isError}
+          onRetry={() => overviewQuery.refetch()}
+        />
       </div>
 
       <div>

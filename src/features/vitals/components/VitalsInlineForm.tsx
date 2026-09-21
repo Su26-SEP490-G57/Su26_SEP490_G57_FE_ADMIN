@@ -36,29 +36,29 @@ const FIELD_META: {
   step?: string
   maxDecimalPlaces?: number
 }[] = [
-  { name: 'pulseBpm', label: 'Mạch', unit: 'lần/phút', placeholder: '30 - 220' },
+  { name: 'pulseBpm', label: 'Mạch', unit: 'lần/phút', placeholder: 'vd: 78' },
   {
     name: 'bloodPressureSystolic',
     label: 'Huyết áp tâm thu',
     unit: 'mmHg',
-    placeholder: 'mmHg',
+    placeholder: 'vd: 120',
   },
   {
     name: 'bloodPressureDiastolic',
     label: 'Huyết áp tâm trương',
     unit: 'mmHg',
-    placeholder: 'mmHg',
+    placeholder: 'vd: 80',
   },
   {
     name: 'temperatureCelsius',
     label: 'Nhiệt độ',
     unit: '°C',
-    placeholder: '30.00 - 43.00',
+    placeholder: 'vd: 36.85',
     step: '0.01',
     maxDecimalPlaces: 2,
   },
-  { name: 'respiratoryRate', label: 'Nhịp thở', unit: 'lần/phút', placeholder: 'lần/phút' },
-  { name: 'spo2Percent', label: 'SpO₂', unit: '%', placeholder: '0 - 100' },
+  { name: 'respiratoryRate', label: 'Nhịp thở', unit: 'lần/phút', placeholder: 'vd: 18' },
+  { name: 'spo2Percent', label: 'SpO₂', unit: '%', placeholder: 'vd: 98' },
 ]
 
 const vitalsFormSchema = z
@@ -219,7 +219,10 @@ export function VitalsInlineForm({ caseId, patientName, onClose }: VitalsInlineF
         <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-6">
           {FIELD_META.map((meta) => (
             <div key={meta.name}>
-              <label className="block text-[10px] font-bold uppercase tracking-wide text-slate-500">
+              {/* min-h cố định — nhãn dài (huyết áp, nhịp thở) xuống 2 dòng
+                  vẫn chiếm cùng chiều cao với nhãn 1 dòng, để ô nhập bên dưới
+                  luôn thẳng hàng. */}
+              <label className="block min-h-[28px] text-[10px] font-bold uppercase tracking-wide text-slate-500">
                 {meta.label} ({meta.unit}) <span className="text-red-500">*</span>
               </label>
               <input
