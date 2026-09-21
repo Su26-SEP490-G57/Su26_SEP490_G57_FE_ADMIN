@@ -33,6 +33,9 @@ const QuestionManagementPage = lazy(() =>
     default: m.QuestionManagementPage,
   })),
 )
+const RecoveryPage = lazy(() =>
+  import('../features/recovery/pages/RecoveryPage').then((m) => ({ default: m.RecoveryPage })),
+)
 
 const Placeholder = ({ title }: { title: string }) => (
   <div className="p-8 text-lg font-semibold text-slate-500">{title} — Đang phát triển</div>
@@ -75,6 +78,7 @@ export function AppRoutes() {
             element={<LazyRoute Component={QuestionManagementPage} />}
           />
           <Route path={ROUTES.ANALYTICS} element={<LazyRoute Component={AnalyticsPage} />} />
+          <Route path={ROUTES.RECOVERY} element={<LazyRoute Component={RecoveryPage} />} />
           <Route path={ROUTES.NURSES} element={<LazyRoute Component={NurseManagementPage} />} />
           <Route path={ROUTES.LOGS} element={<Placeholder title="Nhật ký hoạt động" />} />
           <Route path={ROUTES.SETTINGS} element={<Placeholder title="Cài đặt" />} />

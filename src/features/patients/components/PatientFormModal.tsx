@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { translateError } from '../../../lib/errorTranslator'
 import { createPatient, updatePatient } from '../api/patientApi'
 import { useProvinces, useWards } from '../api/vn-address'
+import { diseaseCatalog, type DiseaseOption } from '../diseaseCatalog'
 import type {
   CreatePatientPayload,
   OperationType,
@@ -58,6 +59,111 @@ function emptyToUndefined(v: string): string | undefined {
   return v.trim() === '' ? undefined : v.trim()
 }
 
+function normalizeSearch(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+}
+
+function diseaseLabel(option: DiseaseOption): string {
+  return `${option.code} - ${option.name}`
+}
+
+function DiseaseAutocomplete({
+  value,
+  onChange,
+  multiple = false,
+}: {
+  value: string | string[]
+  onChange: (value: string | string[]) => void
+  multiple?: boolean
+}) {
+  const selectedValues = multiple ? (value as string[]) : value ? [value as string] : []
+  const [query, setQuery] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+  const selectedLabels = new Set(selectedValues)
+  const options = diseaseCatalog.filter((option) => {
+    const haystack = normalizeSearch(`${option.code} ${option.name}`)
+    return !selectedLabels.has(diseaseLabel(option)) && haystack.includes(normalizeSearch(query))
+  })
+
+  const selectOption = (option: DiseaseOption) => {
+    const selected = diseaseLabel(option)
+    onChange(multiple ? [...selectedValues, selected] : selected)
+    setQuery('')
+    setIsOpen(false)
+  }
+
+  const removeOption = (selected: string) => {
+    onChange(selectedValues.filter((item) => item !== selected))
+  }
+
+  const inputValue = !multiple && !query ? (value as string) : query
+
+  return (
+    <div className="relative">
+      {multiple && selectedValues.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {selectedValues.map((selected) => (
+            <span
+              key={selected}
+              className="inline-flex max-w-full items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs text-blue-700"
+            >
+              <span className="truncate">{selected}</span>
+              <button
+                type="button"
+                onClick={() => removeOption(selected)}
+                className="font-bold text-blue-500 hover:text-blue-800"
+                aria-label={`Xóa ${selected}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input
+        value={inputValue}
+        onChange={(event) => {
+          setQuery(event.target.value)
+          setIsOpen(true)
+          if (!multiple && value) onChange('')
+        }}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setTimeout(() => setIsOpen(false), 150)}
+        placeholder={multiple ? 'Tìm mã hoặc tên bệnh để thêm...' : 'Tìm mã hoặc tên bệnh...'}
+        className={inputCls}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={isOpen}
+      />
+      {isOpen && options.length > 0 && (
+        <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+          {options.map((option) => (
+            <button
+              type="button"
+              key={option.code}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => selectOption(option)}
+              className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-blue-50"
+            >
+              {diseaseLabel(option)}
+            </button>
+          ))}
+        </div>
+      )}
+      {isOpen && query && options.length === 0 && (
+        <p className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-lg">
+          Không tìm thấy bệnh phù hợp
+        </p>
+      )}
+    </div>
+  )
+}
+
 const createPatientSchema = (isEdit: boolean) =>
   z
     .object({
@@ -73,6 +179,7 @@ const createPatientSchema = (isEdit: boolean) =>
       surgeryDate: z.string(),
       hasGiAnastomosis: z.string(),
       diagnosis: z.string(),
+      comorbidities: z.array(z.string()),
       roomBed: z.string(),
       provinceCode: z.string(),
       ward: z.string(),
@@ -156,6 +263,7 @@ function buildDefaultValues(patient?: PatientListItem | null): FormValues {
     hasGiAnastomosis:
       patient?.hasGiAnastomosis == null ? '' : patient.hasGiAnastomosis ? 'true' : 'false',
     diagnosis: patient?.diagnosis ?? '',
+    comorbidities: patient?.comorbidities ?? [],
     roomBed: patient?.roomBed ?? '',
     provinceCode: '',
     ward: patient?.account?.ward ?? '',
@@ -203,6 +311,8 @@ export function PatientFormModal({
   const selectedGender = useWatch({ control, name: 'gender' }) ?? ''
   const selectedOperationTypeId = useWatch({ control, name: 'operationTypeId' }) ?? ''
   const selectedHasGiAnastomosis = useWatch({ control, name: 'hasGiAnastomosis' }) ?? ''
+  const selectedDiagnosis = useWatch({ control, name: 'diagnosis' }) ?? ''
+  const selectedComorbidities = useWatch({ control, name: 'comorbidities' }) ?? []
 
   const { data: wards = [] } = useWards(selectedProvinceCode ? Number(selectedProvinceCode) : null)
 
@@ -254,6 +364,7 @@ export function PatientFormModal({
       hasGiAnastomosis:
         values.hasGiAnastomosis === '' ? undefined : values.hasGiAnastomosis === 'true',
       diagnosis: emptyToUndefined(values.diagnosis),
+      comorbidities: values.comorbidities,
       roomBed: emptyToUndefined(values.roomBed),
     }
 
@@ -483,13 +594,27 @@ export function PatientFormModal({
             </Field>
           </div>
 
-          {/* Chẩn đoán / Buồng giường */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
+          {/* Chẩn đoán / Bệnh kèm theo / Buồng giường */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_2fr_1fr]">
             <Field label="Chẩn đoán" required>
-              <input {...register('diagnosis')} className={inputCls} />
+              <DiseaseAutocomplete
+                value={selectedDiagnosis}
+                onChange={(value) =>
+                  setValue('diagnosis', value as string, { shouldValidate: true })
+                }
+              />
               {errors.diagnosis && (
                 <p className="mt-1 text-xs text-red-500">{errors.diagnosis.message}</p>
               )}
+            </Field>
+            <Field label="Bệnh kèm theo">
+              <DiseaseAutocomplete
+                multiple
+                value={selectedComorbidities}
+                onChange={(value) =>
+                  setValue('comorbidities', value as string[], { shouldValidate: true })
+                }
+              />
             </Field>
             <Field label="Buồng giường" required>
               <input
