@@ -14,6 +14,8 @@ export const nurseKeys = {
   list: (params: QueryNurseParams) => [...nurseKeys.lists(), params] as const,
   details: () => [...nurseKeys.all, 'detail'] as const,
   detail: (id: number) => [...nurseKeys.details(), id] as const,
+  roomAssignments: () => [...nurseKeys.all, 'room-assignments'] as const,
+  roomAssignment: (roomCode: string) => [...nurseKeys.roomAssignments(), roomCode] as const,
 }
 
 // 1. Get paginated nurses list
@@ -86,6 +88,52 @@ export function useDeleteNurse() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: nurseKeys.lists() })
       queryClient.invalidateQueries({ queryKey: nurseKeys.detail(id) })
+    },
+  })
+}
+
+// 6. Get assigned nurses for a room
+export function useRoomAssignment(roomCode: string) {
+  return useQuery({
+    queryKey: nurseKeys.roomAssignment(roomCode),
+    queryFn: async () => {
+      const response = await api.get<number[]>(`/room-nurse-assignments/${roomCode}`)
+      return response.data
+    },
+    enabled: !!roomCode,
+  })
+}
+
+// 7. Assign nurse to room (POST /nurses/:id/assign-rooms)
+export function useAssignNurseToRoom() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ nurseId, roomCode }: { nurseId: number; roomCode: string }) => {
+      const response = await api.post(`/nurses/${nurseId}/assign-rooms`, {
+        roomCodes: [roomCode],
+      })
+      return response.data
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate room assignment cache
+      queryClient.invalidateQueries({ queryKey: nurseKeys.roomAssignment(variables.roomCode) })
+      // Also invalidate patients list to reflect changes
+      queryClient.invalidateQueries({ queryKey: ['patients'] })
+    },
+  })
+}
+
+// 8. Unassign nurse from room (DELETE /nurses/:id/rooms/:roomCode)
+export function useUnassignNurseFromRoom() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ nurseId, roomCode }: { nurseId: number; roomCode: string }) => {
+      const response = await api.delete(`/nurses/${nurseId}/rooms/${roomCode}`)
+      return response.data
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: nurseKeys.roomAssignment(variables.roomCode) })
+      queryClient.invalidateQueries({ queryKey: ['patients'] })
     },
   })
 }

@@ -8,6 +8,8 @@ import { ImportPatientsModal } from '../components/ImportPatientsModal'
 import { getOperationTypes } from '../api/patientApi'
 import { HoldReasonModal } from '../components/HoldReasonModal'
 import { PatientSearchBar } from '../components/PatientSearchBar'
+import { NurseAssignmentCell } from '../components/NurseAssignmentCell'
+import { AlertModal } from '../../../components/AlertModal'
 import type { PatientListItem } from '../types'
 
 const EMPTY_PATIENTS: PatientListItem[] = []
@@ -84,6 +86,7 @@ export function PatientPage() {
   )
   const [hoverPosition, setHoverPosition] = useState({ left: 0, top: 0 })
   const [isUpdating, setIsUpdating] = useState(false)
+  const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const vitalsIntentCounter = useRef(0)
 
@@ -182,8 +185,20 @@ export function PatientPage() {
       setHoveredPatient(null)
     } catch (error) {
       console.error('Action failed', error)
-      window.alert('Lỗi cập nhật lâm sàng.')
-      throw error
+
+      // Extract error message from backend response
+      let errorMessage = 'Lỗi cập nhật lâm sàng.'
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { message?: string } } }
+        if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message
+        }
+      }
+
+      setErrorAlert({
+        title: 'Không thể cập nhật',
+        message: errorMessage,
+      })
     } finally {
       setIsUpdating(false)
     }
@@ -305,6 +320,12 @@ export function PatientPage() {
                     {RISK_COLUMNS[level].label}
                   </th>
                 ))}
+                <th
+                  scope="col"
+                  className="border-b border-l border-slate-200 bg-slate-100 px-3 py-2 text-left font-bold text-slate-600 uppercase tracking-widest w-48"
+                >
+                  Điều dưỡng phụ trách
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -376,6 +397,9 @@ export function PatientPage() {
                         </td>
                       )
                     })}
+                    <td className="px-3 py-2 align-top border-l border-slate-100">
+                      <NurseAssignmentCell roomCode={room} />
+                    </td>
                   </tr>
                 )
               })}
