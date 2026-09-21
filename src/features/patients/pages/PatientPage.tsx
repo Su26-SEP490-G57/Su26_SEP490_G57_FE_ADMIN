@@ -521,6 +521,12 @@ export function PatientPage() {
         onClose={() => setIsImportingPatients(false)}
         onImported={refetchPatients}
       />
+      <AlertModal
+        isOpen={!!errorAlert}
+        title={errorAlert?.title ?? ''}
+        message={errorAlert?.message ?? ''}
+        onClose={() => setErrorAlert(null)}
+      />
     </div>
   )
 }

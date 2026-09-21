@@ -164,10 +164,9 @@ function DiseaseAutocomplete({
   )
 }
 
-const createPatientSchema = (isEdit: boolean) =>
+const createPatientSchema = () =>
   z
     .object({
-      caseId: z.string(),
       fullName: z.string(),
       age: z.string(),
       gender: z.string(),
@@ -185,10 +184,6 @@ const createPatientSchema = (isEdit: boolean) =>
       ward: z.string(),
     })
     .superRefine((values, ctx) => {
-      if (!isEdit && !values.caseId.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['caseId'], message: 'Mã bệnh nhân là bắt buộc' })
-      }
-
       if (!values.fullName.trim()) {
         ctx.addIssue({ code: 'custom', path: ['fullName'], message: 'Họ tên là bắt buộc' })
       }
@@ -250,7 +245,6 @@ type FormValues = z.infer<ReturnType<typeof createPatientSchema>>
 
 function buildDefaultValues(patient?: PatientListItem | null): FormValues {
   return {
-    caseId: patient?.caseId ?? '',
     fullName: patient?.account?.fullName ?? '',
     age: patient?.age != null ? String(patient.age) : '',
     gender: patient?.gender ?? '',
@@ -301,7 +295,7 @@ export function PatientFormModal({
   } = useForm<FormValues>({
     defaultValues: buildDefaultValues(patient),
     mode: 'onSubmit',
-    resolver: zodResolver(createPatientSchema(isEdit)),
+    resolver: zodResolver(createPatientSchema()),
   })
 
   const heightValue = useWatch({ control, name: 'height' }) ?? ''
@@ -373,7 +367,7 @@ export function PatientFormModal({
       if (isEdit && patient?.account) {
         await updatePatient(patient.account.id, common as UpdatePatientPayload)
       } else {
-        await createPatient({ caseId: values.caseId.trim(), ...common } as CreatePatientPayload)
+        await createPatient(common as CreatePatientPayload)
       }
       onSaved()
       onClose()
@@ -420,19 +414,13 @@ export function PatientFormModal({
 
           {/* Mã + Họ tên */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Mã bệnh nhân" required={!isEdit}>
+            <Field label="Mã bệnh nhân">
               <input
-                {...register('caseId', {
-                  onChange: (e) =>
-                    setValue('caseId', e.target.value.toUpperCase(), { shouldValidate: true }),
-                })}
-                disabled={isEdit}
-                placeholder="Ví dụ: CASE-001"
-                className={inputCls}
+                value={isEdit ? (patient?.caseId ?? '') : ''}
+                disabled
+                placeholder="Hệ thống sẽ tự động cấp sau khi hoàn tất"
+                className={`${inputCls} bg-slate-50 cursor-not-allowed`}
               />
-              {errors.caseId && (
-                <p className="mt-1 text-xs text-red-500">{errors.caseId.message}</p>
-              )}
             </Field>
             <Field label="Họ tên đầy đủ" required>
               <input {...register('fullName')} className={inputCls} />
