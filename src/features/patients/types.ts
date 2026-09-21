@@ -52,7 +52,8 @@ export interface PatientListItem {
 
 // Payload tạo bệnh nhân — khớp CreatePatientDto của backend.
 export interface CreatePatientPayload {
-  caseId: string
+  // Omit to auto-generate the next "CASE-NNN"; the HIS import flow passes its own hospital code.
+  caseId?: string
   fullName: string
   age?: number
   gender?: string
