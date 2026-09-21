@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ConfirmModal } from '../../../components/ConfirmModal'
 import { Toast } from '../../../components/Toast'
-import { getPatients } from '../../patients/api/patientApi'
 import { useHeaderActions } from '../../../layouts/main-layout/HeaderContext'
+import { getPatients } from '../../patients/api/patientApi'
 import {
   createDietLevelProtocol,
   deleteDietLevelProtocol,
@@ -456,7 +456,7 @@ export function NutritionGuidePage() {
                 {/* Meal Count */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    Số lượng bữa ăn
+                    Số lượng bữa ăn:
                   </label>
                   <div className="flex items-center gap-2">
                     <input
@@ -479,7 +479,7 @@ export function NutritionGuidePage() {
                 {/* Details */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    Chi tiết cho số lượng bữa ăn
+                    Mô tả chi tiết:
                   </label>
                   <textarea
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
@@ -493,7 +493,7 @@ export function NutritionGuidePage() {
                 {/* Volume */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    Thể tích mỗi bữa
+                    Thể tích mỗi bữa:
                   </label>
                   <div className="flex items-center gap-2">
                     <input
