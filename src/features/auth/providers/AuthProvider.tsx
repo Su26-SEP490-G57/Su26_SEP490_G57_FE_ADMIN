@@ -20,7 +20,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       try {
         // TODO: xác nhận path /auth/refresh với BE
-        const { data } = await api.post<RefreshResponse>('/auth/refresh', { refreshToken })
+        // skipAuthRedirect: lỗi ở đây tự xử lý bằng catch bên dưới (clearSession,
+        // không điều hướng) — không cần/không nên bị interceptor 401 ép reload
+        // cứng về /login (xem ghi chú trong lib/api.ts).
+        const { data } = await api.post<RefreshResponse>(
+          '/auth/refresh',
+          { refreshToken },
+          { skipAuthRedirect: true },
+        )
         setAccessToken(data.accessToken)
       } catch {
         // refreshToken hết hạn hoặc invalid → clear session

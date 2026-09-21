@@ -1,139 +1,172 @@
 import { X } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { getLatestAssessment } from '../api/patientApi'
+import { useState } from 'react'
+import { levelClasses, levelKey } from '../../../lib/levelColor'
+import { patientName } from '../../../lib/patientDisplay'
+import type { UserRole } from '../../../layouts/main-layout/nav-config'
+import {
+  useAssessmentMatrix,
+  useComplianceStats,
+  useRecoveryMatrix,
+} from '../../analytics/api/analytics'
+import { ComplianceStatsTab } from '../../analytics/components/ComplianceStatsTab'
+import { EndOfDayAssessmentTab } from '../../analytics/components/EndOfDayAssessmentTab'
+import { OverviewTab } from '../../analytics/components/OverviewTab'
+import { RecoveryMatrixTab } from '../../analytics/components/RecoveryMatrixTab'
+import { TabSwitcher, type TabSwitcherItem } from '../../analytics/components/TabSwitcher'
+import type { DetailTabId } from '../../analytics/types'
+import { useRole } from '../../auth/hooks/useRole'
+import { useAssignedCareObservationSheet } from '../../care-observation/api/careObservation'
+import { CareObservationTab } from '../../care-observation/components/CareObservationTab'
+import { useVitalsHistory } from '../../vitals/api/vitals'
+import { VitalsTab } from '../../vitals/components/VitalsTab'
 import type { PatientListItem } from '../types'
+
+// Ý định "mở tab Chỉ số + mở sẵn form ghi nhận" từ nút tắt ở danh sách người
+// bệnh. `token` phải là 1 giá trị MỚI mỗi lần bấm (kể cả bấm lại trên đúng
+// người bệnh đang mở) để panel biết đây là 1 yêu cầu mới cần áp dụng lại.
+export interface VitalsQuickIntent {
+  caseId: string
+  token: number
+}
 
 interface PatientDetailPanelProps {
   patient: PatientListItem | null
   onClose: () => void
+  vitalsIntent?: VitalsQuickIntent | null
 }
 
-function DetailField({
-  label,
-  value,
-  className,
-}: {
-  label: string
-  value: ReactNode
-  className?: string
-}) {
-  return (
-    <div className={`border-b border-slate-100 py-3 ${className}`}>
-      <p className="text-xs font-semibold text-slate-500 uppercase">{label}</p>
-      <div className="mt-1 font-medium text-slate-800">{value ?? '--'}</div>
-    </div>
-  )
-}
+// Cùng bộ tab với PatientDetailPanel của trang "Thống kê dữ liệu"
+// (src/features/analytics/components/PatientDetailPanel.tsx) — panel này chỉ
+// khác ở CHỖ HIỂN THỊ (side panel trượt từ phải, không phải card giữa trang),
+// nội dung từng tab dùng chung y hệt component/hook bên analytics.
+const TABS: (TabSwitcherItem<DetailTabId> & { roles?: UserRole[] })[] = [
+  { id: 'overview', label: 'Tổng quan' },
+  { id: 'recovery', label: 'Ma trận hồi phục' },
+  { id: 'compliance', label: 'Tuân thủ' },
+  { id: 'assessment', label: 'Đánh giá cuối ngày' },
+  { id: 'vitals', label: 'Chỉ số' },
+  { id: 'careObservation', label: 'Phiếu theo dõi', roles: ['nurse'] },
+]
 
-export function PatientDetailPanel({ patient, onClose }: PatientDetailPanelProps) {
-  const { data: latestAssessment } = useQuery({
-    queryKey: ['latestAssessment', patient?.caseId],
-    queryFn: () => getLatestAssessment(patient!.caseId),
-    enabled: !!patient,
-  })
+export function PatientDetailPanel({ patient, onClose, vitalsIntent }: PatientDetailPanelProps) {
+  const role = useRole()
+  const [activeTab, setActiveTab] = useState<DetailTabId>('overview')
+  const [appliedIntentToken, setAppliedIntentToken] = useState<number | null>(null)
+  const [autoOpenVitalsForm, setAutoOpenVitalsForm] = useState(false)
+
+  // Đổi bệnh nhân đang xem → luôn quay về tab "Tổng quan", TRỪ KHI có 1 ý
+  // định "Chỉ số" chưa áp dụng (nút tắt "Điền chỉ số sinh tồn") — lúc đó nhảy
+  // thẳng tới tab Chỉ số và báo cho VitalsTab tự mở sẵn form. Vẫn theo đúng
+  // convention "điều chỉnh state ngay trong render" đã dùng ở CareObservationTab.
+  const [loadedCaseId, setLoadedCaseId] = useState<string | null>(null)
+  if (patient) {
+    const hasUnappliedIntent =
+      vitalsIntent !== null &&
+      vitalsIntent !== undefined &&
+      vitalsIntent.caseId === patient.caseId &&
+      vitalsIntent.token !== appliedIntentToken
+
+    if (hasUnappliedIntent) {
+      setAppliedIntentToken(vitalsIntent.token)
+      setLoadedCaseId(patient.caseId)
+      setActiveTab('vitals')
+      setAutoOpenVitalsForm(true)
+    } else if (patient.caseId !== loadedCaseId) {
+      setLoadedCaseId(patient.caseId)
+      setActiveTab('overview')
+    }
+  }
+
+  const caseId = patient?.caseId ?? null
+  const recoveryQuery = useRecoveryMatrix(caseId)
+  const complianceQuery = useComplianceStats(caseId)
+  const assessmentQuery = useAssessmentMatrix(caseId)
+  const vitalsQuery = useVitalsHistory(caseId)
+  const careObservationQuery = useAssignedCareObservationSheet(caseId)
 
   if (!patient) return null
 
+  const level = levelKey(patient.level?.name)
+  const classes = levelClasses(level)
+  const visibleTabs = TABS.filter(
+    (tab) => !tab.roles || (role !== null && tab.roles.includes(role)),
+  )
+  const effectiveTab = visibleTabs.some((tab) => tab.id === activeTab) ? activeTab : 'overview'
+
   return (
-    <div className="fixed inset-y-0 right-0 z-40 w-[450px] bg-white shadow-2xl border-l border-slate-200 transform transition-transform duration-300">
-      <div className="flex h-full flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <h2 className="text-base font-bold text-slate-800">Hồ sơ bệnh nhân</h2>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          {/* Profile Header */}
-          <div className="mb-6 flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
-            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700">
-              {patient.fullName?.charAt(0) ?? '?'}
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-lg">
-                {patient.fullName ?? patient.account?.fullName}
-              </h3>
-              <p className="text-sm text-slate-500">Mã: {patient.caseId}</p>
-            </div>
+    <div className="fixed inset-y-0 right-0 z-40 flex w-[860px] max-w-[95vw] flex-col border-l border-slate-200 bg-white shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-800">{patientName(patient)}</h2>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${classes.badgeBg} ${classes.text}`}
+            >
+              {classes.label}
+            </span>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <DetailField label="Tuổi" value={patient.age} />
-            <DetailField label="Giới tính" value={patient.gender} />
-            <DetailField label="Chiều cao" value={`${patient.height ?? '--'} cm`} />
-            <DetailField label="Cân nặng" value={`${patient.weight ?? '--'} kg`} />
-            <DetailField label="BMI" value={patient.bmi} />
-          </div>
-
-          {/* Thông tin điều trị */}
-          <div className="mt-8">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-              Thông tin điều trị
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              <DetailField
-                label="Ngày phẫu thuật"
-                value={
-                  patient.surgeryDate
-                    ? new Date(patient.surgeryDate).toLocaleDateString('vi-VN')
-                    : '--'
-                }
-              />
-              <DetailField label="POD hiện tại" value={`POD ${patient.currentPod ?? '--'}`} />
-              <DetailField label="Buồng/giường" value={patient.roomBed ?? '--'} />
-              <DetailField label="Mức ăn hiện tại" value={`Mức ${patient.currentDietLevel}`} />
-              <DetailField
-                label="Loại phẫu thuật"
-                value={patient.operationType?.name ?? '--'}
-                className="col-span-2"
-              />
-              <DetailField label="Phương pháp mổ" value={patient.method ?? '--'} />
-              <DetailField
-                label="Có miệng nối tiêu hoá"
-                value={patient.hasGiAnastomosis ? 'Có' : 'Không'}
-              />
-            </div>
-            <DetailField
-              label="Chẩn đoán"
-              value={patient.diagnosis ?? '--'}
-              className="col-span-2 mt-0"
-            />
-          </div>
-
-          {/* Đánh giá gần nhất */}
-          {latestAssessment && (
-            <div className="mt-8 p-4 rounded-xl border border-slate-200 bg-slate-50">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                Tóm tắt đánh giá
-              </h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <p className="text-slate-500">Mức độ cảnh báo (Triage):</p>
-                <p
-                  className={`font-extrabold ${latestAssessment.triageLevel === 'RED' ? 'text-red-600' : latestAssessment.triageLevel === 'YELLOW' ? 'text-yellow-600' : 'text-green-600'}`}
-                >
-                  {latestAssessment.triageLevel}
-                </p>
-              </div>
-              <button className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-semibold underline">
-                Xem tất cả đánh giá
-              </button>
-            </div>
-          )}
+          <p className="text-xs text-slate-500">
+            Mã: {patient.caseId} · POD {patient.currentPod}
+          </p>
         </div>
+        <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600">
+          <X size={20} />
+        </button>
+      </div>
 
-        {/* Footer Actions */}
-        <div className="border-t p-4 flex gap-2">
-          <button className="flex-1 rounded-lg bg-slate-100 py-2.5 font-semibold text-slate-700 hover:bg-slate-200">
-            Thêm ghi chú
-          </button>
-          <button className="flex-1 rounded-lg bg-green-600 py-2.5 font-semibold text-white hover:bg-green-700">
-            Tiếp tục theo dõi
-          </button>
-        </div>
+      {/* Tabs */}
+      <div className="flex items-center border-b border-slate-200 px-6">
+        <TabSwitcher tabs={visibleTabs} activeTab={effectiveTab} onChange={setActiveTab} />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {effectiveTab === 'overview' ? (
+          <OverviewTab patient={patient} />
+        ) : effectiveTab === 'recovery' ? (
+          <RecoveryMatrixTab
+            matrix={recoveryQuery.data}
+            isLoading={recoveryQuery.isLoading}
+            isError={recoveryQuery.isError}
+            onRetry={() => recoveryQuery.refetch()}
+            currentPod={patient.currentPod}
+          />
+        ) : effectiveTab === 'compliance' ? (
+          <ComplianceStatsTab
+            stats={complianceQuery.data}
+            isLoading={complianceQuery.isLoading}
+            isError={complianceQuery.isError}
+            onRetry={() => complianceQuery.refetch()}
+          />
+        ) : effectiveTab === 'vitals' ? (
+          <VitalsTab
+            caseId={patient.caseId}
+            patientName={patientName(patient)}
+            history={vitalsQuery.data}
+            isLoading={vitalsQuery.isLoading}
+            isError={vitalsQuery.isError}
+            onRetry={() => vitalsQuery.refetch()}
+            autoOpenForm={autoOpenVitalsForm}
+            onAutoOpenConsumed={() => setAutoOpenVitalsForm(false)}
+          />
+        ) : effectiveTab === 'careObservation' ? (
+          <CareObservationTab
+            caseId={patient.caseId}
+            sheet={careObservationQuery.data}
+            isLoading={careObservationQuery.isLoading}
+            isError={careObservationQuery.isError}
+            onRetry={() => careObservationQuery.refetch()}
+          />
+        ) : (
+          <EndOfDayAssessmentTab
+            matrix={assessmentQuery.data}
+            isLoading={assessmentQuery.isLoading}
+            isError={assessmentQuery.isError}
+            onRetry={() => assessmentQuery.refetch()}
+            currentPod={patient.currentPod}
+          />
+        )}
       </div>
     </div>
   )

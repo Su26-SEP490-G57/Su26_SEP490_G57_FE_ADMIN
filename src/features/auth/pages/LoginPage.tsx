@@ -17,6 +17,7 @@ import { z } from 'zod'
 import { ROUTES } from '../../../constants/routes'
 import { tokenStorage, useAuthStore } from '../store/authStore'
 import { api } from '../../../lib/api'
+import { mapBackendRole } from '../roleMap'
 import type { LoginResponse } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -88,14 +89,27 @@ export function LoginPage() {
         password: values.password,
       })
 
+      // Backend trả `roles: string[]` — lấy vai trò chính (phần tử đầu) rồi
+      // dịch sang union của FE trước khi lưu.
+      const role = mapBackendRole(data.user.roles[0])
+
       // Lưu tokens và user profile
       setAccessToken(data.accessToken)
-      setUserProfile(data.user)
+      setUserProfile({
+        id: data.user.id,
+        username: data.user.username,
+        fullName: data.user.fullName,
+        role,
+      })
       tokenStorage.setRefreshToken(data.refreshToken)
 
       navigate(from, { replace: true })
-    } catch {
-      setAuthError('Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.')
+    } catch (err) {
+      setAuthError(
+        err instanceof Error && err.message.startsWith('Vai trò không được hỗ trợ')
+          ? 'Tài khoản này không có quyền truy cập hệ thống quản trị.'
+          : 'Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.',
+      )
     } finally {
       setIsLoading(false)
     }

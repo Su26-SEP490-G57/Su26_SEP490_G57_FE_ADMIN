@@ -2,8 +2,11 @@ import { useMemo, useState } from 'react'
 import { useHeaderActions } from '../../../layouts/main-layout/HeaderContext'
 import { groupPatientsByRoom } from '../../../lib/patientGrouping'
 import { matchesQuery } from '../../../lib/vietnameseSearch'
+import { useRole } from '../../auth/hooks/useRole'
+import { useAssignedCareObservationSheet } from '../../care-observation/api/careObservation'
 import { useOperationTypes, usePatients } from '../../patients/api/patientApi'
 import type { PatientListItem } from '../../patients/types'
+import { useVitalsHistory } from '../../vitals/api/vitals'
 import {
   useAnalyticsOverview,
   useAssessmentMatrix,
@@ -33,13 +36,14 @@ function patientSearchHaystack(p: PatientListItem): string {
 
 // Trang "Thống kê dữ liệu" (SEP490-377) — biểu đồ tổng quan (xu hướng triệu
 // chứng + tỷ lệ tuân thủ) ở trên, danh sách người bệnh gom theo phòng ở giữa
-// (có thể lọc + tìm kiếm), và panel chi tiết 3-tab (ma trận hồi phục / tuân
-// thủ / đánh giá cuối ngày) cho 1 người bệnh được chọn ở dưới.
+// (có thể lọc + tìm kiếm), và panel chi tiết nhiều tab cho 1 người bệnh được
+// chọn ở dưới.
 //
 // Chỉ ghép nối (composition) — mọi logic hiển thị/tính toán nằm trong các
 // component/hook con ở cùng feature folder.
 export function AnalyticsPage() {
   const filters = useAnalyticsFilters()
+  const role = useRole()
   const [search, setSearch] = useState('')
   useAnalyticsRealtime()
 
@@ -93,6 +97,8 @@ export function AnalyticsPage() {
   const recoveryQuery = useRecoveryMatrix(filters.selectedCaseId)
   const complianceQuery = useComplianceStats(filters.selectedCaseId)
   const assessmentQuery = useAssessmentMatrix(filters.selectedCaseId)
+  const vitalsQuery = useVitalsHistory(filters.selectedCaseId)
+  const careObservationQuery = useAssignedCareObservationSheet(filters.selectedCaseId)
 
   useHeaderActions(
     useMemo(
@@ -175,6 +181,7 @@ export function AnalyticsPage() {
         isOutsideFilter={isOutsideFilter}
         activeTab={filters.activeTab}
         onTabChange={filters.setActiveTab}
+        role={role}
         recovery={{
           data: recoveryQuery.data,
           isLoading: recoveryQuery.isLoading,
@@ -192,6 +199,18 @@ export function AnalyticsPage() {
           isLoading: assessmentQuery.isLoading,
           isError: assessmentQuery.isError,
           refetch: () => assessmentQuery.refetch(),
+        }}
+        vitals={{
+          data: vitalsQuery.data,
+          isLoading: vitalsQuery.isLoading,
+          isError: vitalsQuery.isError,
+          refetch: () => vitalsQuery.refetch(),
+        }}
+        careObservation={{
+          data: careObservationQuery.data,
+          isLoading: careObservationQuery.isLoading,
+          isError: careObservationQuery.isError,
+          refetch: () => careObservationQuery.refetch(),
         }}
       />
     </div>

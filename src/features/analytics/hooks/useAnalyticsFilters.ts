@@ -2,9 +2,16 @@ import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { DetailTabId } from '../types'
 
-const DEFAULT_TAB: DetailTabId = 'recovery'
+const DEFAULT_TAB: DetailTabId = 'overview'
 
-const VALID_TABS: DetailTabId[] = ['recovery', 'compliance', 'assessment']
+const VALID_TABS: DetailTabId[] = [
+  'overview',
+  'recovery',
+  'compliance',
+  'assessment',
+  'vitals',
+  'careObservation',
+]
 
 function isDetailTab(value: string | null): value is DetailTabId {
   return value !== null && (VALID_TABS as string[]).includes(value)

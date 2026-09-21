@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getPatients, updateDietLevel, updatePodLock } from '../api/patientApi'
-import { PatientDetailPanel } from '../components/PatientDetailPanel'
+import { useRole } from '../../auth/hooks/useRole'
+import { PatientDetailPanel, type VitalsQuickIntent } from '../components/PatientDetailPanel'
 import { PatientFormModal } from '../components/PatientFormModal'
 import { getOperationTypes } from '../api/patientApi'
 import { HoldReasonModal } from '../components/HoldReasonModal'
@@ -70,8 +71,10 @@ function isGreenPatientReadyToHide(patient: PatientListItem) {
 }
 
 export function PatientPage() {
+  const role = useRole()
   const [isAddingPatient, setIsAddingPatient] = useState(false)
   const [selectedDetailPatient, setSelectedDetailPatient] = useState<PatientListItem | null>(null)
+  const [vitalsIntent, setVitalsIntent] = useState<VitalsQuickIntent | null>(null)
   const [activeLevels, setActiveLevels] = useState<RiskLevel[]>(['red', 'yellow', 'green'])
   const [hoveredPatient, setHoveredPatient] = useState<PatientListItem | null>(null)
   const [pendingClinicalAction, setPendingClinicalAction] = useState<PendingClinicalAction | null>(
@@ -80,6 +83,7 @@ export function PatientPage() {
   const [hoverPosition, setHoverPosition] = useState({ left: 0, top: 0 })
   const [isUpdating, setIsUpdating] = useState(false)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const vitalsIntentCounter = useRef(0)
 
   const { data: response, refetch: refetchPatients } = useQuery({
     queryKey: ['patients'],
@@ -196,6 +200,17 @@ export function PatientPage() {
     if (dietLevel === patient.currentDietLevel) return
     clearHoverTimer()
     setPendingClinicalAction({ type: 'diet-level-change', patient, dietLevel })
+  }
+
+  // Mở panel chi tiết ngay ở tab "Chỉ số" với form ghi nhận đã mở sẵn.
+  // `token` luôn là giá trị MỚI (kể cả bấm lại trên đúng người bệnh đang mở)
+  // để PatientDetailPanel biết đây là 1 yêu cầu mới cần áp dụng lại.
+  function handleQuickVitals(patient: PatientListItem) {
+    clearHoverTimer()
+    setHoveredPatient(null)
+    setSelectedDetailPatient(patient)
+    vitalsIntentCounter.current += 1
+    setVitalsIntent({ caseId: patient.caseId, token: vitalsIntentCounter.current })
   }
 
   return (
@@ -392,6 +407,17 @@ export function PatientPage() {
               ))}
             </select>
           </div>
+          {(role === 'nurse' || role === 'head_nurse' || role === 'doctor') && (
+            <div className="p-2 border-t border-slate-100 bg-white">
+              <button
+                onClick={() => handleQuickVitals(hoveredPatient)}
+                className="flex w-full items-center justify-center gap-1 py-1 text-[11px] font-bold rounded transition-colors bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+              >
+                <span className="material-symbols-outlined text-[14px]">monitor_heart</span>
+                Điền chỉ số sinh tồn
+              </button>
+            </div>
+          )}
           <div className="p-2 border-t border-slate-100 bg-white">
             <button
               disabled={isUpdating}
@@ -410,7 +436,11 @@ export function PatientPage() {
 
       <PatientDetailPanel
         patient={selectedDetailPatient}
-        onClose={() => setSelectedDetailPatient(null)}
+        onClose={() => {
+          setSelectedDetailPatient(null)
+          setVitalsIntent(null)
+        }}
+        vitalsIntent={vitalsIntent}
       />
 
       <HoldReasonModal

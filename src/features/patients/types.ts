@@ -1,3 +1,5 @@
+import type { CareLevel } from '../treatment-orders/types'
+
 export interface PatientListItem {
   caseId: string
   fullName?: string | null
@@ -31,6 +33,11 @@ export interface PatientListItem {
   lastAssessmentTime?: string | null // Thời gian đánh giá gần nhất (ISO datetime)
   erasCompleted: boolean // Đã hoàn thành ERAS (đạt POD tối đa)
   erasCompletedDate?: string | null // Ngày hoàn thành ERAS (ISO datetime)
+
+  // Mức chăm sóc đang áp dụng (do bác sĩ chỉ định) — KHÁC với `level`
+  // (Red/Yellow/Green). null = chưa có chỉ định điều trị nào.
+  activeCareLevel?: CareLevel | null
+  activeTreatmentOrderId?: number | null
 
   account: {
     id: number

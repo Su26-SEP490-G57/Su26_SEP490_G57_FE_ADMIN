@@ -7,7 +7,13 @@
 // shape sang các type FE-friendly này. Nếu backend đổi hình dạng, CHỈ cần sửa
 // mapper, không cần đụng vào component nào dùng các type này.
 
-export type DetailTabId = 'recovery' | 'compliance' | 'assessment'
+export type DetailTabId =
+  | 'overview'
+  | 'recovery'
+  | 'compliance'
+  | 'assessment'
+  | 'vitals'
+  | 'careObservation'
 
 // ---------------------------------------------------------------------------
 // Overview — biểu đồ triệu chứng (stacked area) + biểu đồ tuân thủ (donut)
