@@ -1,6 +1,14 @@
 import axios from 'axios'
 import { tokenStorage, useAuthStore } from '../features/auth/store/authStore'
 
+// Cờ tuỳ chọn cho 1 request cụ thể: bỏ qua hành vi "reload cứng về /login"
+// của interceptor 401 bên dưới (dùng cho lần refresh âm thầm lúc khởi động app).
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    skipAuthRedirect?: boolean
+  }
+}
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api',
 })
@@ -32,10 +40,18 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // Không refresh nếu chính request refresh bị 401 (refresh token hết hạn)
+    // Không refresh nếu chính request refresh bị 401 (refresh token hết hạn).
+    // `skipAuthRedirect` đánh dấu lần refresh ÂM THẦM lúc khởi động app
+    // (AuthProvider.restoreSession) — nơi này TỰ xử lý lỗi (clearSession, không
+    // điều hướng) nên KHÔNG được ép reload cứng ở đây. Nếu ép reload, một
+    // refreshToken cũ/hỏng còn sót trong localStorage có thể khiến trang bị
+    // reload đúng lúc người dùng vừa bấm đăng nhập, xoá mất phiên đăng nhập
+    // mới toanh — nhìn như "bấm đăng nhập lại quay về trang đăng nhập".
     if (originalRequest.url?.includes('/auth/refresh')) {
-      useAuthStore.getState().clearSession()
-      window.location.href = '/login'
+      if (!originalRequest.skipAuthRedirect) {
+        useAuthStore.getState().clearSession()
+        window.location.href = '/login'
+      }
       return Promise.reject(error)
     }
 

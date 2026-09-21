@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../features/auth/context/AuthContext'
+import { useRole } from '../../features/auth/hooks/useRole'
 import { useAuthStore } from '../../features/auth/store/authStore'
 import { HeaderProvider, useHeaderContext } from './HeaderContext'
-import { DEV_ROLE, NAV_ITEMS } from './nav-config'
+import { NAV_ITEMS, ROLE_LABELS } from './nav-config'
 
 export function MainLayout() {
   return (
@@ -17,8 +18,9 @@ function MainLayoutContent() {
   const { userProfile } = useAuthStore()
   const navigate = useNavigate()
   const { actions } = useHeaderContext()
+  const role = useRole()
 
-  const visibleNavItems = NAV_ITEMS.filter((item) => item.roles.includes(DEV_ROLE))
+  const visibleNavItems = NAV_ITEMS.filter((item) => role !== null && item.roles.includes(role))
 
   // Hiện tại không thực sự cần currentItem cho Title nữa vì Tab đang active đã thể hiện điều đó
   // const currentItem = NAV_ITEMS.find((item) => item.path === location.pathname)
@@ -56,7 +58,7 @@ function MainLayoutContent() {
                 {userProfile?.fullName ?? userProfile?.username ?? 'Nhân viên'}
               </p>
               <p className="text-xs font-medium text-slate-500">
-                {DEV_ROLE === 'head_nurse' ? 'Điều dưỡng trưởng' : 'Quản trị viên'}
+                {role ? ROLE_LABELS[role] : '--'}
               </p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-blue-50 text-sm font-bold text-blue-700">

@@ -6,6 +6,7 @@ export const ROUTES = {
   PROTOCOL_NUTRITION: '/protocols/:protocolId/nutrition',
   QUESTIONS: '/protocols/questions',
   ANALYTICS: '/analytics',
+  RECOVERY: '/recovery',
   NURSES: '/nurses',
   LOGS: '/logs',
   SETTINGS: '/settings',
