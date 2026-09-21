@@ -205,7 +205,7 @@ export function PatientSearchBar({ patients, onSelect }: PatientSearchBarProps) 
       )}
 
       {showDropdown && (
-        <div className="absolute left-0 right-0 top-full mt-2 z-[70] max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
+        <div className="absolute left-0 right-0 top-full mt-2 z-[100] max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
           {results.length === 0 ? (
             <div className="px-4 py-6 text-center text-sm text-slate-400">
               Không tìm thấy bệnh nhân phù hợp

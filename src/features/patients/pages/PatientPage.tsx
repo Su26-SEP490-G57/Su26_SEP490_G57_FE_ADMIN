@@ -200,7 +200,7 @@ export function PatientPage() {
 
   return (
     <div className="flex h-full flex-col bg-slate-50 relative">
-      <div className="flex border-b border-slate-200 bg-white p-3 items-center justify-between shadow-sm z-10 w-full">
+      <div className="flex border-b border-slate-200 bg-white p-3 items-center justify-between shadow-sm z-30 w-full">
         <div className="flex items-center gap-3">
           <button
             type="button"
