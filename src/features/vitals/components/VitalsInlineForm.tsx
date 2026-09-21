@@ -11,18 +11,22 @@ interface VitalsInlineFormProps {
   onClose: () => void
 }
 
-// Ngưỡng hợp lệ — là "sanity bound" kỹ thuật, ÁP DỤNG GIỐNG HỆT ở backend và
-// app mobile (xem plan SEP490-421). Cần bác sĩ lâm sàng rà lại sau.
-const RANGES = {
-  pulseBpm: { min: 30, max: 220 },
-  bloodPressureSystolic: { min: 60, max: 250 },
-  bloodPressureDiastolic: { min: 30, max: 150 },
-  temperatureCelsius: { min: 30, max: 43 },
-  respiratoryRate: { min: 4, max: 60 },
-  spo2Percent: { min: 0, max: 100 },
-} as const
+// Ngưỡng hợp lệ — là "sanity bound" kỹ thuật, ÁP DỤNG GIỐNG HỆT ở backend
+// (xem plan SEP490-421). Huyết áp và nhịp thở KHÔNG có giới hạn min/max theo
+// yêu cầu — chỉ còn bắt buộc nhập + phải là số nguyên.
+type NumericField =
+  | 'pulseBpm'
+  | 'bloodPressureSystolic'
+  | 'bloodPressureDiastolic'
+  | 'temperatureCelsius'
+  | 'respiratoryRate'
+  | 'spo2Percent'
 
-type NumericField = keyof typeof RANGES
+const RANGES: Partial<Record<NumericField, { min: number; max: number }>> = {
+  pulseBpm: { min: 30, max: 220 },
+  temperatureCelsius: { min: 30, max: 43 },
+  spo2Percent: { min: 0, max: 100 },
+}
 
 const FIELD_META: {
   name: NumericField
@@ -30,28 +34,30 @@ const FIELD_META: {
   unit: string
   placeholder: string
   step?: string
+  maxDecimalPlaces?: number
 }[] = [
   { name: 'pulseBpm', label: 'Mạch', unit: 'lần/phút', placeholder: '30 - 220' },
   {
     name: 'bloodPressureSystolic',
     label: 'Huyết áp tâm thu',
     unit: 'mmHg',
-    placeholder: '60 - 250',
+    placeholder: 'mmHg',
   },
   {
     name: 'bloodPressureDiastolic',
     label: 'Huyết áp tâm trương',
     unit: 'mmHg',
-    placeholder: '30 - 150',
+    placeholder: 'mmHg',
   },
   {
     name: 'temperatureCelsius',
     label: 'Nhiệt độ',
     unit: '°C',
-    placeholder: '30.0 - 43.0',
-    step: '0.1',
+    placeholder: '30.00 - 43.00',
+    step: '0.01',
+    maxDecimalPlaces: 2,
   },
-  { name: 'respiratoryRate', label: 'Nhịp thở', unit: 'lần/phút', placeholder: '4 - 60' },
+  { name: 'respiratoryRate', label: 'Nhịp thở', unit: 'lần/phút', placeholder: 'lần/phút' },
   { name: 'spo2Percent', label: 'SpO₂', unit: '%', placeholder: '0 - 100' },
 ]
 
@@ -85,12 +91,24 @@ const vitalsFormSchema = z
         continue
       }
 
-      if (num < range.min || num > range.max) {
+      if (range && (num < range.min || num > range.max)) {
         ctx.addIssue({
           code: 'custom',
           path: [meta.name],
           message: `${meta.label} phải trong khoảng ${range.min} - ${range.max} ${meta.unit}`,
         })
+        continue
+      }
+
+      if (meta.maxDecimalPlaces !== undefined) {
+        const decimals = raw.includes('.') ? raw.split('.')[1].length : 0
+        if (decimals > meta.maxDecimalPlaces) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [meta.name],
+            message: `${meta.label} tối đa ${meta.maxDecimalPlaces} chữ số thập phân`,
+          })
+        }
       }
     }
 
