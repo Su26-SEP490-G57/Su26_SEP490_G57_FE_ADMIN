@@ -4,6 +4,7 @@ import { getPatients, updateDietLevel, updatePodLock } from '../api/patientApi'
 import { useRole } from '../../auth/hooks/useRole'
 import { PatientDetailPanel, type VitalsQuickIntent } from '../components/PatientDetailPanel'
 import { PatientFormModal } from '../components/PatientFormModal'
+import { ImportPatientsModal } from '../components/ImportPatientsModal'
 import { getOperationTypes } from '../api/patientApi'
 import { HoldReasonModal } from '../components/HoldReasonModal'
 import { PatientSearchBar } from '../components/PatientSearchBar'
@@ -73,6 +74,7 @@ function isGreenPatientReadyToHide(patient: PatientListItem) {
 export function PatientPage() {
   const role = useRole()
   const [isAddingPatient, setIsAddingPatient] = useState(false)
+  const [isImportingPatients, setIsImportingPatients] = useState(false)
   const [selectedDetailPatient, setSelectedDetailPatient] = useState<PatientListItem | null>(null)
   const [vitalsIntent, setVitalsIntent] = useState<VitalsQuickIntent | null>(null)
   const [activeLevels, setActiveLevels] = useState<RiskLevel[]>(['red', 'yellow', 'green'])
@@ -224,6 +226,16 @@ export function PatientPage() {
           >
             + Bệnh nhân mới
           </button>
+          {role === 'head_nurse' && (
+            <button
+              type="button"
+              onClick={() => setIsImportingPatients(true)}
+              className="flex items-center gap-1.5 rounded border border-blue-600 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+            >
+              <span className="material-symbols-outlined text-[16px]">cloud_download</span>
+              Nhập từ HIS
+            </button>
+          )}
           <div className="w-72">
             <PatientSearchBar
               patients={patients}
@@ -479,6 +491,11 @@ export function PatientPage() {
         onClose={() => setIsAddingPatient(false)}
         onSaved={refetchPatients}
         operationTypes={operationTypes}
+      />
+      <ImportPatientsModal
+        isOpen={isImportingPatients}
+        onClose={() => setIsImportingPatients(false)}
+        onImported={refetchPatients}
       />
     </div>
   )

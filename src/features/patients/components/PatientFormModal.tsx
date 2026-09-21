@@ -420,12 +420,19 @@ export function PatientFormModal({
 
           {/* Mã + Họ tên */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Mã bệnh nhân">
+            <Field label="Mã bệnh nhân" required={!isEdit}>
               <input
-                disabled
-                placeholder="Hệ thống sẽ tự động cấp sau khi hoàn tất"
-                className={`${inputCls} bg-slate-50 cursor-not-allowed`}
+                {...register('caseId', {
+                  onChange: (e) =>
+                    setValue('caseId', e.target.value.toUpperCase(), { shouldValidate: true }),
+                })}
+                disabled={isEdit}
+                placeholder="Ví dụ: CASE-001"
+                className={inputCls}
               />
+              {errors.caseId && (
+                <p className="mt-1 text-xs text-red-500">{errors.caseId.message}</p>
+              )}
             </Field>
             <Field label="Họ tên đầy đủ" required>
               <input {...register('fullName')} className={inputCls} />
