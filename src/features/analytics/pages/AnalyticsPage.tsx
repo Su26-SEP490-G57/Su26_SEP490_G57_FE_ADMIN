@@ -3,7 +3,6 @@ import { useHeaderActions } from '../../../layouts/main-layout/HeaderContext'
 import { groupPatientsByRoom } from '../../../lib/patientGrouping'
 import { matchesQuery } from '../../../lib/vietnameseSearch'
 import { useRole } from '../../auth/hooks/useRole'
-import { useAssignedCareObservationSheet } from '../../care-observation/api/careObservation'
 import { useOperationTypes, usePatients } from '../../patients/api/patientApi'
 import type { PatientListItem } from '../../patients/types'
 import { useVitalsHistory } from '../../vitals/api/vitals'
@@ -97,7 +96,6 @@ export function AnalyticsPage() {
   const complianceQuery = useComplianceStats(filters.selectedCaseId)
   const assessmentQuery = useAssessmentMatrix(filters.selectedCaseId)
   const vitalsQuery = useVitalsHistory(filters.selectedCaseId)
-  const careObservationQuery = useAssignedCareObservationSheet(filters.selectedCaseId)
 
   useHeaderActions(
     useMemo(
@@ -195,12 +193,6 @@ export function AnalyticsPage() {
           isLoading: vitalsQuery.isLoading,
           isError: vitalsQuery.isError,
           refetch: () => vitalsQuery.refetch(),
-        }}
-        careObservation={{
-          data: careObservationQuery.data,
-          isLoading: careObservationQuery.isLoading,
-          isError: careObservationQuery.isError,
-          refetch: () => careObservationQuery.refetch(),
         }}
       />
     </div>

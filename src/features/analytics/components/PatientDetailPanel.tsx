@@ -1,9 +1,9 @@
 import { levelClasses, levelKey } from '../../../lib/levelColor'
 import { patientName } from '../../../lib/patientDisplay'
 import type { UserRole } from '../../../layouts/main-layout/nav-config'
-import { CareObservationTab } from '../../care-observation/components/CareObservationTab'
-import type { CareObservationSheet } from '../../care-observation/types'
+import { CareSheetsTab } from '../../care-observation/components/CareSheetsTab'
 import type { PatientListItem } from '../../patients/types'
+import { TreatmentSheetsTab } from '../../treatment-orders/components/TreatmentSheetsTab'
 import { VitalsTab } from '../../vitals/components/VitalsTab'
 import type { PaginatedVitalSigns } from '../../vitals/types'
 import type { AssessmentMatrix, ComplianceStats, DetailTabId, RecoveryMatrix } from '../types'
@@ -31,7 +31,6 @@ interface PatientDetailPanelProps {
   compliance: QueryState<ComplianceStats>
   assessment: QueryState<AssessmentMatrix>
   vitals: QueryState<PaginatedVitalSigns>
-  careObservation: QueryState<CareObservationSheet>
 }
 
 // `roles` không khai báo = mọi vai trò xem được panel này đều thấy tab đó.
@@ -43,7 +42,8 @@ const TABS: (TabSwitcherItem<DetailTabId> & { roles?: UserRole[] })[] = [
   { id: 'compliance', label: 'Tuân thủ' },
   { id: 'assessment', label: 'Đánh giá cuối ngày' },
   { id: 'vitals', label: 'Chỉ số' },
-  { id: 'careObservation', label: 'Phiếu theo dõi', roles: ['nurse'] },
+  { id: 'careObservation', label: 'Phiếu chăm sóc', roles: ['nurse', 'head_nurse', 'doctor'] },
+  { id: 'treatmentSheets', label: 'Phiếu điều trị' },
 ]
 
 // Shell chi tiết bệnh nhân: dòng header + TabSwitcher + body của tab đang
@@ -60,7 +60,6 @@ export function PatientDetailPanel({
   compliance,
   assessment,
   vitals,
-  careObservation,
 }: PatientDetailPanelProps) {
   const level = levelKey(patient?.level?.name)
   const classes = levelClasses(level)
@@ -141,13 +140,9 @@ export function PatientDetailPanel({
             onRetry={vitals.refetch}
           />
         ) : effectiveTab === 'careObservation' ? (
-          <CareObservationTab
-            caseId={patient.caseId}
-            sheet={careObservation.data}
-            isLoading={careObservation.isLoading}
-            isError={careObservation.isError}
-            onRetry={careObservation.refetch}
-          />
+          <CareSheetsTab caseId={patient.caseId} patientName={patientName(patient)} />
+        ) : effectiveTab === 'treatmentSheets' ? (
+          <TreatmentSheetsTab caseId={patient.caseId} patientName={patientName(patient)} />
         ) : (
           <EndOfDayAssessmentTab
             matrix={assessment.data}

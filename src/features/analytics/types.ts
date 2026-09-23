@@ -14,6 +14,7 @@ export type DetailTabId =
   | 'assessment'
   | 'vitals'
   | 'careObservation'
+  | 'treatmentSheets'
 
 // ---------------------------------------------------------------------------
 // Overview — biểu đồ triệu chứng (stacked area) + biểu đồ tuân thủ (donut)
