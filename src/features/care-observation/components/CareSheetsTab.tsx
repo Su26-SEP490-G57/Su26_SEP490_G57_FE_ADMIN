@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PdfDownloadButton } from '../../../components/PdfDownloadButton'
 import { AnalyticsEmptyState } from '../../analytics/components/AnalyticsEmptyState'
 import { RoleGuard } from '../../auth/components/RoleGuard'
 import { careLevelLabel } from '../../treatment-orders/types'
@@ -80,39 +81,54 @@ function FilledSections({
   )
 }
 
-function CareSheetCard({ sheet, form }: { sheet: CareSheet; form: CareSheetForm }) {
+function CareSheetCard({
+  sheet,
+  form,
+  caseId,
+}: {
+  sheet: CareSheet
+  form: CareSheetForm
+  caseId: string
+}) {
   const [isExpanded, setIsExpanded] = useState(false)
   const bySection = (group: CareSheetSection['group']) =>
     form.sections.filter((section) => section.group === group)
 
   return (
     <article className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <button
-        type="button"
-        onClick={() => setIsExpanded((value) => !value)}
-        className="flex w-full flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-3 text-left transition-colors hover:bg-slate-100"
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-[#00459a]">assignment</span>
-          <h5 className="text-sm font-bold text-slate-800">
-            {form.titles[sheet.sheetType] ?? 'Phiếu theo dõi và chăm sóc'} · Tờ số{' '}
-            {sheet.sheetNumber}
-          </h5>
-          {sheet.careLevel && (
-            <span className="rounded-full bg-[#00459a]/10 px-2 py-0.5 text-[11px] font-bold text-[#00459a]">
-              {careLevelLabel(sheet.careLevel)}
+      <div className="flex items-center gap-2 bg-slate-50 pr-4">
+        <button
+          type="button"
+          onClick={() => setIsExpanded((value) => !value)}
+          aria-expanded={isExpanded}
+          className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-slate-100"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-[#00459a]">assignment</span>
+            <h5 className="text-sm font-bold text-slate-800">
+              {form.titles[sheet.sheetType] ?? 'Phiếu theo dõi và chăm sóc'} · Tờ số{' '}
+              {sheet.sheetNumber}
+            </h5>
+            {sheet.careLevel && (
+              <span className="rounded-full bg-[#00459a]/10 px-2 py-0.5 text-[11px] font-bold text-[#00459a]">
+                {careLevelLabel(sheet.careLevel)}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>
+              {formatDateTime(sheet.recordedAt)} · {sheet.nurseName ?? '--'}
             </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span>
-            {formatDateTime(sheet.recordedAt)} · {sheet.nurseName ?? '--'}
-          </span>
-          <span className="material-symbols-outlined text-[18px]">
-            {isExpanded ? 'expand_less' : 'expand_more'}
-          </span>
-        </div>
-      </button>
+            <span className="material-symbols-outlined text-[18px]">
+              {isExpanded ? 'expand_less' : 'expand_more'}
+            </span>
+          </div>
+        </button>
+        <PdfDownloadButton
+          url={`/care-observation/patient/${encodeURIComponent(caseId)}/sheets/${sheet.sheetId}/pdf`}
+          fileName={`phieu-cham-soc-${caseId}-to-${sheet.sheetNumber}.pdf`}
+        />
+      </div>
 
       {isExpanded && (
         <div className="space-y-4 border-t border-slate-100 px-4 py-4">
@@ -194,7 +210,7 @@ export function CareSheetsTab({ caseId, patientName }: CareSheetsTabProps) {
       ) : (
         <div className="space-y-3">
           {sheets.map((sheet) => (
-            <CareSheetCard key={sheet.sheetId} sheet={sheet} form={data.form} />
+            <CareSheetCard key={sheet.sheetId} sheet={sheet} form={data.form} caseId={caseId} />
           ))}
         </div>
       )}
