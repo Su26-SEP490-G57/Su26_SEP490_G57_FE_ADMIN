@@ -1,34 +1,91 @@
 import type { CareLevel } from '../treatment-orders/types'
 
-export type CareObservationInputType = 'checkbox' | 'text' | 'number' | 'select'
+// "Phiếu theo dõi và chăm sóc" (MS: 38/BV1) — lưu ở HIS. Bố cục form do
+// backend định nghĩa DUY NHẤT một nơi và trả kèm prefill/danh sách, FE chỉ vẽ
+// theo `form.sections` — không hardcode danh sách trường ở đây.
+export type CareSheetType = 'LEVEL_1' | 'LEVEL_2_3'
 
-// 1 mục trong phiếu theo dõi chăm sóc. `value` là giá trị đã ghi nhận gần nhất
-// (chuỗi rỗng nếu chưa ghi) — backend lưu findings dưới dạng Record<string,string>.
-export interface CareObservationItem {
-  id: string
+export type CareSheetGroup = 'observation' | 'diagnosis' | 'intervention'
+
+export interface CareSheetField {
+  key: string
   label: string
-  inputType: CareObservationInputType
-  options?: string[]
-  value: string
+  multiline?: boolean
 }
 
-// Phiếu theo dõi đang mở của 1 bệnh nhân (backend gọi là "task" + template).
-// `id` chính là taskId dùng cho endpoint POST .../tasks/:taskId/entries.
-export interface CareObservationSheet {
-  id: number
-  caseId: string
+export interface CareSheetSection {
+  key: string
+  title: string
+  group: CareSheetGroup
+  fields: CareSheetField[]
+}
+
+export interface CareSheetForm {
+  formCode: string
+  legend: string
+  sections: CareSheetSection[]
+  titles: Record<CareSheetType, string>
+}
+
+// Khoá của `content` = `${section.key}.${field.key}`.
+export function contentKey(section: CareSheetSection, field: CareSheetField): string {
+  return `${section.key}.${field.key}`
+}
+
+export interface CareSheetPrefill {
+  sheetType: CareSheetType | null // null = bác sĩ chưa chỉ định mức chăm sóc
   careLevel: CareLevel | null
-  sheetType: string
-  items: CareObservationItem[]
-  isComplete: boolean
-  completedAt: string | null
+  sheetNumber: number
+  facility: string
+  department: string
+  caseId: string
+  patientName: string
+  age: number | null
+  gender: string | null
+  room: string | null
+  bed: string | null
+  diagnosis: string | null
+  nurseName: string
+  content: Record<string, string> // tự điền: chỉ số sinh tồn, cân nặng, BMI
+  latestVitalSignAt: string | null
+  form: CareSheetForm
 }
 
-// Payload gửi 1 lần ghi nhận. KHÔNG có người quan sát/thời điểm — server tự gán.
-// `caseId` chỉ dùng phía client để invalidate đúng query key.
-export interface SubmitCareObservationPayload {
+export interface CareSheet {
   sheetId: number
+  sheetNumber: number
+  sheetType: CareSheetType
+  careLevel: CareLevel | null
+  patientCode: string
+  patientName: string
+  facility: string | null
+  department: string | null
+  admissionNumber: string | null
+  age: number | null
+  gender: string | null
+  room: string | null
+  bed: string | null
+  diagnosis: string | null
+  hasAllergy: boolean | null
+  allergyNote: string | null
+  recordedAt: string
+  content: Record<string, string>
+  nurseName: string | null
+  createdAt: string
+}
+
+export interface CareSheetList {
+  sheets: CareSheet[]
+  form: CareSheetForm
+}
+
+// Phần hành chính (tờ số, họ tên, phòng...) + loại phiếu + điều dưỡng do
+// server tự gán — payload chỉ có phần điều dưỡng nhập.
+export interface CreateCareSheetPayload {
   caseId: string
-  entries: Record<string, string>
-  note?: string
+  recordedAt: string // ISO
+  admissionNumber?: string
+  hasAllergy?: boolean
+  allergyNote?: string
+  content: Record<string, string>
 }

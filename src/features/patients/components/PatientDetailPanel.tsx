@@ -15,9 +15,9 @@ import { RecoveryMatrixTab } from '../../analytics/components/RecoveryMatrixTab'
 import { TabSwitcher, type TabSwitcherItem } from '../../analytics/components/TabSwitcher'
 import type { DetailTabId } from '../../analytics/types'
 import { useRole } from '../../auth/hooks/useRole'
-import { useAssignedCareObservationSheet } from '../../care-observation/api/careObservation'
-import { CareObservationTab } from '../../care-observation/components/CareObservationTab'
+import { CareSheetsTab } from '../../care-observation/components/CareSheetsTab'
 import { useVitalsHistory } from '../../vitals/api/vitals'
+import { TreatmentSheetsTab } from '../../treatment-orders/components/TreatmentSheetsTab'
 import { VitalsTab } from '../../vitals/components/VitalsTab'
 import type { PatientListItem } from '../types'
 
@@ -45,7 +45,8 @@ const TABS: (TabSwitcherItem<DetailTabId> & { roles?: UserRole[] })[] = [
   { id: 'compliance', label: 'Tuân thủ' },
   { id: 'assessment', label: 'Đánh giá cuối ngày' },
   { id: 'vitals', label: 'Chỉ số' },
-  { id: 'careObservation', label: 'Phiếu theo dõi', roles: ['nurse'] },
+  { id: 'careObservation', label: 'Phiếu chăm sóc', roles: ['nurse', 'head_nurse', 'doctor'] },
+  { id: 'treatmentSheets', label: 'Phiếu điều trị' },
 ]
 
 export function PatientDetailPanel({ patient, onClose, vitalsIntent }: PatientDetailPanelProps) {
@@ -57,7 +58,7 @@ export function PatientDetailPanel({ patient, onClose, vitalsIntent }: PatientDe
   // Đổi bệnh nhân đang xem → luôn quay về tab "Tổng quan", TRỪ KHI có 1 ý
   // định "Chỉ số" chưa áp dụng (nút tắt "Điền chỉ số sinh tồn") — lúc đó nhảy
   // thẳng tới tab Chỉ số và báo cho VitalsTab tự mở sẵn form. Vẫn theo đúng
-  // convention "điều chỉnh state ngay trong render" đã dùng ở CareObservationTab.
+  // convention "điều chỉnh state ngay trong render" của React.
   const [loadedCaseId, setLoadedCaseId] = useState<string | null>(null)
   if (patient) {
     const hasUnappliedIntent =
@@ -82,7 +83,6 @@ export function PatientDetailPanel({ patient, onClose, vitalsIntent }: PatientDe
   const complianceQuery = useComplianceStats(caseId)
   const assessmentQuery = useAssessmentMatrix(caseId)
   const vitalsQuery = useVitalsHistory(caseId)
-  const careObservationQuery = useAssignedCareObservationSheet(caseId)
 
   if (!patient) return null
 
@@ -151,13 +151,9 @@ export function PatientDetailPanel({ patient, onClose, vitalsIntent }: PatientDe
             onAutoOpenConsumed={() => setAutoOpenVitalsForm(false)}
           />
         ) : effectiveTab === 'careObservation' ? (
-          <CareObservationTab
-            caseId={patient.caseId}
-            sheet={careObservationQuery.data}
-            isLoading={careObservationQuery.isLoading}
-            isError={careObservationQuery.isError}
-            onRetry={() => careObservationQuery.refetch()}
-          />
+          <CareSheetsTab caseId={patient.caseId} patientName={patientName(patient)} />
+        ) : effectiveTab === 'treatmentSheets' ? (
+          <TreatmentSheetsTab caseId={patient.caseId} patientName={patientName(patient)} />
         ) : (
           <EndOfDayAssessmentTab
             matrix={assessmentQuery.data}

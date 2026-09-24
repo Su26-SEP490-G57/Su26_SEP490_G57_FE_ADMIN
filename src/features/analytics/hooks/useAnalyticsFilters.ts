@@ -11,6 +11,7 @@ const VALID_TABS: DetailTabId[] = [
   'assessment',
   'vitals',
   'careObservation',
+  'treatmentSheets',
 ]
 
 function isDetailTab(value: string | null): value is DetailTabId {

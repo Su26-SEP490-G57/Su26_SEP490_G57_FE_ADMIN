@@ -87,7 +87,7 @@ export function OverviewTab({ patient }: OverviewTabProps) {
               {levelLabel}
             </p>
             <p className="mt-0.5 text-xs text-slate-400">
-              Do bác sĩ chỉ định qua Phiếu chỉ định điều trị — khác với mức độ nguy cơ
+              Do bác sĩ chỉ định qua Phiếu theo dõi điều trị — khác với mức độ nguy cơ
               (Đỏ/Vàng/Xanh)
             </p>
           </div>
@@ -100,7 +100,7 @@ export function OverviewTab({ patient }: OverviewTabProps) {
             className="flex items-center justify-center gap-1.5 self-start rounded-xl bg-[#00459a] px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition-all hover:bg-blue-700 hover:shadow-blue-700/20 sm:self-auto"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
-            Tạo chỉ định điều trị
+            Thêm phiếu theo dõi điều trị
           </button>
         </RoleGuard>
       </div>
