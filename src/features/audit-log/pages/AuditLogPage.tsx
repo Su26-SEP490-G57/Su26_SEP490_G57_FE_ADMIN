@@ -17,11 +17,8 @@ export function AuditLogPage() {
 
   // Real-time WebSocket connection
   const { isConnected } = useAuditLogsRealtime({
-    optimistic: true,
     onNewLog: (log) => {
       console.log('[AuditLog] New log received:', log)
-      // Optional: Show toast notification
-      // toast.info(`New ${log.action} action by ${log.userFullName || 'Unknown'}`)
     },
   })
 
