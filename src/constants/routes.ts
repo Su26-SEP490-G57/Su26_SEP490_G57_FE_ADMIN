@@ -9,5 +9,6 @@ export const ROUTES = {
   RECOVERY: '/recovery',
   NURSES: '/nurses',
   LOGS: '/logs',
+  AUDIT_LOGS: '/audit-logs',
   SETTINGS: '/settings',
 } as const

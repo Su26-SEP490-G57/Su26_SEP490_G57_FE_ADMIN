@@ -5,6 +5,7 @@ import {
   useAssignNurseToRoom,
   useUnassignNurseFromRoom,
 } from '../../nurses/api/nurses'
+import { useHasRole } from '../../auth/hooks/useRole'
 
 interface NurseAssignmentCellProps {
   roomCode: string
@@ -40,6 +41,11 @@ export function NurseAssignmentCell({ roomCode }: NurseAssignmentCellProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  // Check if current user can view or edit nurse assignments
+  // Backend returns 'Head_Nurse', 'Doctor', 'Nurse' (from roles array)
+  const canView = useHasRole('nurse', 'head_nurse', 'doctor')
+  const canEdit = useHasRole('head_nurse', 'doctor')
+
   const { data: assignedNurseIds = [] } = useRoomAssignment(roomCode)
   const { data: nursesResponse } = useNurses({ limit: 50 })
   const assignMutation = useAssignNurseToRoom()
@@ -51,7 +57,9 @@ export function NurseAssignmentCell({ roomCode }: NurseAssignmentCellProps) {
   const isPending = assignMutation.isPending || unassignMutation.isPending
 
   // Filter nurses based on search query
-  const filteredNurses = nurses.filter((n) =>
+  // If user can only view (not edit), show only assigned nurses
+  const nursesToShow = canEdit ? nurses : assignedNurses
+  const filteredNurses = nursesToShow.filter((n) =>
     n.fullName.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
@@ -93,7 +101,7 @@ export function NurseAssignmentCell({ roomCode }: NurseAssignmentCellProps) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-100 transition-colors text-xs w-full text-left min-h-[32px]"
-        disabled={isPending}
+        disabled={isPending || !canView}
       >
         {assignedNurses.length > 0 ? (
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -122,12 +130,14 @@ export function NurseAssignmentCell({ roomCode }: NurseAssignmentCellProps) {
         ) : (
           <span className="text-slate-400 italic">Chưa phân công</span>
         )}
-        <span className="material-symbols-outlined text-[14px] text-slate-400 flex-shrink-0">
-          {isOpen ? 'expand_less' : 'expand_more'}
-        </span>
+        {canView && (
+          <span className="material-symbols-outlined text-[14px] text-slate-400 flex-shrink-0">
+            {isOpen ? 'expand_less' : 'expand_more'}
+          </span>
+        )}
       </button>
 
-      {isOpen && (
+      {isOpen && canView && (
         <div className="absolute right-0 top-full mt-1 z-[100] w-64 max-h-80 rounded-lg border border-slate-200 bg-white shadow-xl flex flex-col">
           {/* Header with search and unassign all */}
           <div className="p-2 border-b border-slate-200 space-y-2">
@@ -143,7 +153,7 @@ export function NurseAssignmentCell({ roomCode }: NurseAssignmentCellProps) {
                 search
               </span>
             </div>
-            {assignedNurses.length > 0 && (
+            {canEdit && assignedNurses.length > 0 && (
               <button
                 type="button"
                 onClick={handleUnassignAll}
@@ -172,13 +182,15 @@ export function NurseAssignmentCell({ roomCode }: NurseAssignmentCellProps) {
                       <li key={nurse.id}>
                         <button
                           type="button"
-                          onClick={() => handleToggleAssignment(nurse.id, isAssigned)}
-                          disabled={isPending}
+                          onClick={() => canEdit && handleToggleAssignment(nurse.id, isAssigned)}
+                          disabled={isPending || !canEdit}
                           className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
                             isAssigned
-                              ? 'bg-blue-50 hover:bg-blue-100 cursor-pointer'
-                              : 'hover:bg-slate-50 cursor-pointer'
-                          } ${isPending ? 'opacity-50' : ''}`}
+                              ? 'bg-blue-50 hover:bg-blue-100'
+                              : canEdit
+                                ? 'hover:bg-slate-50'
+                                : ''
+                          } ${canEdit ? 'cursor-pointer' : 'cursor-default'} ${isPending ? 'opacity-50' : ''}`}
                         >
                           <div
                             className={`flex items-center justify-center w-8 h-8 rounded-full text-white text-xs font-semibold flex-shrink-0 ${getAvatarColor(nurse.fullName)}`}

@@ -241,7 +241,7 @@ export function PatientPage() {
           >
             + Bệnh nhân mới
           </button>
-          {role === 'head_nurse' && (
+          {(role === 'nurse' || role === 'head_nurse' || role === 'doctor') && (
             <button
               type="button"
               onClick={() => setIsImportingPatients(true)}

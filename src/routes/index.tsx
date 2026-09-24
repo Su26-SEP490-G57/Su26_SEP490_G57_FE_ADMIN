@@ -4,10 +4,14 @@ import { ROUTES } from '../constants/routes'
 import { AuthLayout } from '../layouts/auth-layout/AuthLayout'
 import { MainLayout } from '../layouts/main-layout/MainLayout'
 import { AuthGuard } from '../features/auth/components/AuthGuard'
+import { RoleGuard } from '../features/auth/components/RoleGuard'
 
 // Lazy-loaded page components (heavy routes)
 const AnalyticsPage = lazy(() =>
   import('../features/analytics/pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })),
+)
+const AuditLogPage = lazy(() =>
+  import('../features/audit-log/pages/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
 )
 const LoginPage = lazy(() =>
   import('../features/auth/pages/LoginPage').then((m) => ({ default: m.LoginPage })),
@@ -66,22 +70,32 @@ export function AppRoutes() {
 
       <Route element={<AuthGuard />}>
         <Route element={<MainLayout />}>
+          {/* Redirect dashboard về patients (temporary) */}
           <Route path={ROUTES.DASHBOARD} element={<Navigate to={ROUTES.PATIENTS} replace />} />
-          <Route path={ROUTES.PATIENTS} element={<LazyRoute Component={PatientPage} />} />
-          <Route path={ROUTES.PROTOCOLS} element={<LazyRoute Component={ProtocolsPage} />} />
-          <Route
-            path={ROUTES.PROTOCOL_NUTRITION}
-            element={<LazyRoute Component={NutritionGuidePage} />}
-          />
-          <Route
-            path={ROUTES.QUESTIONS}
-            element={<LazyRoute Component={QuestionManagementPage} />}
-          />
-          <Route path={ROUTES.ANALYTICS} element={<LazyRoute Component={AnalyticsPage} />} />
-          <Route path={ROUTES.RECOVERY} element={<LazyRoute Component={RecoveryPage} />} />
-          <Route path={ROUTES.NURSES} element={<LazyRoute Component={NurseManagementPage} />} />
-          <Route path={ROUTES.LOGS} element={<Placeholder title="Nhật ký hoạt động" />} />
-          <Route path={ROUTES.SETTINGS} element={<Placeholder title="Cài đặt" />} />
+
+          {/* ADMIN-only routes */}
+          <Route element={<RoleGuard roles={['admin']} />}>
+            <Route path={ROUTES.AUDIT_LOGS} element={<LazyRoute Component={AuditLogPage} />} />
+          </Route>
+
+          {/* Non-ADMIN routes (NURSE, HEAD_NURSE, DOCTOR) */}
+          <Route element={<RoleGuard roles={['nurse', 'head_nurse', 'doctor']} />}>
+            <Route path={ROUTES.PATIENTS} element={<LazyRoute Component={PatientPage} />} />
+            <Route path={ROUTES.PROTOCOLS} element={<LazyRoute Component={ProtocolsPage} />} />
+            <Route
+              path={ROUTES.PROTOCOL_NUTRITION}
+              element={<LazyRoute Component={NutritionGuidePage} />}
+            />
+            <Route
+              path={ROUTES.QUESTIONS}
+              element={<LazyRoute Component={QuestionManagementPage} />}
+            />
+            <Route path={ROUTES.ANALYTICS} element={<LazyRoute Component={AnalyticsPage} />} />
+            <Route path={ROUTES.RECOVERY} element={<LazyRoute Component={RecoveryPage} />} />
+            <Route path={ROUTES.NURSES} element={<LazyRoute Component={NurseManagementPage} />} />
+            <Route path={ROUTES.LOGS} element={<Placeholder title="Nhật ký hoạt động" />} />
+            <Route path={ROUTES.SETTINGS} element={<Placeholder title="Cài đặt" />} />
+          </Route>
         </Route>
       </Route>
 

@@ -59,17 +59,13 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // -------------------------------------------------------------------------
-  // Admin only
+  // Admin only - Chỉ có Audit Logs
   // -------------------------------------------------------------------------
-  { label: 'Tổng quan', icon: 'dashboard', path: '/dashboard', roles: ['admin'] },
-  { label: 'Quản lý điều dưỡng', icon: 'medical_services', path: '/nurses', roles: ['admin'] },
-  { label: 'Nhật ký hoạt động', icon: 'history', path: '/logs', roles: ['admin'] },
   {
-    label: 'Cài đặt hệ thống',
-    icon: 'settings',
-    path: '/settings',
+    label: 'Audit Logs',
+    icon: 'history',
+    path: '/audit-logs',
     roles: ['admin'],
-    dividerBefore: 'Cài đặt',
   },
 
   // -------------------------------------------------------------------------

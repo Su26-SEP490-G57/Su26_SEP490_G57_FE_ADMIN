@@ -18,12 +18,7 @@ interface RoleGuardProps {
 // RoleGuard dùng được 2 kiểu:
 //   <RoleGuard roles={['doctor']}><Outlet /></RoleGuard>   (bọc route)
 //   <RoleGuard roles={['nurse']} fallback={null}>...</RoleGuard>  (gate inline)
-export function RoleGuard({
-  roles,
-  children,
-  fallback,
-  redirectTo = ROUTES.DASHBOARD,
-}: RoleGuardProps) {
+export function RoleGuard({ roles, children, fallback, redirectTo }: RoleGuardProps) {
   const role = useRole()
   const location = useLocation()
   const allowed = role !== null && roles.includes(role)
@@ -35,6 +30,14 @@ export function RoleGuard({
   // fallback được truyền (kể cả null) → chế độ inline, không điều hướng.
   if (fallback !== undefined) {
     return <>{fallback}</>
+  }
+
+  // Nếu không có redirectTo, redirect dựa theo role
+  if (!redirectTo) {
+    if (role === 'admin') {
+      return <Navigate to={ROUTES.AUDIT_LOGS} state={{ from: location }} replace />
+    }
+    return <Navigate to={ROUTES.PATIENTS} state={{ from: location }} replace />
   }
 
   return <Navigate to={redirectTo} state={{ from: location }} replace />
