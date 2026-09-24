@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { translateError } from '../../../lib/errorTranslator'
+import { preventEnterSubmit } from '../../../lib/forms'
 import { careLevelLabel } from '../../treatment-orders/types'
 import { useCareSheetPrefill, useCreateCareSheet } from '../api/careObservation'
 import {
@@ -57,19 +58,26 @@ function FieldInput({
   value: string
   onChange: (value: string) => void
 }) {
+  // Mọi ô đều là <textarea> tự giãn theo nội dung: Enter luôn xuống dòng, kể
+  // cả ô ngắn (ô ngắn chỉ bắt đầu từ 1 dòng).
   if (field.multiline) {
     return (
       <textarea
         rows={2}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={inputClass}
+        className={`${inputClass} field-sizing-content min-h-[4.5rem] resize-y`}
       />
     )
   }
   return (
-    <div className="flex items-center gap-1">
-      <input value={value} onChange={(e) => onChange(e.target.value)} className={inputClass} />
+    <div className="flex items-start gap-1">
+      <textarea
+        rows={1}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${inputClass} field-sizing-content resize-none`}
+      />
       {QUICK_SYMBOLS.map((symbol) => (
         <button
           key={symbol}
@@ -200,6 +208,7 @@ function CareSheetForm({
   return (
     <form
       onSubmit={onSubmit}
+      onKeyDown={preventEnterSubmit}
       className="custom-scrollbar max-h-[80vh] space-y-4 overflow-y-auto p-6"
     >
       {submitError && (

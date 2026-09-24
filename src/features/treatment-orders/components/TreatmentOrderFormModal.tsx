@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { translateError } from '../../../lib/errorTranslator'
+import { preventEnterSubmit } from '../../../lib/forms'
 import { DiseaseAutocomplete } from '../../patients/components/DiseaseAutocomplete'
 import { useCreateTreatmentOrder, useTreatmentSheetPrefill } from '../api/treatmentOrders'
 import { CARE_LEVELS, CARE_LEVEL_DESCRIPTIONS, CARE_LEVEL_LABELS, type CareLevel } from '../types'
@@ -217,6 +218,7 @@ export function TreatmentOrderFormModal({
         ) : (
           <form
             onSubmit={handleSubmit(onSubmit)}
+            onKeyDown={preventEnterSubmit}
             className="custom-scrollbar max-h-[80vh] space-y-4 overflow-y-auto p-6"
           >
             {submitError && (

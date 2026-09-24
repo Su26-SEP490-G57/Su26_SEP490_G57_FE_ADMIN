@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PdfDownloadButton } from '../../../components/PdfDownloadButton'
 import { AnalyticsEmptyState } from '../../analytics/components/AnalyticsEmptyState'
 import { RoleGuard } from '../../auth/components/RoleGuard'
 import { useTreatmentSheets } from '../api/treatmentOrders'
@@ -33,7 +34,7 @@ function HeaderItem({ label, value }: { label: string; value: string | number | 
 
 // Một phiếu, trình bày giống bản giấy: phần hành chính phía trên, bảng
 // Thời gian | Diễn biến bệnh | Chỉ định phía dưới.
-function TreatmentSheetCard({ sheet }: { sheet: TreatmentSheet }) {
+function TreatmentSheetCard({ sheet, caseId }: { sheet: TreatmentSheet; caseId: string }) {
   return (
     <article className="overflow-hidden rounded-xl border border-slate-200 bg-white">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
@@ -46,9 +47,15 @@ function TreatmentSheetCard({ sheet }: { sheet: TreatmentSheet }) {
             </span>
           )}
         </div>
-        <p className="text-xs text-slate-500">
-          {sheet.doctorName ?? '--'} · lưu lúc {formatDateTime(sheet.createdAt)}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-slate-500">
+            {sheet.doctorName ?? '--'} · lưu lúc {formatDateTime(sheet.createdAt)}
+          </p>
+          <PdfDownloadButton
+            url={`/treatment-orders/patient/${encodeURIComponent(caseId)}/sheets/${sheet.sheetId}/pdf`}
+            fileName={`phieu-dieu-tri-${caseId}-to-${sheet.sheetNumber}.pdf`}
+          />
+        </div>
       </header>
 
       <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 px-4 py-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
@@ -137,7 +144,7 @@ export function TreatmentSheetsTab({ caseId, patientName }: TreatmentSheetsTabPr
       ) : (
         <div className="space-y-4">
           {sheets.map((sheet) => (
-            <TreatmentSheetCard key={sheet.sheetId} sheet={sheet} />
+            <TreatmentSheetCard key={sheet.sheetId} sheet={sheet} caseId={caseId} />
           ))}
         </div>
       )}
