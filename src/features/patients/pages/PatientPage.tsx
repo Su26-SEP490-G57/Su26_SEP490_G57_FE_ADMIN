@@ -613,7 +613,7 @@ export function PatientPage() {
                       : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
                   }`}
                 >
-                  {hoveredPatient.isLocked ? '▶ TIẾP TỤC ĐÁNH GIÁ' : '⏸ KHÓA MỨC ĂN (HOLD)'}
+                  {hoveredPatient.isLocked ? '▶ TIẾP TỤC MỨC ĂN' : '⏸ KHÓA MỨC ĂN (HOLD)'}
                 </button>
               </div>
             </div>
