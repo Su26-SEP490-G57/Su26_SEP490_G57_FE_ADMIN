@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { patientName } from '../../../lib/patientDisplay'
 import { RoleGuard } from '../../auth/components/RoleGuard'
+import { PatientInfoForm } from '../../patients/components/PatientInfoForm'
 import type { PatientListItem } from '../../patients/types'
 import { TreatmentOrderFormModal } from '../../treatment-orders/components/TreatmentOrderFormModal'
 import { CARE_LEVEL_LABELS } from '../../treatment-orders/types'
@@ -9,58 +10,14 @@ interface OverviewTabProps {
   patient: PatientListItem
 }
 
-function formatDate(value?: string | null): string {
-  if (!value) return '--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '--'
-  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-interface InfoField {
-  icon: string
-  label: string
-  value: string
-}
-
-function InfoFieldCard({ icon, label, value }: InfoField) {
-  return (
-    <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-        <span className="material-symbols-outlined text-[18px]">{icon}</span>
-      </span>
-      <div className="min-w-0">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
-        <p className="truncate text-sm font-semibold text-slate-800" title={value}>
-          {value}
-        </p>
-      </div>
-    </div>
-  )
-}
-
 // Tab "Tổng quan" — banner mức chăm sóc (nổi bật, kèm CTA tạo chỉ định điều
-// trị cho bác sĩ) phía trên, thẻ thông tin chung dạng lưới icon phía dưới.
+// trị cho bác sĩ) phía trên, thẻ thông tin chung dạng lưới icon phía dưới —
+// nhân viên y tế sửa trực tiếp trên thẻ (PatientInfoForm).
 export function OverviewTab({ patient }: OverviewTabProps) {
   const [isOrderFormOpen, setIsOrderFormOpen] = useState(false)
 
   const level = patient.activeCareLevel ?? null
   const levelLabel = level ? CARE_LEVEL_LABELS[level] : 'Chưa chỉ định'
-
-  const fields: InfoField[] = [
-    { icon: 'badge', label: 'Mã người bệnh', value: patient.caseId },
-    { icon: 'person', label: 'Họ và tên', value: patientName(patient) },
-    { icon: 'cake', label: 'Tuổi', value: patient.age ? `${patient.age}` : '--' },
-    { icon: 'wc', label: 'Giới tính', value: patient.gender || '--' },
-    { icon: 'event', label: 'Ngày phẫu thuật', value: formatDate(patient.surgeryDate) },
-    {
-      icon: 'medical_services',
-      label: 'Loại phẫu thuật',
-      value: patient.operationType?.name ?? '--',
-    },
-    { icon: 'stethoscope', label: 'Chẩn đoán', value: patient.diagnosis || '--' },
-    { icon: 'bed', label: 'Phòng / Giường', value: patient.roomBed || '--' },
-    { icon: 'timeline', label: 'POD hiện tại', value: `POD ${patient.currentPod}` },
-  ]
 
   return (
     <div className="space-y-5">
@@ -111,11 +68,7 @@ export function OverviewTab({ patient }: OverviewTabProps) {
           <span className="material-symbols-outlined text-[16px]">info</span>
           Thông tin chung
         </h5>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {fields.map((field) => (
-            <InfoFieldCard key={field.label} {...field} />
-          ))}
-        </div>
+        <PatientInfoForm key={patient.caseId} patient={patient} />
       </div>
 
       {/* Chỉ mount khi mở → state (lỗi submit, lựa chọn mức chăm sóc) luôn sạch. */}

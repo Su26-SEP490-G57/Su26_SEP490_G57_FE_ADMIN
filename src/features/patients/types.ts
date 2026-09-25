@@ -72,8 +72,13 @@ export interface CreatePatientPayload {
   roomBed?: string
 }
 
-// Payload cập nhật — mọi field optional, không đổi mã bệnh nhân.
-export type UpdatePatientPayload = Partial<Omit<CreatePatientPayload, 'caseId'>>
+// Payload cập nhật — mọi field optional, không đổi mã bệnh nhân. `null` = xoá
+// giá trị hiện có (backend chỉ bỏ qua field `undefined`).
+export type UpdatePatientPayload = {
+  [K in keyof Omit<CreatePatientPayload, 'caseId'>]?: CreatePatientPayload[K] | null
+} & {
+  phoneNumber?: string | null
+}
 
 export interface PatientListResponse {
   data: PatientListItem[]

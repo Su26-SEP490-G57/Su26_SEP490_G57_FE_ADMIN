@@ -1,20 +1,11 @@
 import { useState } from 'react'
-import { diseaseCatalog, type DiseaseOption } from '../diseaseCatalog'
+import { useDiseaseSearch, type DiseaseOption } from '../api/diseases'
 
-// Ô tìm bệnh theo mã/tên trong danh mục ICD (diseaseCatalog). Dùng chung cho
+// Ô tìm bệnh theo mã/tên trong danh mục ICD-10 (API /diseases). Dùng chung cho
 // form thêm/sửa người bệnh và phiếu theo dõi điều trị. `multiple` = chọn nhiều
 // (Bệnh kèm theo), hiển thị dạng tag có nút xoá.
 const inputCls =
   'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500'
-
-function normalizeSearch(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase()
-}
 
 function diseaseLabel(option: DiseaseOption): string {
   return `${option.code} - ${option.name}`
@@ -33,10 +24,8 @@ export function DiseaseAutocomplete({
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const selectedLabels = new Set(selectedValues)
-  const options = diseaseCatalog.filter((option) => {
-    const haystack = normalizeSearch(`${option.code} ${option.name}`)
-    return !selectedLabels.has(diseaseLabel(option)) && haystack.includes(normalizeSearch(query))
-  })
+  const { data: results = [], isFetching } = useDiseaseSearch(query, isOpen)
+  const options = results.filter((option) => !selectedLabels.has(diseaseLabel(option)))
 
   const selectOption = (option: DiseaseOption) => {
     const selected = diseaseLabel(option)
@@ -103,7 +92,7 @@ export function DiseaseAutocomplete({
           ))}
         </div>
       )}
-      {isOpen && query && options.length === 0 && (
+      {isOpen && query && !isFetching && options.length === 0 && (
         <p className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-lg">
           Không tìm thấy bệnh phù hợp
         </p>

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import type {
   AssessmentDetailResponse,
@@ -207,5 +207,18 @@ export function useOperationTypes() {
     queryKey: patientKeys.operationTypes(),
     queryFn: getOperationTypes,
     staleTime: Infinity,
+  })
+}
+
+// Sửa thông tin bệnh nhân (tab "Tổng quan" của panel chi tiết). `userId` là
+// user_id của tài khoản bệnh nhân, KHÔNG phải caseId. Thành công → làm mới mọi
+// danh sách bệnh nhân (PatientPage dùng ['patients'], trang Thống kê dùng
+// patientKeys.list(...) — cùng tiền tố).
+export function useUpdatePatient() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, payload }: { userId: number; payload: UpdatePatientPayload }) =>
+      updatePatient(userId, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: patientKeys.all }),
   })
 }

@@ -176,6 +176,11 @@ export function PatientPage() {
   })
 
   const patients = response?.data ?? EMPTY_PATIENTS
+  // selectedDetailPatient chỉ là bản chụp lúc bấm chọn — luôn tra lại trong
+  // danh sách mới nhất để panel chi tiết hiện dữ liệu vừa sửa/refetch.
+  const detailPatient = selectedDetailPatient
+    ? (patients.find((p) => p.caseId === selectedDetailPatient.caseId) ?? selectedDetailPatient)
+    : null
   const visibleRiskColumns = useMemo(
     () =>
       (Object.keys(RISK_COLUMNS) as RiskLevel[]).filter((level) => activeLevels.includes(level)),
@@ -616,7 +621,7 @@ export function PatientPage() {
         })()}
 
       <PatientDetailPanel
-        patient={selectedDetailPatient}
+        patient={detailPatient}
         onClose={() => {
           setSelectedDetailPatient(null)
           setVitalsIntent(null)

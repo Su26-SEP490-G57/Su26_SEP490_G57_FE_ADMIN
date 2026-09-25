@@ -38,12 +38,12 @@ interface PatientDetailPanelProps {
 // chỉ định điều trị) được gate riêng bằng <RoleGuard> inline.
 const TABS: (TabSwitcherItem<DetailTabId> & { roles?: UserRole[] })[] = [
   { id: 'overview', label: 'Tổng quan' },
+  { id: 'vitals', label: 'Chỉ số' },
+  { id: 'treatmentSheets', label: 'Phiếu điều trị' },
+  { id: 'careObservation', label: 'Phiếu chăm sóc', roles: ['nurse', 'head_nurse', 'doctor'] },
   { id: 'recovery', label: 'Ma trận hồi phục' },
   { id: 'compliance', label: 'Tuân thủ' },
   { id: 'assessment', label: 'Đánh giá cuối ngày' },
-  { id: 'vitals', label: 'Chỉ số' },
-  { id: 'careObservation', label: 'Phiếu chăm sóc', roles: ['nurse', 'head_nurse', 'doctor'] },
-  { id: 'treatmentSheets', label: 'Phiếu điều trị' },
 ]
 
 // Shell chi tiết bệnh nhân: dòng header + TabSwitcher + body của tab đang
