@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
+import { ASSIGNABLE_STAFF_ROLE_OPTIONS } from '../roles'
 import { translateError } from '../../../lib/errorTranslator'
 import { useCreateNurse, useUpdateNurse } from '../api/nurses'
 import type { Nurse } from '../types'
@@ -23,7 +24,7 @@ const nurseFormSchema = (isEdit: boolean) =>
       cityProvince: z.string(),
       ward: z.string(),
       detailedAddress: z.string(),
-      role: z.enum(['Nurse', 'Head_Nurse']),
+      role: z.enum(['Nurse', 'Doctor']),
       isActive: z.boolean(),
     })
     .superRefine((values, ctx) => {
@@ -126,12 +127,13 @@ const buildDefaultValues = (nurse?: Nurse | null): FormValues => ({
   cityProvince: nurse?.cityProvince ?? '',
   ward: nurse?.ward ?? '',
   detailedAddress: nurse?.detailedAddress ?? '',
-  role: nurse?.roles.includes('Head_Nurse') ? 'Head_Nurse' : 'Nurse',
+  role: nurse?.roles.includes('Doctor') ? 'Doctor' : 'Nurse',
   isActive: nurse?.isActive ?? true,
 })
 
 export function NurseFormModal({ isOpen, onClose, nurse }: NurseFormModalProps) {
   const isEdit = !!nurse
+  const isHeadNurse = !!nurse?.roles.includes('Head_Nurse')
   const createMutation = useCreateNurse()
   const updateMutation = useUpdateNurse()
 
@@ -174,7 +176,8 @@ export function NurseFormModal({ isOpen, onClose, nurse }: NurseFormModalProps) 
             cityProvince: values.cityProvince || undefined,
             ward: values.ward || undefined,
             detailedAddress: values.detailedAddress || undefined,
-            role: values.role,
+            // Điều dưỡng trưởng giữ nguyên vai trò (không đổi được ở đây).
+            role: isHeadNurse ? undefined : values.role,
             isActive: values.isActive,
           },
         })
@@ -193,7 +196,7 @@ export function NurseFormModal({ isOpen, onClose, nurse }: NurseFormModalProps) 
       }
       onClose()
     } catch (err) {
-      setSubmitError(translateError(err, 'Có lỗi xảy ra khi lưu thông tin điều dưỡng'))
+      setSubmitError(translateError(err, 'Có lỗi xảy ra khi lưu thông tin nhân viên y tế'))
     }
   }
 
@@ -209,7 +212,7 @@ export function NurseFormModal({ isOpen, onClose, nurse }: NurseFormModalProps) 
               {isEdit ? 'edit_note' : 'person_add'}
             </span>
             <h3 className="text-base font-bold text-slate-800">
-              {isEdit ? 'Chỉnh sửa thông tin điều dưỡng' : 'Thêm tài khoản điều dưỡng mới'}
+              {isEdit ? 'Chỉnh sửa thông tin nhân viên y tế' : 'Thêm tài khoản nhân viên y tế mới'}
             </h3>
           </div>
           <button
@@ -242,7 +245,7 @@ export function NurseFormModal({ isOpen, onClose, nurse }: NurseFormModalProps) 
                 type="text"
                 disabled={isEdit}
                 {...register('username')}
-                placeholder="Ví dụ: nurse02"
+                placeholder="Ví dụ: nurse02, doctor02"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#00459a] focus:bg-white focus:ring-2 focus:ring-[#00459a]/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
               />
               {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
@@ -313,14 +316,23 @@ export function NurseFormModal({ isOpen, onClose, nurse }: NurseFormModalProps) 
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Vai trò <span className="text-red-500">*</span>
               </label>
-              <select
-                value={selectedRole}
-                onChange={(e) => setValue('role', e.target.value as FormValues['role'])}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:border-[#00459a] focus:bg-white focus:ring-2 focus:ring-[#00459a]/10"
-              >
-                <option value="Nurse">Điều dưỡng viên</option>
-                <option value="Head_Nurse">Điều dưỡng trưởng</option>
-              </select>
+              {isHeadNurse ? (
+                <p className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm text-slate-500">
+                  Điều dưỡng trưởng
+                </p>
+              ) : (
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setValue('role', e.target.value as FormValues['role'])}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:border-[#00459a] focus:bg-white focus:ring-2 focus:ring-[#00459a]/10"
+                >
+                  {ASSIGNABLE_STAFF_ROLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* City/Province */}

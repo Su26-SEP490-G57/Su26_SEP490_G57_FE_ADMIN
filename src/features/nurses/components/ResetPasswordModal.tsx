@@ -92,7 +92,7 @@ export function ResetPasswordModal({
         {/* Content */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           <div className="text-sm text-slate-600">
-            Bạn đang đặt lại mật khẩu cho điều dưỡng:{' '}
+            Bạn đang đặt lại mật khẩu cho nhân viên y tế:{' '}
             <span className="font-bold text-slate-800">{nurseName}</span> (Mã:{' '}
             <span className="font-mono text-[#00459a] font-semibold">
               ĐD{String(nurseId).padStart(3, '0')}

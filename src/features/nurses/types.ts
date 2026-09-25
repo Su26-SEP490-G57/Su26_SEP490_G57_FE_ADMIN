@@ -1,3 +1,5 @@
+import type { AssignableStaffRole } from './roles'
+
 export interface Nurse {
   id: number
   username: string
@@ -7,7 +9,7 @@ export interface Nurse {
   cityProvince: string | null
   ward: string | null
   detailedAddress: string | null
-  roles: string[] // e.g. ['Nurse'] or ['Head_Nurse']
+  roles: string[] // e.g. ['Nurse'], ['Head_Nurse'] or ['Doctor']
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -36,7 +38,7 @@ export interface CreateNurseInput {
   cityProvince?: string
   ward?: string
   detailedAddress?: string
-  role: 'Nurse' | 'Head_Nurse'
+  role: AssignableStaffRole
 }
 
 export interface UpdateNurseInput {
@@ -47,6 +49,6 @@ export interface UpdateNurseInput {
   cityProvince?: string
   ward?: string
   detailedAddress?: string
-  role?: 'Nurse' | 'Head_Nurse'
+  role?: AssignableStaffRole
   isActive?: boolean
 }

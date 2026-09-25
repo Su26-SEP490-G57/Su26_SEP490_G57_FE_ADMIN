@@ -46,7 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['head_nurse', 'doctor'],
   },
   {
-    label: 'Quản lý điều dưỡng',
+    label: 'Quản lý nhân viên y tế',
     icon: 'medical_services',
     path: '/nurses',
     roles: ['head_nurse', 'doctor'],

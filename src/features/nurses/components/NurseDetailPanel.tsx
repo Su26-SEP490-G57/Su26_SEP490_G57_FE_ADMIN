@@ -1,4 +1,5 @@
 import { useNurse } from '../api/nurses'
+import { staffRoleLabel } from '../roles'
 
 interface NurseDetailPanelProps {
   nurseId: number | null
@@ -63,7 +64,7 @@ export function NurseDetailPanel({
       ) : isError || !nurse ? (
         <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-slate-500">
           <span className="material-symbols-outlined text-[48px] text-slate-300 mb-2">error</span>
-          <p className="text-sm font-semibold">Không thể tải thông tin điều dưỡng</p>
+          <p className="text-sm font-semibold">Không thể tải thông tin nhân viên y tế</p>
           <button
             onClick={onClose}
             className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
@@ -126,7 +127,7 @@ export function NurseDetailPanel({
               <div className="flex justify-between items-start gap-4">
                 <span className="text-slate-500 font-medium whitespace-nowrap">Vai trò:</span>
                 <span className="text-slate-800 font-semibold text-right">
-                  {nurse.roles.includes('Head_Nurse') ? 'Điều dưỡng trưởng' : 'Điều dưỡng viên'}
+                  {staffRoleLabel(nurse.roles)}
                 </span>
               </div>
               <div className="flex justify-between items-start gap-4">

@@ -4,6 +4,7 @@ import { NurseDetailPanel } from '../components/NurseDetailPanel'
 import { NurseFormModal } from '../components/NurseFormModal'
 import { ResetPasswordModal } from '../components/ResetPasswordModal'
 import type { Nurse } from '../types'
+import { staffCode, staffRoleLabel } from '../roles'
 
 export function NurseManagementPage() {
   // Queries & Mutations state
@@ -85,9 +86,10 @@ export function NurseManagementPage() {
         {/* Top Header & Search Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-slate-800">Danh sách điều dưỡng</h2>
+            <h2 className="text-xl font-bold text-slate-800">Danh sách nhân viên y tế</h2>
             <p className="text-xs text-slate-500">
-              Quản lý danh sách tài khoản, thông tin liên lạc và vai trò của điều dưỡng
+              Quản lý danh sách tài khoản, thông tin liên lạc và vai trò của nhân viên y tế (điều
+              dưỡng, điều dưỡng trưởng, bác sĩ)
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -98,7 +100,7 @@ export function NurseManagementPage() {
               </span>
               <input
                 type="text"
-                placeholder="Tìm kiếm điều dưỡng..."
+                placeholder="Tìm kiếm nhân viên y tế..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 py-2 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#00459a] focus:bg-white focus:ring-2 focus:ring-[#00459a]/10"
@@ -110,7 +112,7 @@ export function NurseManagementPage() {
               className="flex items-center gap-1.5 rounded-xl bg-[#00459a] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition-all hover:bg-blue-700 hover:shadow-blue-700/20"
             >
               <span className="material-symbols-outlined text-[18px]">person_add</span>
-              Thêm điều dưỡng
+              Thêm nhân viên y tế
             </button>
           </div>
         </div>
@@ -122,10 +124,10 @@ export function NurseManagementPage() {
               <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50">
                 <tr>
                   <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Mã điều dưỡng
+                    Mã nhân viên
                   </th>
                   <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Tên điều dưỡng
+                    Họ và tên
                   </th>
                   <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-slate-500">
                     Số điện thoại
@@ -188,7 +190,9 @@ export function NurseManagementPage() {
                       <span className="material-symbols-outlined text-[36px] text-slate-300 mb-2">
                         person_search
                       </span>
-                      <p className="text-sm font-semibold">Không tìm thấy điều dưỡng nào phù hợp</p>
+                      <p className="text-sm font-semibold">
+                        Không tìm thấy nhân viên y tế nào phù hợp
+                      </p>
                     </td>
                   </tr>
                 ) : (
@@ -206,7 +210,7 @@ export function NurseManagementPage() {
                       >
                         {/* ID Column */}
                         <td className="px-6 py-4 font-mono font-bold text-[#00459a] text-sm">
-                          ĐD{String(nurse.id).padStart(3, '0')}
+                          {staffCode(nurse)}
                         </td>
                         {/* Name Column */}
                         <td className="px-6 py-4 font-bold text-slate-800 text-sm">
@@ -218,9 +222,7 @@ export function NurseManagementPage() {
                         </td>
                         {/* Role Column */}
                         <td className="px-6 py-4 text-slate-600 text-sm">
-                          {nurse.roles.includes('Head_Nurse')
-                            ? 'Điều dưỡng trưởng'
-                            : 'Điều dưỡng viên'}
+                          {staffRoleLabel(nurse.roles)}
                         </td>
                         {/* Status Column */}
                         <td className="px-6 py-4 text-center">
@@ -286,7 +288,7 @@ export function NurseManagementPage() {
             <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-6 py-4">
               <span className="text-xs font-semibold text-slate-500">
                 Hiển thị từ {Math.min((page - 1) * limit + 1, totalNurses)} đến{' '}
-                {Math.min(page * limit, totalNurses)} trong tổng số {totalNurses} điều dưỡng
+                {Math.min(page * limit, totalNurses)} trong tổng số {totalNurses} nhân viên y tế
               </span>
               <div className="flex items-center gap-2">
                 <button
