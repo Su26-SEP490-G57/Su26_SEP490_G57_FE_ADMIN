@@ -30,6 +30,8 @@ export interface DietLevelProtocolResponseDto {
   volumeInstruction: string | null
   recommendedFoods: string[]
   recommendedDrinks: string[]
+  forbiddenFoods: string[]
+  forbiddenDrinks: string[]
   updatedAt: Date | null
   createdAt: Date
 }
@@ -45,6 +47,8 @@ export interface CreateDietLevelProtocolDto {
   volumeInstruction?: string
   recommendedFoods?: string[]
   recommendedDrinks?: string[]
+  forbiddenFoods?: string[]
+  forbiddenDrinks?: string[]
 }
 
 export interface UpdateDietLevelProtocolDto {
@@ -58,4 +62,6 @@ export interface UpdateDietLevelProtocolDto {
   volumeInstruction?: string
   recommendedFoods?: string[]
   recommendedDrinks?: string[]
+  forbiddenFoods?: string[]
+  forbiddenDrinks?: string[]
 }

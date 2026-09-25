@@ -8,6 +8,7 @@ import {
 import type { CustomDietGuidanceResponse } from '../api/dietGuidanceApi'
 import { getPatients } from '../../patients/api/patientApi'
 import type { PatientListItem } from '../../patients/types'
+import { PromptModal } from '../../../components/PromptModal'
 
 interface PersonalizedDietTabProps {
   operationTypeId: number
@@ -52,9 +53,17 @@ export function PersonalizedDietTab({ operationTypeId, showToast }: Personalized
     volumeMax: 250,
     foods: [] as string[],
     drinks: [] as string[],
+    forbiddenFoods: [] as string[],
+    forbiddenDrinks: [] as string[],
     doctorNotes: '',
     isActive: true,
   })
+
+  // Modal nhỏ thay cho window.prompt() khi thêm 1 món ăn/đồ uống vào danh sách.
+  const [addItemModal, setAddItemModal] = useState<{
+    title: string
+    onAdd: (value: string) => void
+  } | null>(null)
 
   const [filterScope, setFilterScope] = useState<'current' | 'all'>('current')
   const [hoveredCardCaseId, setHoveredCardCaseId] = useState<string | null>(null)
@@ -166,7 +175,9 @@ export function PersonalizedDietTab({ operationTypeId, showToast }: Personalized
         customGuidance.mealInstruction === null &&
         customGuidance.doctorNotes === null &&
         customGuidance.recommendedFoods.length === 0 &&
-        customGuidance.recommendedDrinks.length === 0
+        customGuidance.recommendedDrinks.length === 0 &&
+        customGuidance.forbiddenFoods.length === 0 &&
+        customGuidance.forbiddenDrinks.length === 0
 
       if (isAutoCreated || customGuidance === null) {
         // Chưa configure → lấy toàn bộ từ hướng dẫn chung theo mức ăn hiện tại
@@ -178,6 +189,8 @@ export function PersonalizedDietTab({ operationTypeId, showToast }: Personalized
           volumeMax: generalProtocol?.volumePerMealMax ?? 0,
           foods: generalProtocol?.recommendedFoods ?? [],
           drinks: generalProtocol?.recommendedDrinks ?? [],
+          forbiddenFoods: generalProtocol?.forbiddenFoods ?? [],
+          forbiddenDrinks: generalProtocol?.forbiddenDrinks ?? [],
           doctorNotes: '',
           isActive: customGuidance?.isActive ?? true,
         })
@@ -195,6 +208,12 @@ export function PersonalizedDietTab({ operationTypeId, showToast }: Personalized
           drinks: customGuidance.recommendedDrinks.length
             ? customGuidance.recommendedDrinks
             : (generalProtocol?.recommendedDrinks ?? []),
+          forbiddenFoods: customGuidance.forbiddenFoods.length
+            ? customGuidance.forbiddenFoods
+            : (generalProtocol?.forbiddenFoods ?? []),
+          forbiddenDrinks: customGuidance.forbiddenDrinks.length
+            ? customGuidance.forbiddenDrinks
+            : (generalProtocol?.forbiddenDrinks ?? []),
           doctorNotes: customGuidance.doctorNotes ?? '',
           isActive: customGuidance.isActive,
         })
@@ -241,6 +260,8 @@ export function PersonalizedDietTab({ operationTypeId, showToast }: Personalized
         volumePerMealMax: Number(formData.volumeMax),
         recommendedFoods: formData.foods,
         recommendedDrinks: formData.drinks,
+        forbiddenFoods: formData.forbiddenFoods,
+        forbiddenDrinks: formData.forbiddenDrinks,
         doctorNotes: formData.doctorNotes,
         isActive: formData.isActive,
       })
@@ -256,17 +277,17 @@ export function PersonalizedDietTab({ operationTypeId, showToast }: Personalized
   }
 
   const handleAddFood = () => {
-    const item = prompt('Nhập tên món ăn khuyên dùng:')
-    if (item && item.trim()) {
-      setFormData((prev) => ({ ...prev, foods: [...prev.foods, item.trim()] }))
-    }
+    setAddItemModal({
+      title: 'Thêm món ăn khuyên dùng',
+      onAdd: (item) => setFormData((prev) => ({ ...prev, foods: [...prev.foods, item] })),
+    })
   }
 
   const handleAddDrink = () => {
-    const item = prompt('Nhập tên thức uống khuyên dùng:')
-    if (item && item.trim()) {
-      setFormData((prev) => ({ ...prev, drinks: [...prev.drinks, item.trim()] }))
-    }
+    setAddItemModal({
+      title: 'Thêm thức uống khuyên dùng',
+      onAdd: (item) => setFormData((prev) => ({ ...prev, drinks: [...prev.drinks, item] })),
+    })
   }
 
   const handleRemoveFood = (idx: number) => {
@@ -275,6 +296,36 @@ export function PersonalizedDietTab({ operationTypeId, showToast }: Personalized
 
   const handleRemoveDrink = (idx: number) => {
     setFormData((prev) => ({ ...prev, drinks: prev.drinks.filter((_, i) => i !== idx) }))
+  }
+
+  const handleAddForbiddenFood = () => {
+    setAddItemModal({
+      title: 'Thêm món ăn cần hạn chế',
+      onAdd: (item) =>
+        setFormData((prev) => ({ ...prev, forbiddenFoods: [...prev.forbiddenFoods, item] })),
+    })
+  }
+
+  const handleAddForbiddenDrink = () => {
+    setAddItemModal({
+      title: 'Thêm thức uống cần hạn chế',
+      onAdd: (item) =>
+        setFormData((prev) => ({ ...prev, forbiddenDrinks: [...prev.forbiddenDrinks, item] })),
+    })
+  }
+
+  const handleRemoveForbiddenFood = (idx: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      forbiddenFoods: prev.forbiddenFoods.filter((_, i) => i !== idx),
+    }))
+  }
+
+  const handleRemoveForbiddenDrink = (idx: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      forbiddenDrinks: prev.forbiddenDrinks.filter((_, i) => i !== idx),
+    }))
   }
 
   // CHỈ LỌC các bệnh nhân ĐÃ ĐƯỢC CHUYỂN SANG ĂN RIÊNG (isActive === true)
@@ -811,6 +862,72 @@ export function PersonalizedDietTab({ operationTypeId, showToast }: Personalized
                             </button>
                           </div>
                         </div>
+
+                        {/* Forbidden Food */}
+                        <div className="p-4 rounded-xl bg-red-50/50 border border-red-200">
+                          <label className="block text-xs font-semibold text-red-700 mb-3 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm">no_food</span>
+                            Thực phẩm hạn chế
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {formData.forbiddenFoods.map((food, idx) => (
+                              <div
+                                key={idx}
+                                className="bg-red-50 text-red-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-xs font-medium border border-red-200"
+                              >
+                                <span>{food}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveForbiddenFood(idx)}
+                                  className="material-symbols-outlined text-xs opacity-60 hover:opacity-100 cursor-pointer"
+                                >
+                                  close
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={handleAddForbiddenFood}
+                              className="flex items-center gap-1 px-3 py-1 rounded-full border border-dashed border-red-600 text-red-600 hover:bg-red-50 transition-all text-xs font-medium cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-xs">add</span>
+                              Thêm món cần hạn chế
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Forbidden Drinks */}
+                        <div className="p-4 rounded-xl bg-red-50/50 border border-red-200">
+                          <label className="block text-xs font-semibold text-red-700 mb-3 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm">no_drinks</span>
+                            Đồ uống hạn chế
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {formData.forbiddenDrinks.map((drink, idx) => (
+                              <div
+                                key={idx}
+                                className="bg-red-50 text-red-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-xs font-medium border border-red-200"
+                              >
+                                <span>{drink}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveForbiddenDrink(idx)}
+                                  className="material-symbols-outlined text-xs opacity-60 hover:opacity-100 cursor-pointer"
+                                >
+                                  close
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={handleAddForbiddenDrink}
+                              className="flex items-center gap-1 px-3 py-1 rounded-full border border-dashed border-red-600 text-red-600 hover:bg-red-50 transition-all text-xs font-medium cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-xs">add</span>
+                              Thêm đồ uống cần hạn chế
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -842,6 +959,19 @@ export function PersonalizedDietTab({ operationTypeId, showToast }: Personalized
           </div>
         </div>
       )}
+
+      {/* Add Food/Drink Prompt Modal */}
+      <PromptModal
+        key={addItemModal?.title ?? 'closed'}
+        isOpen={addItemModal !== null}
+        title={addItemModal?.title ?? ''}
+        placeholder="Nhập tên..."
+        onConfirm={(value) => {
+          addItemModal?.onAdd(value)
+          setAddItemModal(null)
+        }}
+        onCancel={() => setAddItemModal(null)}
+      />
     </div>
   )
 }

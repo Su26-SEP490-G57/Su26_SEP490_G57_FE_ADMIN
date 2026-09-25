@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useHasRole } from '../../auth/hooks/useRole'
 import { ConfirmModal } from '../../../components/ConfirmModal'
+import { PromptModal } from '../../../components/PromptModal'
 import { Toast } from '../../../components/Toast'
 import { useHeaderActions } from '../../../layouts/main-layout/HeaderContext'
 import { getPatients } from '../../patients/api/patientApi'
@@ -60,6 +61,12 @@ export function NutritionGuidePage() {
     setToast({ show: true, message, type })
   }
 
+  // Modal nhỏ thay cho window.prompt() khi thêm 1 món ăn/đồ uống vào danh sách.
+  const [addItemModal, setAddItemModal] = useState<{
+    title: string
+    onAdd: (value: string) => void
+  } | null>(null)
+
   // Get current diet level protocol config
   const currentDietLevel = dietLevelProtocols.find((p) => p.dietLevelId === selectedDietLevelId)
 
@@ -71,6 +78,8 @@ export function NutritionGuidePage() {
   const [volumeMax, setVolumeMax] = useState<number>(0)
   const [foods, setFoods] = useState<string[]>([])
   const [drinks, setDrinks] = useState<string[]>([])
+  const [forbiddenFoods, setForbiddenFoods] = useState<string[]>([])
+  const [forbiddenDrinks, setForbiddenDrinks] = useState<string[]>([])
 
   // Track original values to detect changes
   const [originalValues, setOriginalValues] = useState({
@@ -81,6 +90,8 @@ export function NutritionGuidePage() {
     volumeMax: 0,
     foods: [] as string[],
     drinks: [] as string[],
+    forbiddenFoods: [] as string[],
+    forbiddenDrinks: [] as string[],
   })
 
   // Check if there are any changes
@@ -92,9 +103,22 @@ export function NutritionGuidePage() {
       volumeMin !== originalValues.volumeMin ||
       volumeMax !== originalValues.volumeMax ||
       JSON.stringify(foods) !== JSON.stringify(originalValues.foods) ||
-      JSON.stringify(drinks) !== JSON.stringify(originalValues.drinks)
+      JSON.stringify(drinks) !== JSON.stringify(originalValues.drinks) ||
+      JSON.stringify(forbiddenFoods) !== JSON.stringify(originalValues.forbiddenFoods) ||
+      JSON.stringify(forbiddenDrinks) !== JSON.stringify(originalValues.forbiddenDrinks)
     )
-  }, [mealCountMin, mealCountMax, mealDetails, volumeMin, volumeMax, foods, drinks, originalValues])
+  }, [
+    mealCountMin,
+    mealCountMax,
+    mealDetails,
+    volumeMin,
+    volumeMax,
+    foods,
+    drinks,
+    forbiddenFoods,
+    forbiddenDrinks,
+    originalValues,
+  ])
 
   // Fetch operation type and POD protocols from API
   useEffect(() => {
@@ -141,6 +165,8 @@ export function NutritionGuidePage() {
         volumeMax: protocol.volumePerMealMax || 0,
         foods: protocol.recommendedFoods || [],
         drinks: protocol.recommendedDrinks || [],
+        forbiddenFoods: protocol.forbiddenFoods || [],
+        forbiddenDrinks: protocol.forbiddenDrinks || [],
       }
 
       setMealCountMin(newValues.mealCountMin)
@@ -150,22 +176,24 @@ export function NutritionGuidePage() {
       setVolumeMax(newValues.volumeMax)
       setFoods(newValues.foods)
       setDrinks(newValues.drinks)
+      setForbiddenFoods(newValues.forbiddenFoods)
+      setForbiddenDrinks(newValues.forbiddenDrinks)
       setOriginalValues(newValues)
     }
   }, [selectedDietLevelId, dietLevelProtocols])
 
   function handleAddFood() {
-    const name = prompt('Nhập tên món ăn:')
-    if (name?.trim()) {
-      setFoods([...foods, name.trim()])
-    }
+    setAddItemModal({
+      title: 'Thêm món ăn khuyên dùng',
+      onAdd: (name) => setFoods((prev) => [...prev, name]),
+    })
   }
 
   function handleAddDrink() {
-    const name = prompt('Nhập tên đồ uống:')
-    if (name?.trim()) {
-      setDrinks([...drinks, name.trim()])
-    }
+    setAddItemModal({
+      title: 'Thêm đồ uống khuyên dùng',
+      onAdd: (name) => setDrinks((prev) => [...prev, name]),
+    })
   }
 
   function handleRemoveFood(index: number) {
@@ -174,6 +202,28 @@ export function NutritionGuidePage() {
 
   function handleRemoveDrink(index: number) {
     setDrinks(drinks.filter((_, i) => i !== index))
+  }
+
+  function handleAddForbiddenFood() {
+    setAddItemModal({
+      title: 'Thêm món ăn cần hạn chế',
+      onAdd: (name) => setForbiddenFoods((prev) => [...prev, name]),
+    })
+  }
+
+  function handleAddForbiddenDrink() {
+    setAddItemModal({
+      title: 'Thêm đồ uống cần hạn chế',
+      onAdd: (name) => setForbiddenDrinks((prev) => [...prev, name]),
+    })
+  }
+
+  function handleRemoveForbiddenFood(index: number) {
+    setForbiddenFoods(forbiddenFoods.filter((_, i) => i !== index))
+  }
+
+  function handleRemoveForbiddenDrink(index: number) {
+    setForbiddenDrinks(forbiddenDrinks.filter((_, i) => i !== index))
   }
 
   async function handleSave() {
@@ -189,6 +239,8 @@ export function NutritionGuidePage() {
         volumePerMealMax: volumeMax,
         recommendedFoods: foods,
         recommendedDrinks: drinks,
+        forbiddenFoods,
+        forbiddenDrinks,
       })
 
       showToast(`Đã lưu cấu hình ${currentDietLevel.label}`, 'success')
@@ -207,6 +259,8 @@ export function NutritionGuidePage() {
         volumeMax,
         foods: [...foods],
         drinks: [...drinks],
+        forbiddenFoods: [...forbiddenFoods],
+        forbiddenDrinks: [...forbiddenDrinks],
       })
     } catch (error) {
       console.error('Error saving diet level protocol:', error)
@@ -223,6 +277,8 @@ export function NutritionGuidePage() {
     setVolumeMax(originalValues.volumeMax)
     setFoods(originalValues.foods)
     setDrinks(originalValues.drinks)
+    setForbiddenFoods(originalValues.forbiddenFoods)
+    setForbiddenDrinks(originalValues.forbiddenDrinks)
   }
 
   async function handleAddDietLevel() {
@@ -245,6 +301,8 @@ export function NutritionGuidePage() {
         volumePerMealMax: 0,
         recommendedFoods: [],
         recommendedDrinks: [],
+        forbiddenFoods: [],
+        forbiddenDrinks: [],
       })
 
       showToast(`Đã thêm ${newLabel}`, 'success')
@@ -300,7 +358,9 @@ export function NutritionGuidePage() {
       (protocol.volumePerMealMax && protocol.volumePerMealMax > 0) ||
       (protocol.volumeInstruction && protocol.volumeInstruction.trim().length > 0) ||
       (protocol.recommendedFoods && protocol.recommendedFoods.length > 0) ||
-      (protocol.recommendedDrinks && protocol.recommendedDrinks.length > 0)
+      (protocol.recommendedDrinks && protocol.recommendedDrinks.length > 0) ||
+      (protocol.forbiddenFoods && protocol.forbiddenFoods.length > 0) ||
+      (protocol.forbiddenDrinks && protocol.forbiddenDrinks.length > 0)
 
     // Only show confirm if diet level has content
     if (hasContent) {
@@ -514,20 +574,6 @@ export function NutritionGuidePage() {
                       </div>
                     </div>
 
-                    {/* Details */}
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600 mb-2">
-                        Mô tả chi tiết:
-                      </label>
-                      <textarea
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                        placeholder="Nhập hướng dẫn chi tiết về lịch trình ăn uống..."
-                        rows={6}
-                        value={mealDetails}
-                        onChange={(e) => setMealDetails(e.target.value)}
-                      />
-                    </div>
-
                     {/* Volume */}
                     <div>
                       <label className="block text-sm font-semibold text-slate-600 mb-2">
@@ -550,7 +596,39 @@ export function NutritionGuidePage() {
                         <span className="text-slate-600">ml</span>
                       </div>
                     </div>
+
+                    {/* Details */}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-600 mb-2">
+                        Mô tả chi tiết:
+                      </label>
+                      <textarea
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        placeholder="Nhập hướng dẫn chi tiết về lịch trình ăn uống..."
+                        rows={6}
+                        value={mealDetails}
+                        onChange={(e) => setMealDetails(e.target.value)}
+                      />
+                    </div>
                   </div>
+
+                  {/* Footer Actions - Only show when there are changes */}
+                  {hasChanges && (
+                    <div className="mt-8 flex items-center gap-3 border-t border-slate-200 pt-6">
+                      <button
+                        onClick={handleCancel}
+                        className="flex-1 px-6 py-3 rounded-xl border border-slate-300 text-slate-600 font-semibold hover:bg-slate-100 transition-all"
+                      >
+                        Hủy thay đổi
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95"
+                      >
+                        Lưu cấu hình
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right: Food & Drink Suggestions */}
@@ -629,27 +707,71 @@ export function NutritionGuidePage() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Forbidden Food */}
+                    <div className="p-6 rounded-xl bg-red-50/50 border border-red-200">
+                      <label className="block font-semibold text-red-700 mb-4 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">no_food</span>
+                        Thực phẩm hạn chế
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {forbiddenFoods.map((food, index) => (
+                          <div
+                            key={index}
+                            className="bg-red-50 text-red-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-sm font-medium border border-red-200"
+                          >
+                            <span>{food}</span>
+                            <button
+                              onClick={() => handleRemoveForbiddenFood(index)}
+                              className="material-symbols-outlined text-sm opacity-60 hover:opacity-100 cursor-pointer"
+                            >
+                              close
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={handleAddForbiddenFood}
+                          className="flex items-center gap-1 px-4 py-1 rounded-full border border-dashed border-red-600 text-red-600 hover:bg-red-50 transition-all text-sm font-medium"
+                        >
+                          <span className="material-symbols-outlined text-sm">add</span>
+                          Thêm món cần hạn chế
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Forbidden Drinks */}
+                    <div className="p-6 rounded-xl bg-red-50/50 border border-red-200">
+                      <label className="block font-semibold text-red-700 mb-4 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">no_drinks</span>
+                        Đồ uống hạn chế
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {forbiddenDrinks.map((drink, index) => (
+                          <div
+                            key={index}
+                            className="bg-red-50 text-red-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-sm font-medium border border-red-200"
+                          >
+                            <span>{drink}</span>
+                            <button
+                              onClick={() => handleRemoveForbiddenDrink(index)}
+                              className="material-symbols-outlined text-sm opacity-60 hover:opacity-100 cursor-pointer"
+                            >
+                              close
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={handleAddForbiddenDrink}
+                          className="flex items-center gap-1 px-4 py-1 rounded-full border border-dashed border-red-600 text-red-600 hover:bg-red-50 transition-all text-sm font-medium"
+                        >
+                          <span className="material-symbols-outlined text-sm">add</span>
+                          Thêm đồ uống cần hạn chế
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              {/* Footer Actions - Only show when there are changes */}
-              {hasChanges && (
-                <div className="mt-8 flex items-center justify-center gap-6 border-t border-slate-200 pt-8">
-                  <button
-                    onClick={handleCancel}
-                    className="px-8 py-3 rounded-xl border border-slate-300 text-slate-600 font-semibold hover:bg-slate-100 transition-all"
-                  >
-                    Hủy thay đổi
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95"
-                  >
-                    Lưu cấu hình
-                  </button>
-                </div>
-              )}
             </>
           ) : isDoctor ? (
             <PersonalizedDietTab operationTypeId={operationTypeId} showToast={showToast} />
@@ -677,6 +799,19 @@ export function NutritionGuidePage() {
           onClose={() => setToast({ ...toast, show: false })}
         />
       )}
+
+      {/* Add Food/Drink Prompt Modal */}
+      <PromptModal
+        key={addItemModal?.title ?? 'closed'}
+        isOpen={addItemModal !== null}
+        title={addItemModal?.title ?? ''}
+        placeholder="Nhập tên..."
+        onConfirm={(value) => {
+          addItemModal?.onAdd(value)
+          setAddItemModal(null)
+        }}
+        onCancel={() => setAddItemModal(null)}
+      />
     </div>
   )
 }

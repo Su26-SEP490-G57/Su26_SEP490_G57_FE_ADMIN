@@ -96,6 +96,8 @@ interface WirePodProtocolResponse {
   volumeInstruction: string | null
   recommendedFoods: string[]
   recommendedDrinks: string[]
+  forbiddenFoods: string[]
+  forbiddenDrinks: string[]
   updatedAt: Date | null
   createdAt: Date
 }
@@ -114,6 +116,8 @@ function toDietLevelProtocol(wire: WirePodProtocolResponse): DietLevelProtocolRe
     volumeInstruction: wire.volumeInstruction,
     recommendedFoods: wire.recommendedFoods,
     recommendedDrinks: wire.recommendedDrinks,
+    forbiddenFoods: wire.forbiddenFoods ?? [],
+    forbiddenDrinks: wire.forbiddenDrinks ?? [],
     updatedAt: wire.updatedAt,
     createdAt: wire.createdAt,
   }
@@ -210,6 +214,8 @@ export interface CustomDietGuidanceResponse {
   volumeInstruction: string | null
   recommendedFoods: string[]
   recommendedDrinks: string[]
+  forbiddenFoods: string[]
+  forbiddenDrinks: string[]
   doctorNotes: string | null
   updatedAt: string | null
   createdAt: string
@@ -225,6 +231,8 @@ export interface UpsertCustomDietGuidancePayload {
   volumeInstruction?: string
   recommendedFoods?: string[]
   recommendedDrinks?: string[]
+  forbiddenFoods?: string[]
+  forbiddenDrinks?: string[]
   doctorNotes?: string
   isActive?: boolean
 }
@@ -243,6 +251,8 @@ export interface PatientCurrentDietGuidanceResponse {
   volumeInstruction: string | null
   recommendedFoods: string[]
   recommendedDrinks: string[]
+  forbiddenFoods: string[]
+  forbiddenDrinks: string[]
   doctorNotes?: string | null
   prescribedByDoctor?: {
     id: number
