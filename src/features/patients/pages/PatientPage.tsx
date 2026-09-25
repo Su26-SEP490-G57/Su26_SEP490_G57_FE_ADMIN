@@ -1,7 +1,11 @@
-import { useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getPatients, updateDietLevel, updatePodLock } from '../api/patientApi'
 import { useRole } from '../../auth/hooks/useRole'
+import {
+  getCustomDietGuidance,
+  upsertCustomDietGuidance,
+} from '../../protocols/api/dietGuidanceApi'
 import { PatientDetailPanel, type VitalsQuickIntent } from '../components/PatientDetailPanel'
 import { PatientFormModal } from '../components/PatientFormModal'
 import { ImportPatientsModal } from '../components/ImportPatientsModal'
@@ -89,6 +93,78 @@ export function PatientPage() {
   const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const vitalsIntentCounter = useRef(0)
+
+  const isDoctor = role === 'doctor'
+  const [customDietMap, setCustomDietMap] = useState<Record<string, boolean>>({})
+  const [togglingDietCaseId, setTogglingDietCaseId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!hoveredPatient) return
+    const caseId = hoveredPatient.caseId
+    if (customDietMap[caseId] !== undefined) return
+
+    let cancelled = false
+    async function loadDietStatus() {
+      try {
+        const guidance = await getCustomDietGuidance(caseId)
+        if (!cancelled) {
+          setCustomDietMap((prev) => ({ ...prev, [caseId]: guidance?.isActive ?? false }))
+        }
+      } catch {
+        if (!cancelled) {
+          setCustomDietMap((prev) => ({ ...prev, [caseId]: false }))
+        }
+      }
+    }
+
+    void loadDietStatus()
+    return () => {
+      cancelled = true
+    }
+  }, [hoveredPatient, hoveredPatient?.caseId, customDietMap])
+
+  async function handleToggleCustomDiet(patient: PatientListItem, targetIsCustom: boolean) {
+    const caseId = patient.caseId
+    const currentIsCustom = customDietMap[caseId] ?? false
+    if (currentIsCustom === targetIsCustom) return
+
+    setTogglingDietCaseId(caseId)
+    // Cập nhật UI ngay lập tức
+    setCustomDietMap((prev) => ({ ...prev, [caseId]: targetIsCustom }))
+
+    try {
+      // Dùng upsertCustomDietGuidance: Backend sẽ tự tạo nếu chưa có, hoặc cập nhật isActive nếu đã có!
+      // Tránh hoàn toàn lỗi 404 từ endpoint toggle-status
+      const res = await upsertCustomDietGuidance(caseId, {
+        isActive: targetIsCustom,
+        label: 'Chế độ ăn chỉ định riêng',
+        mealsPerDayMin: 3,
+        mealsPerDayMax: 5,
+        volumePerMealMin: 150,
+        volumePerMealMax: 250,
+      })
+      setCustomDietMap((prev) => ({ ...prev, [caseId]: res.isActive }))
+    } catch (error) {
+      // Revert về trạng thái cũ nếu lỗi
+      setCustomDietMap((prev) => ({ ...prev, [caseId]: currentIsCustom }))
+      console.error('Lỗi khi chuyển đổi mức ăn:', error)
+
+      let errorMessage = 'Không thể thay đổi chế độ ăn cho người bệnh. Vui lòng thử lại.'
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { message?: string } } }
+        if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message
+        }
+      }
+
+      setErrorAlert({
+        title: 'Chuyển đổi mức ăn không thành công',
+        message: errorMessage,
+      })
+    } finally {
+      setTogglingDietCaseId(null)
+    }
+  }
 
   const { data: response, refetch: refetchPatients } = useQuery({
     queryKey: ['patients'],
@@ -408,67 +484,136 @@ export function PatientPage() {
         </div>
       </div>
 
-      {hoveredPatient && (
-        <div
-          className="fixed z-[9999] w-[220px] bg-white border border-slate-300 shadow-xl rounded pointer-events-auto"
-          style={{ left: hoverPosition.left, top: hoverPosition.top }}
-          onMouseEnter={clearHoverTimer}
-          onMouseLeave={scheduleHoverClose}
-        >
-          <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-slate-800 truncate">
-                {patientName(hoveredPatient)}
-              </p>
-              <span className="text-[10px] font-medium text-slate-400 ml-2">
-                #{hoveredPatient.caseId}
-              </span>
-            </div>
-            <p className="text-[11px] font-medium text-slate-600 mt-1 truncate">
-              {hoveredPatient.operationType?.name ?? 'Chưa phân loại'}
-            </p>
-          </div>
-          <div className="p-2 flex items-center justify-between bg-white text-xs">
-            <span className="text-slate-600 font-medium">Mức ăn:</span>
-            <select
-              value={hoveredPatient.currentDietLevel}
-              disabled={isUpdating}
-              onChange={(e) => requestDietLevelChange(hoveredPatient, Number(e.target.value))}
-              className="border border-slate-200 bg-white rounded px-1.5 py-0.5 text-xs font-bold text-slate-800"
+      {hoveredPatient &&
+        (() => {
+          const isCustomDietActive = customDietMap[hoveredPatient.caseId] ?? false
+          const isTogglingCustomDiet = togglingDietCaseId === hoveredPatient.caseId
+
+          return (
+            <div
+              className="fixed z-[9999] w-[240px] bg-white border border-slate-300 shadow-xl rounded pointer-events-auto transition-all"
+              style={{ left: hoverPosition.left, top: hoverPosition.top }}
+              onMouseEnter={clearHoverTimer}
+              onMouseLeave={scheduleHoverClose}
             >
-              {DIET_LEVELS.map((dl) => (
-                <option key={dl} value={dl}>
-                  {dl}
-                </option>
-              ))}
-            </select>
-          </div>
-          {(role === 'nurse' || role === 'head_nurse' || role === 'doctor') && (
-            <div className="p-2 border-t border-slate-100 bg-white">
-              <button
-                onClick={() => handleQuickVitals(hoveredPatient)}
-                className="flex w-full items-center justify-center gap-1 py-1 text-[11px] font-bold rounded transition-colors bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
-              >
-                <span className="material-symbols-outlined text-[14px]">monitor_heart</span>
-                Điền chỉ số sinh tồn
-              </button>
+              <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-slate-800 truncate">
+                    {patientName(hoveredPatient)}
+                  </p>
+                  <span className="text-[10px] font-medium text-slate-400 ml-2">
+                    #{hoveredPatient.caseId}
+                  </span>
+                </div>
+                <p className="text-[11px] font-medium text-slate-600 mt-1 truncate">
+                  {hoveredPatient.operationType?.name ?? 'Chưa phân loại'}
+                </p>
+              </div>
+              <div className="p-2 flex items-center justify-between gap-1.5 bg-white text-xs">
+                <span className="text-slate-600 font-semibold text-xs whitespace-nowrap">
+                  Mức ăn:
+                </span>
+
+                {/* Toggle Chuyển Mức ăn Chung / Riêng */}
+                <div
+                  className={`inline-flex items-center rounded-full p-0.5 border shadow-inner transition-colors ${
+                    isCustomDietActive
+                      ? 'bg-emerald-50 border-emerald-200'
+                      : 'bg-slate-100 border-slate-200/80'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    disabled={!isDoctor || isTogglingCustomDiet || isUpdating}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (isCustomDietActive) {
+                        void handleToggleCustomDiet(hoveredPatient, false)
+                      }
+                    }}
+                    title={
+                      !isDoctor
+                        ? 'Chỉ bác sĩ mới có quyền thay đổi mức ăn chung / riêng'
+                        : 'Chuyển về mức ăn chung theo protocol'
+                    }
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all duration-150 ${
+                      !isCustomDietActive
+                        ? 'bg-white text-blue-700 shadow-xs ring-1 ring-slate-200/60'
+                        : 'text-slate-400 hover:text-slate-600'
+                    } ${!isDoctor ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                  >
+                    Chung
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!isDoctor || isTogglingCustomDiet || isUpdating}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (!isCustomDietActive) {
+                        void handleToggleCustomDiet(hoveredPatient, true)
+                      }
+                    }}
+                    title={
+                      !isDoctor
+                        ? 'Chỉ bác sĩ mới có quyền thay đổi mức ăn chung / riêng'
+                        : 'Chuyển sang mức ăn riêng do bác sĩ chỉ định'
+                    }
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all duration-150 flex items-center gap-1 ${
+                      isCustomDietActive
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-400 hover:text-slate-600'
+                    } ${!isDoctor ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                  >
+                    {isTogglingCustomDiet ? (
+                      <span className="h-2 w-2 animate-spin rounded-full border border-white border-t-transparent inline-block" />
+                    ) : isCustomDietActive ? (
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-200 animate-pulse inline-block" />
+                    ) : null}
+                    <span>Riêng</span>
+                  </button>
+                </div>
+
+                <select
+                  value={hoveredPatient.currentDietLevel}
+                  disabled={isUpdating}
+                  onChange={(e) => requestDietLevelChange(hoveredPatient, Number(e.target.value))}
+                  title="Chọn mức ăn (POD)"
+                  className="border border-slate-200 bg-white rounded px-1.5 py-0.5 text-xs font-bold text-slate-800 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-xs cursor-pointer"
+                >
+                  {DIET_LEVELS.map((dl) => (
+                    <option key={dl} value={dl}>
+                      {dl}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {(role === 'nurse' || role === 'head_nurse' || role === 'doctor') && (
+                <div className="p-2 border-t border-slate-100 bg-white">
+                  <button
+                    onClick={() => handleQuickVitals(hoveredPatient)}
+                    className="flex w-full items-center justify-center gap-1 py-1 text-[11px] font-bold rounded transition-colors bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">monitor_heart</span>
+                    Điền chỉ số sinh tồn
+                  </button>
+                </div>
+              )}
+              <div className="p-2 border-t border-slate-100 bg-white">
+                <button
+                  disabled={isUpdating}
+                  onClick={() => handleQuickToggle(hoveredPatient)}
+                  className={`w-full py-1 text-[11px] font-bold rounded transition-colors ${
+                    hoveredPatient.isLocked
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+                      : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                  }`}
+                >
+                  {hoveredPatient.isLocked ? '▶ TIẾP TỤC ĐÁNH GIÁ' : '⏸ KHÓA MỨC ĂN (HOLD)'}
+                </button>
+              </div>
             </div>
-          )}
-          <div className="p-2 border-t border-slate-100 bg-white">
-            <button
-              disabled={isUpdating}
-              onClick={() => handleQuickToggle(hoveredPatient)}
-              className={`w-full py-1 text-[11px] font-bold rounded transition-colors ${
-                hoveredPatient.isLocked
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
-                  : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-              }`}
-            >
-              {hoveredPatient.isLocked ? '▶ TIẾP TỤC ĐÁNH GIÁ' : '⏸ KHÓA MỨC ĂN (HOLD)'}
-            </button>
-          </div>
-        </div>
-      )}
+          )
+        })()}
 
       <PatientDetailPanel
         patient={selectedDetailPatient}

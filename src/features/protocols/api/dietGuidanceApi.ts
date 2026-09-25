@@ -187,3 +187,106 @@ export async function deleteDietLevelProtocol(
 ): Promise<void> {
   await api.delete(`${BASE_PATH}/operation-types/${operationTypeId}/pods/${podId}`)
 }
+
+// ============================================================================
+// Personalized (Custom) Diet Guidance API (Doctor only)
+// ============================================================================
+
+export interface CustomDietGuidanceResponse {
+  customDietId: number
+  caseId: string
+  doctorId: number
+  doctor?: {
+    id: number
+    fullName: string
+  }
+  isActive: boolean
+  label: string
+  mealsPerDayMin: number | null
+  mealsPerDayMax: number | null
+  mealInstruction: string | null
+  volumePerMealMin: number | null
+  volumePerMealMax: number | null
+  volumeInstruction: string | null
+  recommendedFoods: string[]
+  recommendedDrinks: string[]
+  doctorNotes: string | null
+  updatedAt: string | null
+  createdAt: string
+}
+
+export interface UpsertCustomDietGuidancePayload {
+  label?: string
+  mealsPerDayMin?: number
+  mealsPerDayMax?: number
+  mealInstruction?: string
+  volumePerMealMin?: number
+  volumePerMealMax?: number
+  volumeInstruction?: string
+  recommendedFoods?: string[]
+  recommendedDrinks?: string[]
+  doctorNotes?: string
+  isActive?: boolean
+}
+
+export interface PatientCurrentDietGuidanceResponse {
+  isCustomized: boolean
+  customDietId?: number
+  podId?: number
+  label: string
+  dietLevel?: number
+  mealsPerDayMin: number | null
+  mealsPerDayMax: number | null
+  mealInstruction: string | null
+  volumePerMealMin: number | null
+  volumePerMealMax: number | null
+  volumeInstruction: string | null
+  recommendedFoods: string[]
+  recommendedDrinks: string[]
+  doctorNotes?: string | null
+  prescribedByDoctor?: {
+    id: number
+    fullName: string
+  }
+  updatedAt: string | null
+}
+
+export async function getCurrentPatientDietGuidance(
+  caseId: string | number,
+): Promise<PatientCurrentDietGuidanceResponse | null> {
+  const response = await api.get<PatientCurrentDietGuidanceResponse>(
+    `${BASE_PATH}/patient/${caseId}/current`,
+  )
+  return response.data
+}
+
+export async function getCustomDietGuidance(
+  caseId: string | number,
+): Promise<CustomDietGuidanceResponse | null> {
+  const response = await api.get<CustomDietGuidanceResponse>(
+    `${BASE_PATH}/patient/${caseId}/custom`,
+  )
+  return response.data
+}
+
+export async function upsertCustomDietGuidance(
+  caseId: string | number,
+  payload: UpsertCustomDietGuidancePayload,
+): Promise<CustomDietGuidanceResponse> {
+  const response = await api.post<CustomDietGuidanceResponse>(
+    `${BASE_PATH}/patient/${caseId}/custom`,
+    payload,
+  )
+  return response.data
+}
+
+export async function toggleCustomDietStatus(
+  caseId: string | number,
+  isActive: boolean,
+): Promise<CustomDietGuidanceResponse> {
+  const response = await api.patch<CustomDietGuidanceResponse>(
+    `${BASE_PATH}/patient/${caseId}/custom/toggle-status`,
+    { isActive },
+  )
+  return response.data
+}

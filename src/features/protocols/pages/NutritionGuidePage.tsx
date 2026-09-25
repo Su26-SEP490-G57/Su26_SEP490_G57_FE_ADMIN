@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useHasRole } from '../../auth/hooks/useRole'
 import { ConfirmModal } from '../../../components/ConfirmModal'
 import { Toast } from '../../../components/Toast'
 import { useHeaderActions } from '../../../layouts/main-layout/HeaderContext'
@@ -13,17 +14,20 @@ import {
   updateDietLevelProtocol,
 } from '../api/dietGuidanceApi'
 import type { DietLevelProtocolResponseDto, OperationTypeResponseDto } from '../types'
+import { PersonalizedDietTab } from './PersonalizedDietTab'
 
 export function NutritionGuidePage() {
   const navigate = useNavigate()
   const { protocolId } = useParams<{ protocolId: string }>()
   const operationTypeId = protocolId ? parseInt(protocolId) : 0
+  const isDoctor = useHasRole('doctor')
 
   const [loading, setLoading] = useState(true)
   const [operationType, setOperationType] = useState<OperationTypeResponseDto | null>(null)
   const [dietLevelProtocols, setDietLevelProtocols] = useState<DietLevelProtocolResponseDto[]>([])
   const [selectedDietLevelId, setSelectedDietLevelId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [mainTab, setMainTab] = useState<'standard' | 'personalized'>('standard')
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -387,231 +391,269 @@ export function NutritionGuidePage() {
               {operationType?.name || 'Chi tiết loại phẫu thuật'}
             </h1>
 
-            {/* Mức ăn tabs */}
-            <div className="relative">
-              <div
-                className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-hide"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            {/* Tab Chuyển đổi Hướng dẫn chung / Cá nhân hóa */}
+            <div className="flex border-b border-slate-200">
+              <button
+                type="button"
+                onClick={() => setMainTab('standard')}
+                className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
+                  mainTab === 'standard'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
               >
-                {dietLevelProtocols.map((pod) => (
-                  <div
-                    key={pod.dietLevelId}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedDietLevelId(pod.dietLevelId)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        setSelectedDietLevelId(pod.dietLevelId)
-                      }
-                    }}
-                    className={`flex items-center gap-2 px-8 py-2 rounded-lg font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
-                      selectedDietLevelId === pod.dietLevelId
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <span>{pod.label}</span>
-                    {selectedDietLevelId === pod.dietLevelId && (
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          handleDeleteDietLevel(pod.dietLevelId)
-                        }}
-                        className="ml-1 hover:bg-blue-700 rounded-full p-0.5 transition-colors"
-                        title="Xóa mức ăn"
-                      >
-                        <span className="material-symbols-outlined text-sm">close</span>
-                      </button>
-                    )}
-                  </div>
-                ))}
+                <span className="material-symbols-outlined text-base">menu_book</span>
+                Hướng dẫn ăn chung
+              </button>
+              {isDoctor && (
                 <button
-                  onClick={handleAddDietLevel}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all flex-shrink-0 ml-2"
-                  title=" thêm mức ăn"
+                  type="button"
+                  onClick={() => setMainTab('personalized')}
+                  className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
+                    mainTab === 'personalized'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
                 >
-                  <span className="material-symbols-outlined">add</span>
+                  <span className="material-symbols-outlined text-base">person_pin</span>
+                  Hướng dẫn ăn cá nhân hóa
                 </button>
-              </div>
-              <div className="absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-slate-100 to-transparent pointer-events-none"></div>
+              )}
             </div>
+
+            {mainTab === 'standard' && (
+              /* Mức ăn tabs */
+              <div className="relative">
+                <div
+                  className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-hide"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {dietLevelProtocols.map((pod) => (
+                    <div
+                      key={pod.dietLevelId}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedDietLevelId(pod.dietLevelId)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          setSelectedDietLevelId(pod.dietLevelId)
+                        }
+                      }}
+                      className={`flex items-center gap-2 px-8 py-2 rounded-lg font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
+                        selectedDietLevelId === pod.dietLevelId
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span>{pod.label}</span>
+                      {selectedDietLevelId === pod.dietLevelId && (
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            handleDeleteDietLevel(pod.dietLevelId)
+                          }}
+                          className="ml-1 hover:bg-blue-700 rounded-full p-0.5 transition-colors"
+                          title="Xóa mức ăn"
+                        >
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    onClick={handleAddDietLevel}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all flex-shrink-0 ml-2"
+                    title=" thêm mức ăn"
+                  >
+                    <span className="material-symbols-outlined">add</span>
+                  </button>
+                </div>
+                <div className="absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-slate-100 to-transparent pointer-events-none"></div>
+              </div>
+            )}
           </div>
 
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Left: General Guidance */}
-            <div className="lg:col-span-5 bg-white rounded-xl shadow-sm border border-slate-200 p-8 h-full">
-              <div className="flex items-center gap-2 mb-6">
-                <span
-                  className="material-symbols-outlined text-blue-600"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  description
-                </span>
-                <h3 className="text-xl font-bold text-slate-800">Hướng dẫn chung</h3>
-              </div>
-
-              <div className="space-y-8">
-                {/* Meal Count */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    Số lượng bữa ăn:
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      className="w-20 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      type="number"
-                      value={mealCountMin}
-                      onChange={(e) => setMealCountMin(parseInt(e.target.value) || 0)}
-                    />
-                    <span className="text-slate-400">—</span>
-                    <input
-                      className="w-20 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      type="number"
-                      value={mealCountMax}
-                      onChange={(e) => setMealCountMax(parseInt(e.target.value) || 0)}
-                    />
-                    <span className="text-slate-600">bữa/ngày</span>
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    Mô tả chi tiết:
-                  </label>
-                  <textarea
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                    placeholder="Nhập hướng dẫn chi tiết về lịch trình ăn uống..."
-                    rows={6}
-                    value={mealDetails}
-                    onChange={(e) => setMealDetails(e.target.value)}
-                  />
-                </div>
-
-                {/* Volume */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    Thể tích mỗi bữa:
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      className="w-24 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      type="number"
-                      value={volumeMin}
-                      onChange={(e) => setVolumeMin(parseInt(e.target.value) || 0)}
-                    />
-                    <span className="text-slate-400">—</span>
-                    <input
-                      className="w-24 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      type="number"
-                      value={volumeMax}
-                      onChange={(e) => setVolumeMax(parseInt(e.target.value) || 0)}
-                    />
-                    <span className="text-slate-600">ml</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Food & Drink Suggestions */}
-            <div className="lg:col-span-7 bg-white rounded-xl shadow-sm border border-slate-200 p-8 h-full">
-              <div className="flex items-center gap-2 mb-6">
-                <span
-                  className="material-symbols-outlined text-teal-600"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  restaurant
-                </span>
-                <h3 className="text-xl font-bold text-slate-800">Thực phẩm gợi ý</h3>
-              </div>
-
-              <div className="space-y-8">
-                {/* Recommended Food */}
-                <div className="p-6 rounded-xl bg-slate-50 border border-slate-200">
-                  <label className="block font-semibold text-slate-800 mb-4 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">check_circle</span>
-                    Món ăn khuyên dùng
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {foods.map((food, index) => (
-                      <div
-                        key={index}
-                        className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-sm font-medium border border-blue-200"
-                      >
-                        <span>{food}</span>
-                        <button
-                          onClick={() => handleRemoveFood(index)}
-                          className="material-symbols-outlined text-sm opacity-60 hover:opacity-100 cursor-pointer"
-                        >
-                          close
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      onClick={handleAddFood}
-                      className="flex items-center gap-1 px-4 py-1 rounded-full border border-dashed border-blue-600 text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
+          {mainTab === 'standard' ? (
+            <>
+              {/* Main Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                {/* Left: General Guidance */}
+                <div className="lg:col-span-5 bg-white rounded-xl shadow-sm border border-slate-200 p-8 h-full">
+                  <div className="flex items-center gap-2 mb-6">
+                    <span
+                      className="material-symbols-outlined text-blue-600"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
                     >
-                      <span className="material-symbols-outlined text-sm">add</span>
-                      Thêm món
-                    </button>
-                  </div>
-                </div>
-
-                {/* Recommended Drinks */}
-                <div className="p-6 rounded-xl bg-slate-50 border border-slate-200">
-                  <label className="block font-semibold text-slate-800 mb-4 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm text-blue-600">
-                      local_drink
+                      description
                     </span>
-                    Thức uống khuyên dùng
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {drinks.map((drink, index) => (
-                      <div
-                        key={index}
-                        className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-sm font-medium border border-blue-200"
-                      >
-                        <span>{drink}</span>
+                    <h3 className="text-xl font-bold text-slate-800">Hướng dẫn chung</h3>
+                  </div>
+
+                  <div className="space-y-8">
+                    {/* Meal Count */}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-600 mb-2">
+                        Số lượng bữa ăn:
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          className="w-20 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          type="number"
+                          value={mealCountMin}
+                          onChange={(e) => setMealCountMin(parseInt(e.target.value) || 0)}
+                        />
+                        <span className="text-slate-400">—</span>
+                        <input
+                          className="w-20 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          type="number"
+                          value={mealCountMax}
+                          onChange={(e) => setMealCountMax(parseInt(e.target.value) || 0)}
+                        />
+                        <span className="text-slate-600">bữa/ngày</span>
+                      </div>
+                    </div>
+
+                    {/* Details */}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-600 mb-2">
+                        Mô tả chi tiết:
+                      </label>
+                      <textarea
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        placeholder="Nhập hướng dẫn chi tiết về lịch trình ăn uống..."
+                        rows={6}
+                        value={mealDetails}
+                        onChange={(e) => setMealDetails(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Volume */}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-600 mb-2">
+                        Thể tích mỗi bữa:
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          className="w-24 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          type="number"
+                          value={volumeMin}
+                          onChange={(e) => setVolumeMin(parseInt(e.target.value) || 0)}
+                        />
+                        <span className="text-slate-400">—</span>
+                        <input
+                          className="w-24 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          type="number"
+                          value={volumeMax}
+                          onChange={(e) => setVolumeMax(parseInt(e.target.value) || 0)}
+                        />
+                        <span className="text-slate-600">ml</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Food & Drink Suggestions */}
+                <div className="lg:col-span-7 bg-white rounded-xl shadow-sm border border-slate-200 p-8 h-full">
+                  <div className="flex items-center gap-2 mb-6">
+                    <span
+                      className="material-symbols-outlined text-teal-600"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      restaurant
+                    </span>
+                    <h3 className="text-xl font-bold text-slate-800">Thực phẩm gợi ý</h3>
+                  </div>
+
+                  <div className="space-y-8">
+                    {/* Recommended Food */}
+                    <div className="p-6 rounded-xl bg-slate-50 border border-slate-200">
+                      <label className="block font-semibold text-slate-800 mb-4 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Món ăn khuyên dùng
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {foods.map((food, index) => (
+                          <div
+                            key={index}
+                            className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-sm font-medium border border-blue-200"
+                          >
+                            <span>{food}</span>
+                            <button
+                              onClick={() => handleRemoveFood(index)}
+                              className="material-symbols-outlined text-sm opacity-60 hover:opacity-100 cursor-pointer"
+                            >
+                              close
+                            </button>
+                          </div>
+                        ))}
                         <button
-                          onClick={() => handleRemoveDrink(index)}
-                          className="material-symbols-outlined text-sm opacity-60 hover:opacity-100 cursor-pointer"
+                          onClick={handleAddFood}
+                          className="flex items-center gap-1 px-4 py-1 rounded-full border border-dashed border-blue-600 text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
                         >
-                          close
+                          <span className="material-symbols-outlined text-sm">add</span>
+                          Thêm món
                         </button>
                       </div>
-                    ))}
-                    <button
-                      onClick={handleAddDrink}
-                      className="flex items-center gap-1 px-4 py-1 rounded-full border border-dashed border-blue-600 text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
-                    >
-                      <span className="material-symbols-outlined text-sm">add</span>
-                      Thêm đồ uống
-                    </button>
+                    </div>
+
+                    {/* Recommended Drinks */}
+                    <div className="p-6 rounded-xl bg-slate-50 border border-slate-200">
+                      <label className="block font-semibold text-slate-800 mb-4 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm text-blue-600">
+                          local_drink
+                        </span>
+                        Thức uống khuyên dùng
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {drinks.map((drink, index) => (
+                          <div
+                            key={index}
+                            className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full inline-flex items-center gap-1 text-sm font-medium border border-blue-200"
+                          >
+                            <span>{drink}</span>
+                            <button
+                              onClick={() => handleRemoveDrink(index)}
+                              className="material-symbols-outlined text-sm opacity-60 hover:opacity-100 cursor-pointer"
+                            >
+                              close
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={handleAddDrink}
+                          className="flex items-center gap-1 px-4 py-1 rounded-full border border-dashed border-blue-600 text-blue-600 hover:bg-blue-50 transition-all text-sm font-medium"
+                        >
+                          <span className="material-symbols-outlined text-sm">add</span>
+                          Thêm đồ uống
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Footer Actions - Only show when there are changes */}
-          {hasChanges && (
-            <div className="mt-8 flex items-center justify-center gap-6 border-t border-slate-200 pt-8">
-              <button
-                onClick={handleCancel}
-                className="px-8 py-3 rounded-xl border border-slate-300 text-slate-600 font-semibold hover:bg-slate-100 transition-all"
-              >
-                Hủy thay đổi
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95"
-              >
-                Lưu cấu hình
-              </button>
-            </div>
-          )}
+              {/* Footer Actions - Only show when there are changes */}
+              {hasChanges && (
+                <div className="mt-8 flex items-center justify-center gap-6 border-t border-slate-200 pt-8">
+                  <button
+                    onClick={handleCancel}
+                    className="px-8 py-3 rounded-xl border border-slate-300 text-slate-600 font-semibold hover:bg-slate-100 transition-all"
+                  >
+                    Hủy thay đổi
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95"
+                  >
+                    Lưu cấu hình
+                  </button>
+                </div>
+              )}
+            </>
+          ) : isDoctor ? (
+            <PersonalizedDietTab operationTypeId={operationTypeId} showToast={showToast} />
+          ) : null}
         </>
       )}
 
