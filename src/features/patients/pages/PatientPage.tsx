@@ -14,6 +14,7 @@ import { HoldReasonModal } from '../components/HoldReasonModal'
 import { PatientSearchBar } from '../components/PatientSearchBar'
 import { NurseAssignmentCell } from '../components/NurseAssignmentCell'
 import { AlertModal } from '../../../components/AlertModal'
+import { usePatientsRealtime } from '../hooks/usePatientsRealtime'
 import type { PatientListItem } from '../types'
 
 const EMPTY_PATIENTS: PatientListItem[] = []
@@ -79,6 +80,7 @@ function isGreenPatientReadyToHide(patient: PatientListItem) {
 
 export function PatientPage() {
   const role = useRole()
+  usePatientsRealtime()
   const [isAddingPatient, setIsAddingPatient] = useState(false)
   const [isImportingPatients, setIsImportingPatients] = useState(false)
   const [selectedDetailPatient, setSelectedDetailPatient] = useState<PatientListItem | null>(null)
