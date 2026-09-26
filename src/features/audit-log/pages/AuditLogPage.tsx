@@ -16,11 +16,7 @@ export function AuditLogPage() {
   const { data, isLoading, error } = useAuditLogs(filters)
 
   // Real-time WebSocket connection
-  const { isConnected } = useAuditLogsRealtime({
-    onNewLog: (log) => {
-      console.log('[AuditLog] New log received:', log)
-    },
-  })
+  const { isConnected } = useAuditLogsRealtime()
 
   const totalPages = data ? Math.ceil(data.total / ITEMS_PER_PAGE) : 0
   const currentPage = Math.floor((filters.offset ?? 0) / ITEMS_PER_PAGE) + 1
