@@ -1,17 +1,18 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { AxiosError, HttpStatusCode } from 'axios'
+import { useToastStore } from './toastStore'
 
 // Hàm xử lý lỗi tập trung
 const handleGlobalError = (error: unknown) => {
   if (error instanceof AxiosError) {
     if (error.status === HttpStatusCode.TooManyRequests) {
-      // TODO: Hiển thị thông báo khi bị giới hạn rate limit (Toast "Quá nhiều yêu cầu")
+      useToastStore.getState().push('Quá nhiều yêu cầu — vui lòng thử lại sau ít phút.')
       return
     }
-    // Chặn lỗi 4XX — để component tự xử lý riêng nếu cần
+    // Chặn lỗi 4XX — để component tự xử lý riêng nếu cần (vd. hiển thị inline trong form)
     if (error.status && error.status >= 400 && error.status < 500) return
   }
-  // TODO: Hiển thị thông báo lỗi hệ thống chung (Toast "Đã có lỗi xảy ra")
+  useToastStore.getState().push('Đã có lỗi xảy ra. Vui lòng thử lại.')
 }
 
 export const queryClient = new QueryClient({

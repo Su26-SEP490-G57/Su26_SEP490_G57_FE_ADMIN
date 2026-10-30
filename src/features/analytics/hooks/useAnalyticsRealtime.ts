@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { io } from 'socket.io-client'
 import { analyticsKeys } from '../api/analytics'
+import { useAuthStore } from '../../auth/store/authStore'
 
 const STATISTICS_SOCKET_URL = `${import.meta.env.VITE_API_BASE_URL ?? ''}/statistics`
 
@@ -15,9 +16,15 @@ interface AssessmentSubmittedEvent {
 // mount (trang này đã bị chặn theo role head_nurse ở nav-config.ts).
 export function useAnalyticsRealtime() {
   const queryClient = useQueryClient()
+  const accessToken = useAuthStore((state) => state.accessToken)
 
   useEffect(() => {
-    const socket = io(STATISTICS_SOCKET_URL, { transports: ['websocket'] })
+    if (!accessToken) return
+
+    const socket = io(STATISTICS_SOCKET_URL, {
+      transports: ['websocket'],
+      auth: { token: accessToken },
+    })
 
     socket.on('assessment.submitted', (payload: AssessmentSubmittedEvent) => {
       // Ward-wide: bất kỳ khảo sát nào cũng có thể đổi biểu đồ xu hướng/tuân
@@ -34,5 +41,5 @@ export function useAnalyticsRealtime() {
     return () => {
       socket.disconnect()
     }
-  }, [queryClient])
+  }, [queryClient, accessToken])
 }

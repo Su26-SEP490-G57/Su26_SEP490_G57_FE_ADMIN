@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { getPatients, updateDietLevel, updatePodLock } from '../api/patientApi'
+import { useSearchParams } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getPatients, patientKeys, updateDietLevel, updatePodLock } from '../api/patientApi'
 import { useRole } from '../../auth/hooks/useRole'
 import {
   getCustomDietGuidance,
@@ -14,19 +15,23 @@ import { HoldReasonModal } from '../components/HoldReasonModal'
 import { PatientSearchBar } from '../components/PatientSearchBar'
 import { NurseAssignmentCell } from '../components/NurseAssignmentCell'
 import { AlertModal } from '../../../components/AlertModal'
-import { usePatientsRealtime } from '../hooks/usePatientsRealtime'
+import {
+  isGreenPatientReadyToHide,
+  levelKey,
+  type BoardColumn,
+  type RiskLevel,
+} from '../utils/triage'
 import type { PatientListItem } from '../types'
 
 const EMPTY_PATIENTS: PatientListItem[] = []
 const DIET_LEVELS = [0, 1, 2, 3, 4] as const
-type RiskLevel = 'red' | 'yellow' | 'green'
 
 type PendingClinicalAction =
   | { type: 'pause'; patient: PatientListItem }
   | { type: 'diet-level-change'; patient: PatientListItem; dietLevel: number }
 
 const RISK_COLUMNS: Record<
-  RiskLevel,
+  BoardColumn,
   { label: string; headerClassName: string; cellBorder: string; indicatorColor: string }
 > = {
   red: {
@@ -47,40 +52,25 @@ const RISK_COLUMNS: Record<
     cellBorder: 'bg-green-50/40 border-green-100',
     indicatorColor: 'bg-green-500',
   },
+  // Data-integrity net, not a togglable risk filter: a patient with no
+  // recognized levelId must always show up SOMEWHERE, never be silently
+  // dropped while the room's "X Ca" count still includes them.
+  unassessed: {
+    label: 'Chưa đánh giá',
+    headerClassName: 'text-slate-500 font-bold',
+    cellBorder: 'bg-slate-50/60 border-slate-200',
+    indicatorColor: 'bg-slate-400',
+  },
 }
 
 function patientName(patient: PatientListItem) {
   return patient.fullName ?? patient.account?.fullName ?? patient.nameInitials ?? '--'
 }
 
-function levelKey(name?: string | null): RiskLevel | null {
-  const normalizedName = (name ?? '').toLowerCase()
-  if (normalizedName.includes('red') || normalizedName.includes('đỏ')) return 'red'
-  if (normalizedName.includes('yellow') || normalizedName.includes('vàng')) return 'yellow'
-  if (normalizedName.includes('green') || normalizedName.includes('xanh')) return 'green'
-  return null
-}
-
-function isGreenPatientReadyToHide(patient: PatientListItem) {
-  if (
-    levelKey(patient.level?.name) !== 'green' ||
-    patient.isLocked ||
-    patient.currentDietLevel !== 4 ||
-    !patient.lastAssessmentTime
-  ) {
-    return false
-  }
-
-  const lastAssessmentTime = new Date(patient.lastAssessmentTime)
-  if (Number.isNaN(lastAssessmentTime.getTime())) return false
-
-  const hoursSinceLastAssessment = (Date.now() - lastAssessmentTime.getTime()) / (1000 * 60 * 60)
-  return hoursSinceLastAssessment > 24
-}
-
 export function PatientPage() {
   const role = useRole()
-  usePatientsRealtime()
+  const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [isAddingPatient, setIsAddingPatient] = useState(false)
   const [isImportingPatients, setIsImportingPatients] = useState(false)
   const [selectedDetailPatient, setSelectedDetailPatient] = useState<PatientListItem | null>(null)
@@ -168,7 +158,13 @@ export function PatientPage() {
     }
   }
 
-  const { data: response, refetch: refetchPatients } = useQuery({
+  const {
+    data: response,
+    refetch: refetchPatients,
+    isLoading: isPatientsLoading,
+    isError: isPatientsError,
+    isFetching: isPatientsFetching,
+  } = useQuery({
     queryKey: ['patients'],
     queryFn: () => getPatients({ limit: 9999 }),
   })
@@ -178,26 +174,56 @@ export function PatientPage() {
   })
 
   const patients = response?.data ?? EMPTY_PATIENTS
+
+  // Deep-link from AlertBell ("?caseId=...") — open that patient's detail
+  // panel once the list has loaded, then drop the param so it doesn't
+  // re-trigger on unrelated re-renders/back-navigation.
+  useEffect(() => {
+    const targetCaseId = searchParams.get('caseId')
+    if (!targetCaseId || patients.length === 0) return
+
+    queueMicrotask(() => {
+      const target = patients.find((p) => p.caseId === targetCaseId)
+      if (target) setSelectedDetailPatient(target)
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete('caseId')
+          return next
+        },
+        { replace: true },
+      )
+    })
+  }, [searchParams, setSearchParams, patients])
   // selectedDetailPatient chỉ là bản chụp lúc bấm chọn — luôn tra lại trong
   // danh sách mới nhất để panel chi tiết hiện dữ liệu vừa sửa/refetch.
   const detailPatient = selectedDetailPatient
     ? (patients.find((p) => p.caseId === selectedDetailPatient.caseId) ?? selectedDetailPatient)
     : null
-  const visibleRiskColumns = useMemo(
-    () =>
-      (Object.keys(RISK_COLUMNS) as RiskLevel[]).filter((level) => activeLevels.includes(level)),
-    [activeLevels],
-  )
-
   const filteredPatients = useMemo(
     () =>
       patients.filter((patient) => {
-        const patientLevel = levelKey(patient.level?.name)
+        const patientLevel = levelKey(patient)
         if (patientLevel && !activeLevels.includes(patientLevel)) return false
         return !isGreenPatientReadyToHide(patient)
       }),
     [activeLevels, patients],
   )
+
+  const hasUnassessedPatients = useMemo(
+    () => filteredPatients.some((patient) => levelKey(patient) === null),
+    [filteredPatients],
+  )
+
+  const visibleRiskColumns = useMemo(() => {
+    const columns: BoardColumn[] = (Object.keys(RISK_COLUMNS) as BoardColumn[]).filter(
+      (level): level is RiskLevel => level !== 'unassessed' && activeLevels.includes(level),
+    )
+    // Always shown when relevant, regardless of the red/yellow/green toggle —
+    // this is a data-integrity net, not a risk filter (see RISK_COLUMNS comment).
+    if (hasUnassessedPatients) columns.push('unassessed')
+    return columns
+  }, [activeLevels, hasUnassessedPatients])
 
   const roomMap = useMemo(
     () =>
@@ -237,7 +263,11 @@ export function PatientPage() {
     setIsUpdating(true)
     try {
       await updatePodLock(patient.caseId, { isLocked: false })
-      await refetchPatients()
+      // Invalidates every '['patients', ...]' query (this page's own list AND
+      // the Analytics page's patientKeys.list(...) variants, which share the
+      // same prefix) — refetchPatients() alone only refetched this page's
+      // instance, leaving another open tab/view stale.
+      await queryClient.invalidateQueries({ queryKey: patientKeys.all })
       setHoveredPatient(null)
     } catch (error) {
       console.error('Unable to resume', error)
@@ -263,7 +293,7 @@ export function PatientPage() {
           reason,
         )
       }
-      await refetchPatients()
+      await queryClient.invalidateQueries({ queryKey: patientKeys.all })
       setPendingClinicalAction(null)
       setHoveredPatient(null)
     } catch (error) {
@@ -383,113 +413,154 @@ export function PatientPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto min-w-full p-4">
-        <div className="inline-block min-w-full align-middle font-sans">
-          <table className="min-w-full border-collapse border border-slate-200 bg-white text-xs">
-            <thead className="sticky top-0 bg-white z-20 shadow-sm">
-              <tr>
-                <th
-                  scope="col"
-                  className="border-b border-slate-200 bg-slate-100 px-3 py-2 text-left font-bold text-slate-600 uppercase tracking-widest w-32"
-                >
-                  Phòng
-                </th>
-                {visibleRiskColumns.map((level) => (
-                  <th
-                    key={level}
-                    scope="col"
-                    className={`border-b border-l border-slate-200 bg-slate-50 px-3 py-2 text-left uppercase tracking-widest ${RISK_COLUMNS[level].headerClassName}`}
-                  >
-                    {RISK_COLUMNS[level].label}
-                  </th>
-                ))}
-                <th
-                  scope="col"
-                  className="border-b border-l border-slate-200 bg-slate-100 px-3 py-2 text-left font-bold text-slate-600 uppercase tracking-widest w-48"
-                >
-                  Điều dưỡng phụ trách
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {Object.values(roomMap).map(({ room, patients: roomPatients }, index) => {
-                const isEven = index % 2 === 0
-                return (
-                  <tr key={room} className={isEven ? 'bg-white' : 'bg-[#fafafa]'}>
-                    <td className="whitespace-nowrap px-3 py-2 align-top border-r border-slate-100">
-                      <div className="font-bold text-slate-800 text-[13px]">{room}</div>
-                      <div className="text-[11px] text-slate-400">{roomPatients.length} Ca</div>
-                    </td>
-                    {visibleRiskColumns.map((level) => {
-                      const levelPatients = roomPatients.filter(
-                        (p) => levelKey(p.level?.name) === level,
-                      )
-                      return (
-                        <td
-                          key={level}
-                          className="px-2 py-2 align-top border-r border-slate-100 last:border-none"
-                        >
-                          <div className="flex flex-row flex-wrap gap-1.5">
-                            {levelPatients.map((patient) => {
-                              const baseClasses = `flex cursor-pointer p-1.5 min-w-[130px] flex-1 max-w-[200px] gap-2 group rounded-sm shadow-sm transition-all ${RISK_COLUMNS[level].cellBorder}`
-                              const lockedClasses = patient.isLocked
-                                ? level === 'red'
-                                  ? 'bg-red-100 border-red-300 border-2'
-                                  : level === 'yellow'
-                                    ? 'bg-yellow-100 border-yellow-300 border-2'
-                                    : 'bg-green-100 border-green-300 border-2'
-                                : 'border border-transparent'
+      {isPatientsError && (
+        <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px]">error</span>
+            <span>
+              Không tải được danh sách bệnh nhân. Đây có thể KHÔNG phải là bệnh viện trống — vui
+              lòng thử lại.
+            </span>
+          </div>
+          <button
+            onClick={() => void refetchPatients()}
+            className="flex-shrink-0 rounded border border-red-300 bg-white px-3 py-1.5 font-semibold text-red-700 hover:bg-red-100"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
 
-                              return (
-                                <div
-                                  key={patient.caseId}
-                                  onClick={() => setSelectedDetailPatient(patient)}
-                                  onMouseEnter={(event) => handleMouseEnter(event, patient)}
-                                  onMouseLeave={scheduleHoverClose}
-                                  className={`${baseClasses} ${lockedClasses}`}
-                                >
-                                  {patient.isLocked && (
-                                    <span
-                                      className="material-symbols-outlined text-slate-600 text-[14px]"
-                                      title="Tạm dừng mức ăn"
-                                    >
-                                      lock
-                                    </span>
-                                  )}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-semibold text-slate-800 text-[12px] truncate group-hover:text-blue-700">
-                                      {patientName(patient)}
-                                    </div>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase font-medium mt-0.5 w-full">
-                                      <span>#{patient.caseId.slice(-4)}</span>
-                                      <span className="text-slate-300">•</span>
-                                      <span>POD {patient.currentPod}</span>
-                                      <span className="text-slate-300">•</span>
-                                      <span className="truncate">
-                                        Mức ăn {patient.currentDietLevel}
+      {isPatientsLoading && (
+        <div className="flex flex-1 items-center justify-center gap-2 p-8 text-sm text-slate-400">
+          <span className="material-symbols-outlined animate-spin text-[20px]">
+            progress_activity
+          </span>
+          Đang tải danh sách bệnh nhân...
+        </div>
+      )}
+
+      {!isPatientsError && !isPatientsLoading && (
+        <div className="flex-1 overflow-x-auto min-w-full p-4">
+          {isPatientsFetching && (
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] text-slate-400">
+              <span className="material-symbols-outlined animate-spin text-[14px]">
+                progress_activity
+              </span>
+              Đang làm mới...
+            </div>
+          )}
+          <div className="inline-block min-w-full align-middle font-sans">
+            <table className="min-w-full border-collapse border border-slate-200 bg-white text-xs">
+              <thead className="sticky top-0 bg-white z-20 shadow-sm">
+                <tr>
+                  <th
+                    scope="col"
+                    className="border-b border-slate-200 bg-slate-100 px-3 py-2 text-left font-bold text-slate-600 uppercase tracking-widest w-32"
+                  >
+                    Phòng
+                  </th>
+                  {visibleRiskColumns.map((level) => (
+                    <th
+                      key={level}
+                      scope="col"
+                      className={`border-b border-l border-slate-200 bg-slate-50 px-3 py-2 text-left uppercase tracking-widest ${RISK_COLUMNS[level].headerClassName}`}
+                    >
+                      {RISK_COLUMNS[level].label}
+                    </th>
+                  ))}
+                  <th
+                    scope="col"
+                    className="border-b border-l border-slate-200 bg-slate-100 px-3 py-2 text-left font-bold text-slate-600 uppercase tracking-widest w-48"
+                  >
+                    Điều dưỡng phụ trách
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {Object.values(roomMap).map(({ room, patients: roomPatients }, index) => {
+                  const isEven = index % 2 === 0
+                  return (
+                    <tr key={room} className={isEven ? 'bg-white' : 'bg-[#fafafa]'}>
+                      <td className="whitespace-nowrap px-3 py-2 align-top border-r border-slate-100">
+                        <div className="font-bold text-slate-800 text-[13px]">{room}</div>
+                        <div className="text-[11px] text-slate-400">{roomPatients.length} Ca</div>
+                      </td>
+                      {visibleRiskColumns.map((level) => {
+                        const levelPatients = roomPatients.filter(
+                          (p) => (levelKey(p) ?? 'unassessed') === level,
+                        )
+                        return (
+                          <td
+                            key={level}
+                            className="px-2 py-2 align-top border-r border-slate-100 last:border-none"
+                          >
+                            <div className="flex flex-row flex-wrap gap-1.5">
+                              {levelPatients.map((patient) => {
+                                const baseClasses = `flex cursor-pointer p-1.5 min-w-[130px] flex-1 max-w-[200px] gap-2 group rounded-sm shadow-sm transition-all ${RISK_COLUMNS[level].cellBorder}`
+                                const lockedClasses = patient.isLocked
+                                  ? level === 'red'
+                                    ? 'bg-red-100 border-red-300 border-2'
+                                    : level === 'yellow'
+                                      ? 'bg-yellow-100 border-yellow-300 border-2'
+                                      : level === 'green'
+                                        ? 'bg-green-100 border-green-300 border-2'
+                                        : 'bg-slate-200 border-slate-400 border-2'
+                                  : 'border border-transparent'
+
+                                return (
+                                  <div
+                                    key={patient.caseId}
+                                    onClick={() => setSelectedDetailPatient(patient)}
+                                    onMouseEnter={(event) => handleMouseEnter(event, patient)}
+                                    onMouseLeave={scheduleHoverClose}
+                                    className={`${baseClasses} ${lockedClasses}`}
+                                  >
+                                    {patient.isLocked && (
+                                      <span
+                                        className="material-symbols-outlined text-slate-600 text-[14px]"
+                                        title="Tạm dừng mức ăn"
+                                      >
+                                        lock
                                       </span>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-semibold text-slate-800 text-[12px] truncate group-hover:text-blue-700">
+                                        {patientName(patient)}
+                                      </div>
+                                      <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase font-medium mt-0.5 w-full">
+                                        <span>#{patient.caseId.slice(-4)}</span>
+                                        <span className="text-slate-300">•</span>
+                                        <span>POD {patient.currentPod}</span>
+                                        <span className="text-slate-300">•</span>
+                                        <span className="truncate">
+                                          Mức ăn {patient.currentDietLevel}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
+                                )
+                              })}
+                              {levelPatients.length === 0 && (
+                                <div className="text-[11px] text-slate-300 italic px-1 w-full">
+                                  —
                                 </div>
-                              )
-                            })}
-                            {levelPatients.length === 0 && (
-                              <div className="text-[11px] text-slate-300 italic px-1 w-full">—</div>
-                            )}
-                          </div>
-                        </td>
-                      )
-                    })}
-                    <td className="px-3 py-2 align-top border-l border-slate-100">
-                      <NurseAssignmentCell roomCode={room} />
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                              )}
+                            </div>
+                          </td>
+                        )
+                      })}
+                      <td className="px-3 py-2 align-top border-l border-slate-100">
+                        <NurseAssignmentCell roomCode={room} />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {hoveredPatient &&
         (() => {
@@ -594,6 +665,12 @@ export function PatientPage() {
                   ))}
                 </select>
               </div>
+              {isTogglingCustomDiet && (
+                <div className="flex items-center gap-1.5 px-3 pb-2 text-[11px] font-medium text-blue-600">
+                  <span className="h-2.5 w-2.5 animate-spin rounded-full border border-blue-400 border-t-transparent inline-block" />
+                  Đang lưu thay đổi chế độ ăn...
+                </div>
+              )}
               {(role === 'nurse' || role === 'head_nurse' || role === 'doctor') && (
                 <div className="p-2 border-t border-slate-100 bg-white">
                   <button

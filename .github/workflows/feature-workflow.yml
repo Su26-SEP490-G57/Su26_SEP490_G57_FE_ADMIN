@@ -40,6 +40,9 @@ jobs:
           npm run format:check
           npm run lint
 
+      - name: Run Tests
+        run: npm run test
+
   deploy_dev:
     name: Deploy to Dev
     needs: code_quality

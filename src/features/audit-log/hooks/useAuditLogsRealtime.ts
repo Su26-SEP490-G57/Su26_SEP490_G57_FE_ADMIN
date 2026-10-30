@@ -19,6 +19,7 @@ export function useAuditLogsRealtime() {
 
     const socket = io('http://localhost:3000/audit-logs', {
       transports: ['websocket'],
+      auth: { token: accessToken },
     })
 
     socketRef.current = socket

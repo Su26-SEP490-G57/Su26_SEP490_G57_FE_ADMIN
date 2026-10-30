@@ -187,16 +187,3 @@ export interface PodLockResponse {
   isLocked: boolean
   holdReason: string | null
 }
-
-export interface ArchivePatientRequest {
-  archived: boolean
-}
-
-export interface ArchivedPatientsResponse {
-  data: Record<string, PatientListItem[]> // Grouped by operation type name
-  total: number
-}
-
-export interface ArchivePatientQuery {
-  search?: string
-}

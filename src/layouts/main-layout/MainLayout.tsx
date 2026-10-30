@@ -2,6 +2,11 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../features/auth/context/AuthContext'
 import { useRole } from '../../features/auth/hooks/useRole'
 import { useAuthStore } from '../../features/auth/store/authStore'
+import { ToastContainer } from '../../components/ToastContainer'
+import { ErrorBoundary } from '../../components/ErrorBoundary'
+import { AlertBell } from '../../features/alerts/components/AlertBell'
+import { usePatientsRealtime } from '../../features/patients/hooks/usePatientsRealtime'
+import { useNurseAssignmentsRealtime } from '../../features/nurses/hooks/useNurseAssignmentsRealtime'
 import { HeaderProvider, useHeaderContext } from './HeaderContext'
 import { NAV_ITEMS, ROLE_LABELS } from './nav-config'
 
@@ -19,6 +24,10 @@ function MainLayoutContent() {
   const navigate = useNavigate()
   const { actions } = useHeaderContext()
   const role = useRole()
+  // Mounted once here (not per-page) so every view gets realtime coverage —
+  // see usePatientsRealtime.ts's comment for why this moved out of PatientPage.
+  const { status: realtimeStatus } = usePatientsRealtime()
+  useNurseAssignmentsRealtime()
 
   const visibleNavItems = NAV_ITEMS.filter((item) => role !== null && item.roles.includes(role))
 
@@ -64,6 +73,20 @@ function MainLayoutContent() {
             <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-blue-50 text-sm font-bold text-blue-700">
               {(userProfile?.fullName ?? userProfile?.username ?? 'N')[0].toUpperCase()}
             </div>
+
+            {realtimeStatus === 'disconnected' && (
+              <span
+                title="Mất kết nối real-time — dữ liệu có thể không phải mới nhất, đang tự động kết nối lại..."
+                className="flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-semibold text-amber-700"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Mất kết nối
+              </span>
+            )}
+
+            <ErrorBoundary label="Cảnh báo" compact>
+              <AlertBell />
+            </ErrorBoundary>
 
             <div className="h-6 w-px bg-slate-200 mx-1"></div>
 
@@ -133,6 +156,8 @@ function MainLayoutContent() {
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
+
+      <ToastContainer />
     </div>
   )
 }
